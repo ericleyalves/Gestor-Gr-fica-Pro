@@ -180,16 +180,9 @@ const Quotes = {
                                     </div>
                                 </div>
 
-                                <!-- Acabamentos -->
-                                <div class="section-card">
-                                    <div class="section-header">
-                                        <div class="section-icon"><span class="material-symbols-outlined">auto_awesome</span></div>
-                                        <h4 class="section-title">Acabamentos Especiais</h4>
-                                    </div>
-                                    <div class="flex flex-wrap gap-2" id="variations-selector">
-                                        <p class="text-[11px] italic" style="color:var(--text-faint);">Selecione um produto para ver os acabamentos.</p>
-                                    </div>
-                                    <p class="text-xs mt-3" style="color:var(--text-faint);">Variações cadastradas no produto adicionam valor ao total.</p>
+                                <!-- Configurador de Produto -->
+                                <div id="product-configurator" class="space-y-4">
+                                    <!-- Dynamic configuration groups will be injected here -->
                                 </div>
 
                             </form>
@@ -412,12 +405,12 @@ const Quotes = {
             const type      = document.getElementById('q-type')?.value || 'm2';
             const discount  = Math.min(100, Math.max(0, parseFloat(document.getElementById('q-discount')?.value) || 0));
 
-            // Calculate extras from checked pills
+            // Calculate extras from selection cards
             let extras = 0;
             let extraDays = 0;
-            document.querySelectorAll('.acabamento-pill.pill-active').forEach(pill => {
-                extras += parseFloat(pill.dataset.cost || 0);
-                extraDays += parseInt(pill.dataset.days || 0);
+            document.querySelectorAll('.config-card.card-active').forEach(card => {
+                extras += parseFloat(card.dataset.cost || 0);
+                extraDays += parseInt(card.dataset.days || 0);
             });
 
             // Base subtotal
@@ -443,8 +436,8 @@ const Quotes = {
             
             // Get selected variation names for summary
             const selectedVars = [];
-            document.querySelectorAll('.acabamento-pill.pill-active').forEach(p => {
-                const label = p.querySelector('.acabamento-label').innerText.split(' (+')[0];
+            document.querySelectorAll('.config-card.card-active').forEach(card => {
+                const label = card.querySelector('.config-card-label').innerText;
                 selectedVars.push(label);
             });
 
@@ -457,9 +450,10 @@ const Quotes = {
             set('summ-product',         document.getElementById('q-product')?.value  || '—');
             
             // If there's a selected quantity variation, use it in the summary
-            const qtyVar = Array.from(document.querySelectorAll('.variation-group'))
-                .find(g => g.querySelector('p').innerText.toUpperCase() === 'QUANTIDADE')
-                ?.querySelector('.pill-active .acabamento-label')?.innerText.split(' (+')[0];
+            const qtyGroup = Array.from(document.querySelectorAll('.config-group'))
+                .find(g => g.querySelector('.config-group-title').innerText.includes('QUANTIDADE'));
+            
+            const qtyVar = qtyGroup?.querySelector('.card-active .config-card-label')?.innerText;
             
             set('summ-qty',             qtyVar || `${document.getElementById('q-qty')?.value || 1} un`);
             
@@ -505,34 +499,35 @@ const Quotes = {
             });
         }
 
-        // Variation selection logic (Radio-style per group)
-        document.getElementById('variations-selector').addEventListener('click', (e) => {
-            const pill = e.target.closest('.acabamento-pill');
-            if (pill) {
-                const group = pill.closest('.variation-group');
-                const check = pill.querySelector('.acabamento-check');
-                
-                if (check) {
-                    // Uncheck all in this group
-                    group.querySelectorAll('.acabamento-check').forEach(c => {
-                        c.checked = false;
-                        c.closest('.acabamento-pill').classList.remove('pill-active');
-                    });
+        // Configurator selection logic (Atual Card style)
+        const configContainer = document.getElementById('product-configurator');
+        if (configContainer) {
+            configContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.config-card');
+                if (card) {
+                    const group = card.closest('.config-group');
+                    const radio = card.querySelector('input[type="radio"]');
                     
-                    // Check the clicked one
-                    check.checked = true;
-                    pill.classList.add('pill-active');
+                    if (radio) {
+                        // Unselect others in group
+                        group.querySelectorAll('.config-card').forEach(c => c.classList.remove('card-active'));
+                        group.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+                        
+                        // Select current
+                        card.classList.add('card-active');
+                        radio.checked = true;
 
-                    // Special case: If group is "Quantidade", update the Qty field to 1
-                    if (group.querySelector('p').innerText.toUpperCase() === 'QUANTIDADE') {
-                        const qtyInput = document.getElementById('q-qty');
-                        if (qtyInput) qtyInput.value = 1;
+                        // Sync Quantity if applicable
+                        if (group.querySelector('.config-group-title').innerText.includes('QUANTIDADE')) {
+                            const qtyInput = document.getElementById('q-qty');
+                            if (qtyInput) qtyInput.value = 1;
+                        }
+                        
+                        updatePrice();
                     }
-                    
-                    updatePrice();
                 }
-            }
-        });
+            });
+        }
 
         // Product selection logic for variations
         const productInput = document.getElementById('q-product');
@@ -549,24 +544,35 @@ const Quotes = {
                     if (typeSelect) typeSelect.value = p.type;
                     
                     if (p.variations && p.variations.length > 0) {
-                        varSelector.innerHTML = p.variations.map(group => `
-                            <div class="variation-group space-y-2 pb-3 border-b border-dashed last:border-0" style="border-color:var(--border);">
-                                <p class="text-[10px] uppercase font-black" style="color:var(--text-faint);">${group.name}</p>
-                                <div class="flex flex-wrap gap-2">
-                                    ${group.options.map(opt => `
-                                        <label class="acabamento-pill" data-cost="${opt.price}" data-days="${opt.days || 0}">
-                                            <input type="radio" name="var-${group.name.replace(/\s/g, '-')}" class="hidden acabamento-check">
-                                            <span class="acabamento-label">${opt.name} (+ R$ ${opt.price.toFixed(2)})</span>
-                                        </label>
-                                    `).join('')}
+                        configContainer.innerHTML = p.variations.map(group => {
+                            const isQty = group.name.toUpperCase().includes('QUANTIDADE');
+                            return `
+                                <div class="config-group">
+                                    <div class="config-group-title">
+                                        <span class="material-symbols-outlined !text-sm">${isQty ? 'format_list_numbered' : 'settings'}</span>
+                                        ${group.name}
+                                    </div>
+                                    <div class="config-grid ${isQty ? 'config-grid-qty' : ''}">
+                                        ${group.options.map(opt => `
+                                            <div class="config-card ${isQty ? 'config-card-qty' : ''}" data-cost="${opt.price}" data-days="${opt.days || 0}">
+                                                <input type="radio" name="conf-${group.name.replace(/\s/g, '-')}" class="hidden">
+                                                <span class="config-card-label">${opt.name}</span>
+                                                <span class="config-card-price">+ R$ ${opt.price.toFixed(2)}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
                                 </div>
-                            </div>
-                        `).join('');
+                            `;
+                        }).join('');
                     } else {
-                        varSelector.innerHTML = `<p class="text-[11px] italic" style="color:var(--text-faint);">Este produto não possui variações cadastradas.</p>`;
+                        configContainer.innerHTML = `<div class="p-8 text-center border-2 border-dashed rounded-2xl" style="border-color:var(--border);">
+                            <p class="text-sm italic" style="color:var(--text-faint);">Este produto não possui configurações avançadas cadastradas.</p>
+                        </div>`;
                     }
                 } else {
-                    varSelector.innerHTML = `<p class="text-[11px] italic" style="color:var(--text-faint);">Selecione um produto para ver os acabamentos.</p>`;
+                    configContainer.innerHTML = `<div class="p-8 text-center border-2 border-dashed rounded-2xl" style="border-color:var(--border);">
+                        <p class="text-sm italic" style="color:var(--text-faint);">Selecione um produto para iniciar a configuração.</p>
+                    </div>`;
                 }
                 updatePrice();
             });
@@ -591,15 +597,15 @@ const Quotes = {
         form.onsubmit = (e) => {
             e.preventDefault();
             
-            // Validation: Check if all variation groups have a selection
-            const groups = document.querySelectorAll('.variation-group');
+            // Validation: Check if all configuration groups have a selection
+            const groups = document.querySelectorAll('.config-group');
             let allSelected = true;
             let missingGroup = '';
             
             groups.forEach(g => {
-                if (!g.querySelector('.pill-active')) {
+                if (!g.querySelector('.card-active')) {
                     allSelected = false;
-                    missingGroup = g.querySelector('p').innerText;
+                    missingGroup = g.querySelector('.config-group-title').innerText;
                 }
             });
             

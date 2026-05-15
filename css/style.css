@@ -801,6 +801,91 @@ label {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* ----------------------------------------------------------------
+   19. CONFIGURADOR DE PRODUTO (Estilo Atual Card)
+   ---------------------------------------------------------------- */
+.config-group {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+}
+
+.config-group-title {
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.config-card {
+    position: relative;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    background: white;
+    text-align: center;
+}
+
+.config-card:hover {
+    border-color: var(--primary-light);
+    background: var(--surface-raised);
+}
+
+.config-card.card-active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.config-card-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.2;
+}
+
+.config-card-price {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: 4px;
+}
+
+/* Especial para Quantidades */
+.config-grid-qty {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.config-card-qty {
+    padding: 16px;
+}
+
+.config-card-qty .config-card-label {
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.config-card-qty .config-card-price {
+    font-size: 13px;
+    margin-top: 6px;
+}
+
 .highlight-pulse {
     animation: highlightPulse 0.5s ease-out;
 }

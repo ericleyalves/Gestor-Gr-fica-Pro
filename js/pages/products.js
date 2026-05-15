@@ -319,8 +319,8 @@ const Products = {
                 <div class="p-4 rounded-xl border bg-slate-50/50" style="border-color:var(--border);">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex-1 mr-4">
-                            <label class="text-[10px] !mb-1 uppercase font-black" style="color:var(--primary);">Nome da Variação (Ex: Quantidade)</label>
-                            <input type="text" value="${v.name}" oninput="window.updateVariationGroup(${gIdx}, this.value)" placeholder="Ex: Verniz Total" class="!py-1.5 text-sm font-bold">
+                            <label class="text-[10px] !mb-1 uppercase font-black" style="color:var(--primary);">Nome do Grupo (Ex: Material, Cor, Cobertura, Tamanho)</label>
+                            <input type="text" value="${v.name}" oninput="window.updateVariationGroup(${gIdx}, this.value)" placeholder="Ex: Material" class="!py-1.5 text-sm font-bold">
                         </div>
                         <div class="flex gap-2 items-center">
                             <button type="button" onclick="window.addOption(${gIdx})" class="btn-ghost !py-1 !px-2 text-[10px] font-bold h-8">
