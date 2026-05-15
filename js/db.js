@@ -72,23 +72,11 @@ const DB = {
     },
 
     init: () => {
-        // Dados locais de fallback inicial
-        if (!DB.get('products')) {
-            DB.save('products', [
-                { id: '1', name: 'Cartão Couchê 300g UV Total', category: 'Cartão de visita', type: 'Milheiro', cost: 25.00, price: 45.00, status: true, ref: 'CC300UV-F', stock: 150 },
-            ]);
-        }
-        if (!DB.get('customers')) {
-            DB.save('customers', [
-                { id: '1', name: 'Agência CriaMais', email: 'contato@criamais.com', phone: '(11) 99999-9999', document: '12.345.678/0001-90' }
-            ]);
-        }
-        if (!DB.get('orders')) {
-            DB.save('orders', []);
-        }
-        if (!DB.get('quotes')) {
-            DB.save('quotes', []);
-        }
+        // Inicializa as coleções como vazias se não existirem
+        if (!DB.get('products'))  DB.save('products', []);
+        if (!DB.get('customers')) DB.save('customers', []);
+        if (!DB.get('orders'))    DB.save('orders', []);
+        if (!DB.get('quotes'))    DB.save('quotes', []);
 
         // Tenta iniciar a sincronização com a nuvem após um pequeno delay para garantir que a lib carregou
         setTimeout(() => {
