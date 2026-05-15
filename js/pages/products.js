@@ -437,7 +437,8 @@ const Products = {
         if (btnClose) btnClose.onclick = closeModal;
         if (btnCancel) btnCancel.onclick = closeModal;
 
-        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+        // REMOVED backdrop click close to prevent accidental data loss
+        // modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 
         // Calculator Logic
         const updateCalc = () => {

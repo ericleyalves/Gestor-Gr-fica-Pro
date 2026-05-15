@@ -590,8 +590,8 @@ const Quotes = {
         if (btnClose)    btnClose.onclick    = closeModal;
         if (btnCancel)   btnCancel.onclick   = closeModal;
 
-        // Click backdrop to close
-        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        // Click backdrop to close (Disabled to prevent accidental data loss)
+        // modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
         // Form submit
         form.onsubmit = (e) => {
