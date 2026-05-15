@@ -135,35 +135,10 @@ const Products = {
                                     </div>
                                 </div>
 
-                                <!-- 3. Precificação -->
-                                <div class="section-card">
-                                    <div class="section-header">
-                                        <div class="section-icon"><span class="material-symbols-outlined">payments</span></div>
-                                        <h4 class="section-title">Precificação Base</h4>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label>Tipo de Unidade</label>
-                                            <select id="p-type">
-                                                <option value="un">Unidade</option>
-                                                <option value="m2">m²</option>
-                                                <option value="ct">Cento</option>
-                                                <option value="mi">Milheiro</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label>Custo Base (R$)</label>
-                                            <input type="number" id="p-cost" step="0.01" value="0.00">
-                                        </div>
-                                        <div class="col-span-2 p-4 rounded-[16px]" style="background:var(--bg-main); border:1px solid var(--border);">
-                                            <div class="flex justify-between items-center mb-2">
-                                                <label class="!mb-0">Margem de Lucro</label>
-                                                <span id="margin-label" class="text-sm font-black" style="color:var(--primary);">100%</span>
-                                            </div>
-                                            <input type="range" id="p-margin" min="0" max="500" value="100" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary">
-                                        </div>
-                                    </div>
-                                </div>
+                                <!-- 3. Precificação Base REMOVED -->
+                                <input type="hidden" id="p-type" value="un">
+                                <input type="hidden" id="p-cost" value="0">
+                                <input type="hidden" id="p-margin" value="0">
                                 
                                 <!-- 4. Estoque -->
                                 <div class="section-card">
@@ -178,11 +153,11 @@ const Products = {
                                                 <p class="text-[10px]" style="color:var(--text-faint);">Ative para monitorar baixas automáticas.</p>
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" id="p-manage-stock" class="sr-only peer" checked>
+                                                <input type="checkbox" id="p-manage-stock" class="sr-only peer">
                                                 <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                             </label>
                                         </div>
-                                        <div id="stock-qty-container">
+                                        <div id="stock-qty-container" style="display:none;">
                                             <label>Quantidade Atual</label>
                                             <input type="number" id="p-stock" min="0" value="0">
                                         </div>
@@ -197,43 +172,15 @@ const Products = {
                                 <span class="material-symbols-outlined" style="font-size:18px;">check_circle</span>
                                 Salvar Produto
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- RIGHT: Intelligence -->
-                    <div class="hidden lg:flex flex-col sidebar-summary overflow-y-auto" style="flex:0 0 35%;">
-                        <div class="px-6 pt-6 pb-4 border-b" style="border-color:var(--border);">
-                            <p class="label-caps">Inteligência Financeira</p>
-                        </div>
-                        <div class="flex-1 px-6 py-5 space-y-4">
-                            <div class="p-5 rounded-[20px] border" style="background:white; border-color:var(--border); box-shadow:var(--shadow-2);">
-                                <div class="text-center">
-                                    <p class="label-caps mb-1" style="color:var(--primary);">PREÇO FINAL SUGERIDO</p>
-                                    <p class="text-4xl font-black tracking-tighter" style="color:var(--text-main); letter-spacing:-0.04em;" id="display-price">R$ 0,00</p>
-                                </div>
-                                <div class="h-px my-4" style="background:var(--border);"></div>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span style="color:var(--text-muted);">Custo Unitário</span>
-                                        <span class="font-bold" style="color:var(--text-sub);" id="val-cost">R$ 0,00</span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span style="color:var(--text-muted);">Lucro Líquido</span>
-                                        <span class="font-bold" style="color:#059669;" id="val-profit">R$ 0,00</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="p-4 rounded-[16px] border bg-white" style="border-color:var(--border);">
-                                <p class="label-caps mb-3">Análise de ROI</p>
-                                <div class="flex items-end gap-2">
-                                    <div class="flex-1 bg-slate-100 h-2 rounded-full overflow-hidden">
-                                        <div id="roi-bar" class="h-full bg-primary" style="width: 50%;"></div>
-                                    </div>
-                                    <span class="text-xs font-black" id="roi-text">50% ROI</span>
-                                </div>
-                            </div>
-                        </div>
+                                           <!-- RIGHT: Intelligence REMOVED to simplify as requested -->
+                    <div class="hidden">
+                        <div id="display-price">0</div>
+                        <div id="margin-label">0</div>
+                        <div id="val-cost">0</div>
+                        <div id="val-profit">0</div>
+                        <div id="roi-text">0</div>
+                        <div id="roi-bar"></div>
+                    </div>        </div>
                     </div>
                 </div>
             </div>
