@@ -256,6 +256,12 @@ const Quotes = {
                                         <span style="color:var(--text-muted);">Prazo Estimado</span>
                                         <span class="font-bold" style="color:var(--text-sub);">3 a 5 dias úteis</span>
                                     </div>
+                                    <div class="flex justify-between items-start text-xs pt-2 border-t border-dashed" style="border-color:var(--border);">
+                                        <span style="color:var(--text-muted);">Opções</span>
+                                        <div id="summ-acabamentos-list" class="flex-1 ml-4">
+                                            <p class="text-[10px] text-right" style="color:var(--text-faint);">Nenhum</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -432,6 +438,14 @@ const Quotes = {
 
             // Update DOM
             const set = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+            
+            // Get selected variation names for summary
+            const selectedVars = [];
+            document.querySelectorAll('.acabamento-pill.pill-active').forEach(p => {
+                const label = p.querySelector('.acabamento-label').innerText.split(' (+')[0];
+                selectedVars.push(label);
+            });
+
             set('q-total-item',         fmtBRL(currentQuoteTotal));
             set('summ-subtotal',        fmtBRL(subtotal));
             set('summ-extras',          extras > 0 ? `+ ${fmtBRL(extras)}` : 'R$ 0,00');
@@ -439,7 +453,21 @@ const Quotes = {
             set('summ-total',           fmtBRL(currentQuoteTotal));
             set('summ-customer',        document.getElementById('q-customer')?.value || '—');
             set('summ-product',         document.getElementById('q-product')?.value  || '—');
-            set('summ-qty',             `${document.getElementById('q-qty')?.value || 1} un`);
+            
+            // If there's a selected quantity variation, use it in the summary
+            const qtyVar = Array.from(document.querySelectorAll('.variation-group'))
+                .find(g => g.querySelector('p').innerText.toUpperCase() === 'QUANTIDADE')
+                ?.querySelector('.pill-active .acabamento-label')?.innerText.split(' (+')[0];
+            
+            set('summ-qty',             qtyVar || `${document.getElementById('q-qty')?.value || 1} un`);
+            
+            // Update the "Acabamentos" list in summary if needed (optional, but good for UX)
+            const acabList = document.getElementById('summ-acabamentos-list');
+            if (acabList) {
+                acabList.innerHTML = selectedVars.length > 0 
+                    ? selectedVars.map(v => `<p class="text-[10px] text-right font-semibold" style="color:var(--primary);">${v}</p>`).join('')
+                    : '<p class="text-[10px] text-right" style="color:var(--text-faint);">Nenhum</p>';
+            }
         };
 
         // Wire all inputs
@@ -471,16 +499,20 @@ const Quotes = {
                 const check = pill.querySelector('.acabamento-check');
                 
                 if (check) {
-                    const wasChecked = check.checked;
-                    
                     // Uncheck all in this group
-                    group.querySelectorAll('.acabamento-check').forEach(c => c.checked = false);
-                    group.querySelectorAll('.acabamento-pill').forEach(p => p.classList.remove('pill-active'));
+                    group.querySelectorAll('.acabamento-check').forEach(c => {
+                        c.checked = false;
+                        c.closest('.acabamento-pill').classList.remove('pill-active');
+                    });
                     
-                    // Toggle current (or just check if it was unchecked)
-                    if (!wasChecked) {
-                        check.checked = true;
-                        pill.classList.add('pill-active');
+                    // Check the clicked one
+                    check.checked = true;
+                    pill.classList.add('pill-active');
+
+                    // Special case: If group is "Quantidade", update the Qty field to 1
+                    if (group.querySelector('p').innerText.toUpperCase() === 'QUANTIDADE') {
+                        const qtyInput = document.getElementById('q-qty');
+                        if (qtyInput) qtyInput.value = 1;
                     }
                     
                     updatePrice();
