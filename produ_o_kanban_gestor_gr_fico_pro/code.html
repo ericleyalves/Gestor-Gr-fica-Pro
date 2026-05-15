@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Produção - Gestor Gráfico Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#cbc3da",
+                        "inverse-on-surface": "#f5eefe",
+                        "primary-container": "#6d28ff",
+                        "surface-container-high": "#ece5f5",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fdf7ff",
+                        "inverse-primary": "#cebdff",
+                        "tertiary-container": "#635e72",
+                        "surface-container": "#f2ebfb",
+                        "on-secondary-fixed": "#25005a",
+                        "surface-dim": "#ded7e7",
+                        "on-primary-fixed-variant": "#5000cf",
+                        "background": "#fdf7ff",
+                        "on-tertiary-fixed": "#1d192a",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#1d1a25",
+                        "surface-tint": "#6a22fc",
+                        "primary-fixed-dim": "#cebdff",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#4b475a",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#cac3da",
+                        "on-primary-container": "#e3d7ff",
+                        "on-secondary-container": "#fffbff",
+                        "on-background": "#1d1a25",
+                        "on-tertiary-container": "#e1d9f1",
+                        "primary-fixed": "#e8ddff",
+                        "surface-variant": "#e7e0f0",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "primary": "#5400d6",
+                        "on-primary-fixed": "#20005e",
+                        "surface-container-highest": "#e7e0f0",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "surface": "#fdf7ff",
+                        "tertiary-fixed": "#e7dff7",
+                        "inverse-surface": "#322f3b",
+                        "on-tertiary-fixed-variant": "#494457",
+                        "secondary": "#712ae2",
+                        "outline": "#7a7488",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "secondary-fixed": "#eaddff",
+                        "secondary-container": "#8a4cfc",
+                        "surface-container-low": "#f8f1ff",
+                        "on-surface-variant": "#494457"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "base": "8px",
+                        "lg": "24px",
+                        "container-margin": "24px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-xl-mobile": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-xl": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-xl-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for kanban board but allow scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background h-screen flex overflow-hidden font-body-md">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-full border-r border-outline-variant/30 fixed left-0 top-0 w-[280px] bg-surface dark:bg-inverse-surface shadow-xl z-40">
+<!-- Header -->
+<div class="p-6 border-b border-outline-variant/20 flex flex-col gap-2">
+<div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-on-primary-container shadow-sm">
+<span class="material-symbols-outlined fill-icon">layers</span>
+</div>
+<div>
+<h1 class="text-headline-md font-headline-md font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Gestor Gráfico Pro</h1>
+<p class="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Production Hub</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto py-4 flex flex-col gap-1">
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-md font-label-md">Dashboard</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-label-md font-label-md">Produtos</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-label-md font-label-md">Clientes</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-label-md font-label-md">Orçamentos</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-label-md font-label-md">Vendas</span>
+</a>
+<!-- Active Tab -->
+<a class="bg-primary-container text-on-primary-container rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 opacity-90" href="#">
+<span class="material-symbols-outlined fill-icon">view_kanban</span>
+<span class="text-label-md font-label-md">Produção</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="text-label-md font-label-md">Financeiro</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">package_2</span>
+<span class="text-label-md font-label-md">Estoque</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-label-md font-label-md">Relatórios</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200 mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md font-label-md">Configurações</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col md:ml-[280px] w-full relative">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-6 py-3 z-30 bg-surface/80 backdrop-blur-xl docked full-width top-0 sticky border-b border-white/10 shadow-[0px_4px_20px_rgba(109,40,255,0.04)]">
+<!-- Mobile Brand (Hidden on Desktop) -->
+<div class="md:hidden">
+<h1 class="text-headline-md font-headline-md font-bold text-primary">Gestor Gráfico Pro</h1>
+</div>
+<!-- Search (Left side on Desktop) -->
+<div class="hidden md:flex items-center bg-surface-container rounded-full px-4 py-2 w-80 border border-outline-variant/30 focus-within:border-primary focus-within:shadow-[0_0_0_4px_#ece5f5] transition-all">
+<span class="material-symbols-outlined text-outline mr-2">search</span>
+<input class="bg-transparent border-none outline-none w-full text-body-sm font-body-sm text-on-surface placeholder:text-outline" placeholder="Buscar pedido, cliente..." type="text"/>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-primary-container/10 p-2 rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:bg-primary-container/10 p-2 rounded-full transition-colors hidden md:block">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-label-md shadow-sm border border-outline-variant/20 cursor-pointer overflow-hidden">
+<!-- Placeholder avatar using initials, simulating an image -->
+<span class="material-symbols-outlined">person</span>
+</div>
+</div>
+</header>
+<!-- Kanban Board Canvas -->
+<div class="flex-1 overflow-hidden flex flex-col bg-surface-container-low p-4 md:p-6 pb-24 md:pb-6 gap-6">
+<!-- Canvas Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface mb-1">Quadro de Produção</h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Arraste os cards para atualizar o status dos pedidos.</p>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-lg text-on-surface hover:bg-surface-variant transition-colors text-label-md font-label-md flex-1 md:flex-none justify-center">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                        Filtrar por Responsável
+                    </button>
+<button class="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-primary to-secondary text-on-primary rounded-lg shadow-[0px_10px_30px_rgba(109,40,255,0.08)] hover:scale-[1.02] transition-transform text-label-md font-label-md flex-1 md:flex-none justify-center">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                        Novo Pedido
+                    </button>
+</div>
+</div>
+<!-- Kanban Columns Container -->
+<div class="flex-1 flex gap-gutter overflow-x-auto no-scrollbar items-start h-full">
+<!-- Column: Novo -->
+<div class="w-[300px] flex-shrink-0 flex flex-col bg-surface-container rounded-xl max-h-full">
+<div class="p-3 border-b border-outline-variant/20 flex justify-between items-center bg-surface/50 rounded-t-xl">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-outline"></div>
+<h3 class="text-label-md font-label-md text-on-surface uppercase">Novo</h3>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-full">3</span>
+</div>
+<div class="p-2 flex flex-col gap-2 overflow-y-auto min-h-[100px]">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-lg p-3 shadow-sm border-l-4 border-outline hover:shadow-[0px_10px_30px_rgba(109,40,255,0.08)] transition-shadow cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-error-container text-on-error-container text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Urgente</span>
+<span class="text-on-surface-variant text-[12px]">#4092</span>
+</div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface line-clamp-1">Agência Criativa XYZ</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-3 line-clamp-1">Banner Lona 2x1m + Ilhós</p>
+<div class="flex justify-between items-center border-t border-outline-variant/20 pt-2 mt-2">
+<div class="flex items-center gap-1 text-error">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="text-label-md font-label-md text-error">Hoje 18:00</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface">R$ 180,00</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-lg p-3 shadow-sm border-l-4 border-outline hover:shadow-[0px_10px_30px_rgba(109,40,255,0.08)] transition-shadow cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Normal</span>
+<span class="text-on-surface-variant text-[12px]">#4094</span>
+</div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface line-clamp-1">Restaurante Sabor</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-3 line-clamp-1">1000 Panfletos A5 Couchê</p>
+<div class="flex justify-between items-center border-t border-outline-variant/20 pt-2 mt-2">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="text-label-md font-label-md">24/10</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface">R$ 350,00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: Arte -->
+<div class="w-[300px] flex-shrink-0 flex flex-col bg-surface-container rounded-xl max-h-full">
+<div class="p-3 border-b border-outline-variant/20 flex justify-between items-center bg-surface/50 rounded-t-xl">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<h3 class="text-label-md font-label-md text-on-surface uppercase">Arte</h3>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-full">1</span>
+</div>
+<div class="p-2 flex flex-col gap-2 overflow-y-auto min-h-[100px]">
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-lg p-3 shadow-sm border-l-4 border-secondary hover:shadow-[0px_10px_30px_rgba(109,40,255,0.08)] transition-shadow cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-primary-container/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Média</span>
+<span class="text-on-surface-variant text-[12px]">#4090</span>
+</div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface line-clamp-1">Tech Solutions Inc</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-3 line-clamp-1">Cartões de Visita (500un) UV Local</p>
+<div class="flex justify-between items-center border-t border-outline-variant/20 pt-2 mt-2">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="text-label-md font-label-md">25/10</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface">R$ 220,00</span>
+</div>
+<div class="mt-2 flex -space-x-2 overflow-hidden">
+<div class="inline-block h-6 w-6 rounded-full ring-2 ring-surface-container-lowest bg-tertiary text-on-tertiary flex items-center justify-center text-[10px] font-bold">AN</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: Aprovação -->
+<div class="w-[300px] flex-shrink-0 flex flex-col bg-surface-container rounded-xl max-h-full">
+<div class="p-3 border-b border-outline-variant/20 flex justify-between items-center bg-surface/50 rounded-t-xl">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-tertiary"></div>
+<h3 class="text-label-md font-label-md text-on-surface uppercase">Aprovação</h3>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-full">2</span>
+</div>
+<div class="p-2 flex flex-col gap-2 overflow-y-auto min-h-[100px]">
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest rounded-lg p-3 shadow-sm border-l-4 border-tertiary hover:shadow-[0px_10px_30px_rgba(109,40,255,0.08)] transition-shadow cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Normal</span>
+<span class="text-on-surface-variant text-[12px]">#4088</span>
+</div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface line-clamp-1">Condomínio Flores</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-3 line-clamp-1">Placas de Sinalização PS</p>
+<div class="flex justify-between items-center border-t border-outline-variant/20 pt-2 mt-2">
+<div class="flex items-center gap-1 text-error">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="text-label-md font-label-md">Ontem</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface">R$ 480,00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: Produção -->
+<div class="w-[300px] flex-shrink-0 flex flex-col bg-surface-container-high border border-primary/20 rounded-xl max-h-full relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
+<div class="p-3 border-b border-outline-variant/20 flex justify-between items-center bg-surface/50 rounded-t-xl mt-1">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary animate-pulse"></div>
+<h3 class="text-label-md font-label-md text-primary font-bold uppercase">Produção</h3>
+</div>
+<span class="text-label-md font-label-md text-on-primary bg-primary px-2 py-0.5 rounded-full shadow-sm">4</span>
+</div>
+<div class="p-2 flex flex-col gap-2 overflow-y-auto min-h-[100px]">
+<!-- Card 5 -->
+<div class="bg-surface-container-lowest rounded-lg p-3 shadow-[0px_4px_20px_rgba(109,40,255,0.06)] border-l-4 border-primary hover:shadow-[0px_10px_30px_rgba(109,40,255,0.12)] transition-shadow cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-error-container text-on-error-container text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Urgente</span>
+<span class="text-on-surface-variant text-[12px]">#4085</span>
+</div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface line-clamp-1">Prefeitura Municipal</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-3 line-clamp-1">Faixas de Rua 3x1m (10un)</p>
+<!-- Progress Bar for Production -->
+<div class="w-full bg-surface-variant rounded-full h-1.5 mb-3">
+<div class="bg-primary h-1.5 rounded-full" style="width: 45%"></div>
+</div>
+<div class="flex justify-between items-center border-t border-outline-variant/20 pt-2 mt-2">
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span class="text-label-md font-label-md">Hoje 14:00</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface">R$ 1.200,00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: Acabamento -->
+<div class="w-[300px] flex-shrink-0 flex flex-col bg-surface-container rounded-xl max-h-full">
+<div class="p-3 border-b border-outline-variant/20 flex justify-between items-center bg-surface/50 rounded-t-xl">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary-fixed-dim"></div>
+<h3 class="text-label-md font-label-md text-on-surface uppercase">Acabamento</h3>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-full">0</span>
+</div>
+<div class="p-2 flex flex-col gap-2 overflow-y-auto min-h-[100px] items-center justify-center opacity-50">
+<span class="material-symbols-outlined text-[32px] text-outline-variant mb-2">content_cut</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant text-center">Nenhum pedido nesta etapa</p>
+</div>
+</div>
+<!-- Column: Pronto -->
+<div class="w-[300px] flex-shrink-0 flex flex-col bg-surface-container rounded-xl max-h-full">
+<div class="p-3 border-b border-outline-variant/20 flex justify-between items-center bg-surface/50 rounded-t-xl">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-[#10b981]"></div> <!-- Success color simulation -->
+<h3 class="text-label-md font-label-md text-on-surface uppercase">Pronto</h3>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-full">1</span>
+</div>
+<div class="p-2 flex flex-col gap-2 overflow-y-auto min-h-[100px]">
+<!-- Card 6 -->
+<div class="bg-surface-container-lowest rounded-lg p-3 shadow-sm border-l-4 border-[#10b981] opacity-80 hover:opacity-100 transition-opacity cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Normal</span>
+<span class="text-on-surface-variant text-[12px]">#4070</span>
+</div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface line-clamp-1">Maria Santos</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-3 line-clamp-1">Convites de Casamento Especial</p>
+<div class="flex justify-between items-center border-t border-outline-variant/20 pt-2 mt-2">
+<div class="flex items-center gap-1 text-[#10b981]">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="text-label-md font-label-md">Aguardando Retirada</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: Entregue -->
+<div class="w-[300px] flex-shrink-0 flex flex-col bg-surface-container rounded-xl max-h-full opacity-70">
+<div class="p-3 border-b border-outline-variant/20 flex justify-between items-center bg-surface/50 rounded-t-xl">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-outline-variant"></div>
+<h3 class="text-label-md font-label-md text-on-surface uppercase">Entregue</h3>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded-full">12+</span>
+</div>
+<div class="p-2 flex flex-col gap-2 overflow-y-auto min-h-[100px]">
+<!-- Card 7 (Completed) -->
+<div class="bg-surface-variant rounded-lg p-3 border-l-4 border-outline-variant">
+<h4 class="text-body-sm font-body-sm font-bold text-on-surface-variant line-clamp-1 line-through">Auto Escola Brasil</h4>
+<p class="text-[12px] text-outline mb-1 line-clamp-1">Adesivos Perfurados</p>
+<span class="text-[10px] text-outline font-bold">Entregue 22/10</span>
+</div>
+</div>
+</div>
+<!-- Spacing block for end of scroll -->
+<div class="w-4 flex-shrink-0"></div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-4 pt-2 bg-surface/90 dark:bg-inverse-surface/90 backdrop-blur-lg z-50 rounded-t-xl border-t border-outline-variant/20 shadow-[0px_-4px_20px_rgba(109,40,255,0.1)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest transition-colors rounded-xl" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-2xl px-5 py-2 shadow-sm scale-105 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined fill-icon">view_kanban</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1 font-bold">Produção</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest transition-colors rounded-xl" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Vendas</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest transition-colors rounded-xl hidden sm:flex" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Financeiro</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest transition-colors rounded-xl" href="#">
+<span class="material-symbols-outlined">menu</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Menu</span>
+</a>
+</nav>
+</body></html>

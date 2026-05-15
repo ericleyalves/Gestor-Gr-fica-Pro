@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestor Gráfico Pro - Produtos</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#cbc3da",
+                        "inverse-on-surface": "#f5eefe",
+                        "primary-container": "#6d28ff",
+                        "surface-container-high": "#ece5f5",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fdf7ff",
+                        "inverse-primary": "#cebdff",
+                        "tertiary-container": "#635e72",
+                        "surface-container": "#f2ebfb",
+                        "on-secondary-fixed": "#25005a",
+                        "surface-dim": "#ded7e7",
+                        "on-primary-fixed-variant": "#5000cf",
+                        "background": "#fdf7ff",
+                        "on-tertiary-fixed": "#1d192a",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#1d1a25",
+                        "surface-tint": "#6a22fc",
+                        "primary-fixed-dim": "#cebdff",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#4b475a",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#cac3da",
+                        "on-primary-container": "#e3d7ff",
+                        "on-secondary-container": "#fffbff",
+                        "on-background": "#1d1a25",
+                        "on-tertiary-container": "#e1d9f1",
+                        "primary-fixed": "#e8ddff",
+                        "surface-variant": "#e7e0f0",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "primary": "#5400d6",
+                        "on-primary-fixed": "#20005e",
+                        "surface-container-highest": "#e7e0f0",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "surface": "#fdf7ff",
+                        "tertiary-fixed": "#e7dff7",
+                        "inverse-surface": "#322f3b",
+                        "on-tertiary-fixed-variant": "#494457",
+                        "secondary": "#712ae2",
+                        "outline": "#7a7488",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "secondary-fixed": "#eaddff",
+                        "secondary-container": "#8a4cfc",
+                        "surface-container-low": "#f8f1ff",
+                        "on-surface-variant": "#494457"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "base": "8px",
+                        "lg": "24px",
+                        "container-margin": "24px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-xl-mobile": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-xl": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-xl-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-[280px] bg-surface shadow-xl z-40 flex-col border-r border-outline-variant/30">
+<div class="p-lg">
+<h1 class="text-headline-md font-headline-md font-black bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Gestor Gráfico Pro</h1>
+<p class="text-label-md font-label-md text-on-surface-variant mt-1">Production Hub</p>
+</div>
+<div class="flex-1 overflow-y-auto py-sm px-sm space-y-1">
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-md font-label-md">Dashboard</span>
+</a>
+<a class="bg-primary-container text-on-primary-container rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 opacity-90" href="#">
+<span class="material-symbols-outlined" data-weight="fill">inventory_2</span>
+<span class="text-label-md font-label-md">Produtos</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-label-md font-label-md">Clientes</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-label-md font-label-md">Orçamentos</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-label-md font-label-md">Vendas</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">view_kanban</span>
+<span class="text-label-md font-label-md">Produção</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="text-label-md font-label-md">Financeiro</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">package_2</span>
+<span class="text-label-md font-label-md">Estoque</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-label-md font-label-md">Relatórios</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high rounded-lg mx-2 my-1 px-4 py-3 flex items-center gap-3 hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md font-label-md">Configurações</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-[280px] pb-24 md:pb-0">
+<!-- TopNavBar -->
+<header class="bg-surface/80 backdrop-blur-xl shadow-[0px_4px_20px_rgba(109,40,255,0.04)] sticky top-0 full-width z-30 border-b border-outline-variant/10">
+<div class="flex justify-between items-center w-full px-6 py-3">
+<div class="flex items-center gap-4 flex-1">
+<div class="md:hidden">
+<span class="text-headline-md font-headline-md font-bold text-primary">Gestor Gráfico Pro</span>
+</div>
+<!-- Search Bar -->
+<div class="hidden md:flex items-center bg-surface-container-high rounded-full px-4 py-2 w-full max-w-md border border-transparent focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-container/20 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 outline-none w-full text-body-md font-body-md text-on-surface placeholder:text-on-surface-variant/60" placeholder="Buscar produtos..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-primary-container/10 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-primary-container/10 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-primary-container overflow-hidden border border-outline-variant/30">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a person, used as a user profile avatar in a modern software interface. The person is smiling slightly, facing forward. Lighting is soft and even. The overall style is clean, corporate, and fits seamlessly into a high-end, light-mode dashboard environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkKPvhsLFK5tD9rFhZ1yWhleusGKw6piRnjR_N8aj0w4UI7QOI8FHIDJY_grNgZnHKvXsMZlaN8XSRrq3mLBhK1pUA_b2DQLOpcrurIXN16QnAVR0WyY688s1YmohcnnhIqJCXxIy2A5spZ0ZYfcr57oO6I3NMQA5W99lLGkGMJiuIns1MAGyvrUef1KZ0UN9Z2Jr7McR4fp2uXssZC3m1BC6GNWjU59c6CxWqN8jqEbCebKsjaOJpc4CvjbAbQ_UIfBSZeHpNqJ8"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<main class="p-gutter md:p-container-margin max-w-[1440px] mx-auto">
+<!-- Page Header & Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-lg">
+<div>
+<h2 class="text-headline-lg md:text-headline-xl font-headline-lg md:font-headline-xl text-on-surface">Inventário de Produtos</h2>
+<p class="text-body-md font-body-md text-on-surface-variant mt-1">Gerencie seu catálogo de impressos, preços e disponibilidade.</p>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high text-primary px-4 py-2.5 rounded-lg text-label-md font-label-md transition-all shadow-sm">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+                        Filtros
+                    </button>
+<button class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-secondary hover:shadow-[0px_10px_30px_rgba(109,40,255,0.15)] text-on-primary px-5 py-2.5 rounded-lg text-label-md font-label-md transition-all shadow-[0px_4px_20px_rgba(109,40,255,0.08)]">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                        Novo Produto
+                    </button>
+</div>
+</div>
+<!-- Categories Chips -->
+<div class="flex overflow-x-auto pb-sm mb-lg gap-2 scrollbar-hide">
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container text-label-md font-label-md border border-primary-container">Todos</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">Cartão de visita</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">Panfleto</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">Banner</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">Lona</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">Adesivo</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">Placa Pix</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">Acrílico</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface text-on-surface-variant hover:bg-surface-container-high text-label-md font-label-md border border-outline-variant/30 transition-colors">MDF</button>
+</div>
+<!-- Product Data Table/Grid -->
+<div class="bg-surface rounded-xl shadow-[0px_4px_20px_rgba(109,40,255,0.04)] overflow-hidden border border-outline-variant/20">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[900px]">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant/20">
+<th class="px-6 py-4 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Produto</th>
+<th class="px-6 py-4 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Categoria</th>
+<th class="px-6 py-4 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Tipo (Calc)</th>
+<th class="px-6 py-4 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider text-right">Custo</th>
+<th class="px-6 py-4 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider text-right">Venda</th>
+<th class="px-6 py-4 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider text-center">Status</th>
+<th class="px-6 py-4 text-label-md font-label-md text-on-surface-variant uppercase tracking-wider text-center">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10 text-body-sm font-body-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-lowest/50 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex-shrink-0 overflow-hidden border border-outline-variant/20">
+<img alt="Business Card Thumbnail" class="w-full h-full object-cover" data-alt="A close-up, high-quality image of a stack of premium business cards on a clean, light surface. The cards feature a minimalist design. The lighting is bright and professional, fitting a modern printing company's product catalog. Colors are crisp and well-balanced." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCNJ4ZIOV1BltSjgvt8AWwI6SipQgLj12RSHE5zvZfQuM2yMnuUF31Ki61rppkeCss_A6rEzBC-eaJrmehzZ_6hDpGg1XSZkyMAPN8qzSexz-qhMdZWTtTEyDbISFl5phraGb9UQF4577NyhQpmPEN1Xuz8kxhNuYPR83g-TO8h5z_SFZfhtcnhdiYoDSbJs6o8KAT-TylPzvn-MuxPaaqfNAAANPpgu5n93btAX39_m2AC0P9hPziSEvtuXGyPaIlGP_IWdC0D5M"/>
+</div>
+<div>
+<p class="text-on-surface font-semibold">Cartão Couchê 300g UV Total</p>
+<p class="text-on-surface-variant text-[12px] mt-0.5">Ref: CC300UV-F</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant text-label-md font-label-md">Cartão de visita</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Milheiro (1000 un)</td>
+<td class="px-6 py-4 text-right text-on-surface-variant">R$ 25,00</td>
+<td class="px-6 py-4 text-right font-semibold text-primary">R$ 45,00</td>
+<td class="px-6 py-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-9 h-5 bg-outline-variant/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant/30 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-lowest/50 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex-shrink-0 overflow-hidden border border-outline-variant/20">
+<img alt="Banner Thumbnail" class="w-full h-full object-cover" data-alt="A brightly lit photo of a colorful promotional banner rolled out on a large table. The vibrant colors of the print are evident. The setting is a clean, modern print shop environment. The aesthetic is professional and focused on the quality of the large-format print material." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-63lz2b4eZZz9sza3s8HrtNgdRsesOPbMpX_0yMycmMBdFP4uHPwO0d_uxKTTX8g5UsrDczGebboe7OOELU7AUk-Hnz-H1xme1S-2cPmwTLEwlvWKo01eBmZiaPqYovoy-sL9bHnb9rHb68igSLV955WVYkZacGz7Ra_rziDKih4qvNSon5lUsLDLpwryflcrn_Wm317IEejADCAPOCRcsCpzv3gdPQTX9DtCyIw_KI1rmRx1J1qXkwYXJz0fAnVp4y9EsEwdWQA"/>
+</div>
+<div>
+<p class="text-on-surface font-semibold">Lona Brilho 440g - Ilhós</p>
+<p class="text-on-surface-variant text-[12px] mt-0.5">Ref: LB440-IL</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant text-label-md font-label-md">Lona</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">Metro Quadrado (m²)</td>
+<td class="px-6 py-4 text-right text-on-surface-variant">R$ 18,50</td>
+<td class="px-6 py-4 text-right font-semibold text-primary">R$ 40,00</td>
+<td class="px-6 py-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-9 h-5 bg-outline-variant/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant/30 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-lowest/50 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex-shrink-0 overflow-hidden border border-outline-variant/20">
+<div class="w-full h-full flex items-center justify-center bg-surface-container text-outline-variant">
+<span class="material-symbols-outlined">image</span>
+</div>
+</div>
+<div>
+<p class="text-on-surface font-semibold text-on-surface-variant/70">Adesivo Vinil Fosco Recorte</p>
+<p class="text-on-surface-variant/70 text-[12px] mt-0.5">Ref: AVF-REC</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant text-label-md font-label-md">Adesivo</span>
+</td>
+<td class="px-6 py-4 text-on-surface-variant/70">Metro Quadrado (m²)</td>
+<td class="px-6 py-4 text-right text-on-surface-variant/70">R$ 22,00</td>
+<td class="px-6 py-4 text-right font-semibold text-primary/70">R$ 55,00</td>
+<td class="px-6 py-4 text-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-9 h-5 bg-outline-variant/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant/30 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 border-t border-outline-variant/20 flex items-center justify-between bg-surface">
+<p class="text-body-sm font-body-sm text-on-surface-variant">Mostrando 1 a 3 de 124 produtos</p>
+<div class="flex items-center gap-1">
+<button class="p-1 rounded-md text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-md bg-primary-container text-on-primary-container text-body-sm font-body-sm font-semibold flex items-center justify-center">1</button>
+<button class="w-8 h-8 rounded-md hover:bg-surface-container text-on-surface text-body-sm font-body-sm flex items-center justify-center transition-colors">2</button>
+<button class="w-8 h-8 rounded-md hover:bg-surface-container text-on-surface text-body-sm font-body-sm flex items-center justify-center transition-colors">3</button>
+<button class="p-1 rounded-md text-on-surface-variant hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-4 pt-2 bg-surface/90 backdrop-blur-lg z-50 rounded-t-xl border-t border-outline-variant/20 shadow-[0px_-4px_20px_rgba(109,40,255,0.1)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined">view_kanban</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Produção</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-2xl px-5 py-2 active:bg-surface-container-highest scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-weight="fill">inventory_2</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Produtos</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Vendas</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 active:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined">menu</span>
+<span class="text-label-md-mobile font-label-md-mobile mt-1">Menu</span>
+</a>
+</nav>
+</body></html>

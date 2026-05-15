@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Gestor Gráfico Pro — Sistema de Gestão</title>
+    <meta name="description" content="Sistema de gestão completo para gráficas: produtos, clientes, orçamentos, produção e financeiro.">
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6C2BFF',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+
+    <!-- ============================================================ -->
+    <!-- LOGIN PAGE                                                    -->
+    <!-- ============================================================ -->
+    <div id="login-page" class="active flex items-center justify-center p-4 min-h-screen" style="background: linear-gradient(135deg, #4B1FD1, #6C2BFF, #8B5CF6);">
+        <main class="w-full max-w-[420px]">
+            <div class="glass-panel rounded-[28px] shadow-2xl p-10 w-full border" style="border-color: rgba(255,255,255,0.2);">
+                <div class="flex flex-col items-center mb-8">
+                    <div class="w-16 h-16 mb-5 rounded-[20px] flex items-center justify-center" style="background: rgba(108,43,255,0.1); border: 1.5px solid rgba(108,43,255,0.2);">
+                        <span class="material-symbols-outlined text-4xl" style="color:#6C2BFF;">print</span>
+                    </div>
+                    <h1 class="text-2xl font-black text-center mb-1" style="color:#0F172A; letter-spacing:-0.03em;">Gestor Gráfico Pro</h1>
+                    <p class="text-sm text-center font-medium" style="color:#64748B;">Acesse o centro de controle da sua produção.</p>
+                </div>
+                <form id="login-form" class="space-y-5">
+                    <div class="space-y-1.5">
+                        <label for="email">E-mail Corporativo</label>
+                        <div class="search-input-wrap" style="max-width:100%;">
+                            <span class="material-symbols-outlined">mail</span>
+                            <input id="email" type="email" placeholder="nome@suagrafica.com.br" required value="admin@graficapro.com.br" style="border-radius:14px;">
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label for="password">Senha</label>
+                            <a href="#" class="text-xs font-semibold" style="color:#6C2BFF;">Esqueceu?</a>
+                        </div>
+                        <div class="search-input-wrap" style="max-width:100%;">
+                            <span class="material-symbols-outlined">lock</span>
+                            <input id="password" type="password" placeholder="••••••••" required value="123456" style="border-radius:14px;">
+                        </div>
+                    </div>
+                    <div class="pt-1">
+                        <button type="submit" class="btn-primary w-full py-3 text-base justify-center" style="border-radius:14px;">
+                            Entrar no Sistema
+                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- APP SHELL                                                     -->
+    <!-- ============================================================ -->
+    <div id="app-shell" class="hidden flex h-screen overflow-hidden">
+
+        <!-- SIDEBAR -->
+        <nav id="sidebar" class="hidden md:flex fixed left-0 top-0 h-full flex-col z-40" style="width:240px; background:white; border-right:1px solid #ECE7FF;">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 px-5 py-5 border-b" style="border-color:#F0EDFF;">
+                <div class="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#6C2BFF,#4B1FD1);">
+                    <span class="material-symbols-outlined text-white" style="font-size:18px;">print</span>
+                </div>
+                <div>
+                    <p class="font-black text-sm" style="color:#0F172A; letter-spacing:-0.02em;">Gestor Gráfico Pro</p>
+                    <p class="text-[10px] font-semibold" style="color:#94A3B8;">Production Hub</p>
+                </div>
+            </div>
+
+            <!-- Nav Items -->
+            <div class="flex-1 overflow-y-auto py-3" id="sidebar-nav">
+                <p class="px-5 mb-2" style="font-size:10px; font-weight:700; color:#CBD5E1; text-transform:uppercase; letter-spacing:0.1em;">Principal</p>
+                <a class="nav-link active" href="#" data-target="dashboard">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+                <a class="nav-link" href="#" data-target="orcamentos">
+                    <span class="material-symbols-outlined">description</span>
+                    Orçamentos
+                </a>
+                <a class="nav-link" href="#" data-target="vendas">
+                    <span class="material-symbols-outlined">point_of_sale</span>
+                    Vendas
+                </a>
+                <a class="nav-link" href="#" data-target="producao">
+                    <span class="material-symbols-outlined">view_kanban</span>
+                    Produção
+                </a>
+
+                <p class="px-5 mt-4 mb-2" style="font-size:10px; font-weight:700; color:#CBD5E1; text-transform:uppercase; letter-spacing:0.1em;">Catálogo</p>
+                <a class="nav-link" href="#" data-target="produtos">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    Produtos
+                </a>
+                <a class="nav-link" href="#" data-target="clientes">
+                    <span class="material-symbols-outlined">groups</span>
+                    Clientes
+                </a>
+                <a class="nav-link" href="#" data-target="estoque">
+                    <span class="material-symbols-outlined">package_2</span>
+                    Estoque
+                </a>
+
+                <p class="px-5 mt-4 mb-2" style="font-size:10px; font-weight:700; color:#CBD5E1; text-transform:uppercase; letter-spacing:0.1em;">Gestão</p>
+                <a class="nav-link" href="#" data-target="financeiro">
+                    <span class="material-symbols-outlined">account_balance_wallet</span>
+                    Financeiro
+                </a>
+                <a class="nav-link" href="#" data-target="relatorios">
+                    <span class="material-symbols-outlined">analytics</span>
+                    Relatórios
+                </a>
+                <a class="nav-link" href="#" data-target="configuracoes">
+                    <span class="material-symbols-outlined">settings</span>
+                    Configurações
+                </a>
+            </div>
+
+            <!-- User Profile (bottom) -->
+            <div class="border-t p-4" style="border-color:#F0EDFF;">
+                <div id="user-profile-btn" class="flex items-center gap-3 p-2 rounded-[12px] cursor-pointer hover:bg-slate-50 transition-all">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0" style="background:linear-gradient(135deg,#6C2BFF,#4B1FD1);">
+                        AD
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold truncate" style="color:#0F172A;">Administrador</p>
+                        <p class="text-[11px] truncate" style="color:#94A3B8;">admin@graficapro.com.br</p>
+                    </div>
+                    <span class="material-symbols-outlined flex-shrink-0" style="font-size:18px; color:#CBD5E1;">logout</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden" style="margin-left:240px;" id="main-wrapper">
+
+            <!-- HEADER -->
+            <header class="flex justify-between items-center px-6 py-3 border-b z-50 flex-shrink-0" style="background:rgba(255,255,255,0.95); border-color:#ECE7FF; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);">
+                <div class="flex items-center gap-4">
+                    <!-- Mobile logo -->
+                    <span class="md:hidden font-black text-lg" style="color:#6C2BFF;">GGP</span>
+                    <!-- Search -->
+                    <div class="hidden md:flex search-input-wrap" style="width:280px;">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Buscar no sistema..." style="border-radius:var(--radius-sm); font-size:13px;">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="w-9 h-9 flex items-center justify-center rounded-[10px] transition-all" style="color:#94A3B8;" onmouseover="this.style.background='#F8F6FF'" onmouseout="this.style.background='transparent'">
+                        <span class="material-symbols-outlined" style="font-size:20px;">notifications</span>
+                    </button>
+                    <!-- Mobile menu trigger -->
+                    <button id="btn-mobile-menu" class="md:hidden w-9 h-9 flex items-center justify-center rounded-[10px]" style="color:#94A3B8;">
+                        <span class="material-symbols-outlined" style="font-size:20px;">menu</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- PAGE CONTENT -->
+            <main id="main-content" class="flex-1 overflow-y-auto p-5 md:p-8" style="background:var(--bg-main); padding-bottom: 5rem;">
+                <!-- Injected by JS -->
+            </main>
+        </div>
+
+        <!-- MOBILE MENU OVERLAY -->
+        <div id="mobile-menu" class="hidden fixed inset-0 z-[60] flex flex-col p-6" style="background:rgba(255,255,255,0.98); backdrop-filter:blur(20px);">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black" style="color:#0F172A;">Menu</h2>
+                <button id="close-mobile-menu" class="w-9 h-9 flex items-center justify-center rounded-full" style="background:#F8F6FF;">
+                    <span class="material-symbols-outlined" style="font-size:20px; color:#64748B;">close</span>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto flex flex-col gap-1">
+                <a class="nav-link" href="#" data-target="dashboard">Dashboard</a>
+                <a class="nav-link" href="#" data-target="orcamentos">Orçamentos</a>
+                <a class="nav-link" href="#" data-target="vendas">Vendas</a>
+                <a class="nav-link" href="#" data-target="producao">Produção</a>
+                <a class="nav-link" href="#" data-target="produtos">Produtos</a>
+                <a class="nav-link" href="#" data-target="clientes">Clientes</a>
+                <a class="nav-link" href="#" data-target="estoque">Estoque</a>
+                <a class="nav-link" href="#" data-target="financeiro">Financeiro</a>
+                <a class="nav-link" href="#" data-target="relatorios">Relatórios</a>
+                <a class="nav-link" href="#" data-target="configuracoes">Configurações</a>
+                <button id="logout-mobile" class="nav-link mt-4 text-red-500 hover:bg-red-50 hover:text-red-600 justify-start w-full">
+                    <span class="material-symbols-outlined">logout</span>
+                    Sair do Sistema
+                </button>
+            </div>
+        </div>
+
+        <!-- MOBILE BOTTOM NAV -->
+        <nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-2 pb-safe pt-2 z-50 border-t" style="background:rgba(255,255,255,0.95); border-color:#ECE7FF; backdrop-filter:blur(12px);">
+            <a class="mobile-nav-link active" href="#" data-target="dashboard">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span>Home</span>
+            </a>
+            <a class="mobile-nav-link" href="#" data-target="orcamentos">
+                <span class="material-symbols-outlined">description</span>
+                <span>Orçamentos</span>
+            </a>
+            <a class="mobile-nav-link" href="#" data-target="producao">
+                <span class="material-symbols-outlined">view_kanban</span>
+                <span>Produção</span>
+            </a>
+            <button id="btn-mobile-menu-bottom" class="mobile-nav-link">
+                <span class="material-symbols-outlined">grid_view</span>
+                <span>Menu</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- CONFIRM MODAL (global)                                       -->
+    <!-- ============================================================ -->
+    <div id="custom-confirm-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4" style="background:rgba(10,10,20,0.5); backdrop-filter:blur(8px);">
+        <div class="confirm-card">
+            <div id="confirm-icon-wrap" class="w-16 h-16 rounded-[20px] flex items-center justify-center mx-auto mb-5">
+                <span id="confirm-icon" class="material-symbols-outlined text-4xl">warning</span>
+            </div>
+            <h4 id="confirm-title" class="text-lg font-black text-center mb-2" style="color:#0F172A; letter-spacing:-0.02em;">Confirmar</h4>
+            <p id="confirm-message" class="text-sm text-center mb-6 leading-relaxed" style="color:#64748B;"></p>
+            <div class="flex gap-3">
+                <button id="confirm-cancel" class="btn-ghost flex-1 justify-center">Cancelar</button>
+                <button id="confirm-yes" class="flex-1 justify-center" style="border-radius:var(--radius-md); padding:0.65rem 1rem; font-weight:700; font-size:14px; border:none; cursor:pointer;">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
