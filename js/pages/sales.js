@@ -54,8 +54,15 @@ const Sales = {
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex justify-center gap-1">
-                                                <button class="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Imprimir"><span class="material-symbols-outlined text-sm">print</span></button>
-                                                <button class="p-2 hover:bg-slate-100 rounded-lg transition-colors" title="Ver Detalhes"><span class="material-symbols-outlined text-sm">visibility</span></button>
+                                                <button onclick="window.printOrder('${order.id}')" class="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all text-slate-400" title="Imprimir Comprovante">
+                                                    <span class="material-symbols-outlined text-[18px]">print</span>
+                                                </button>
+                                                <button onclick="window.viewOrder('${order.id}')" class="p-2 hover:bg-slate-100 rounded-lg transition-all text-slate-400" title="Ver Detalhes">
+                                                    <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                                </button>
+                                                <button onclick="window.cancelOrder('${order.id}')" class="p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all text-slate-400" title="Cancelar Pedido">
+                                                    <span class="material-symbols-outlined text-[18px]">cancel</span>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -70,11 +77,81 @@ const Sales = {
         // Ativa os eventos
         setTimeout(() => {
             const btn = document.getElementById('btn-sales-new-sale');
-            if (btn) {
-                btn.onclick = () => {
-                    import('../app.js').then(m => m.default.navigateTo('orcamentos'));
-                };
-            }
+            if (btn) btn.onclick = () => import('../app.js').then(m => m.default.navigateTo('orcamentos'));
+
+            // Handlers Globais
+            window.viewOrder = (id) => {
+                const orders = DB.get('orders') || [];
+                const order = orders.find(o => o.id === id);
+                if (!order) return;
+
+                import('../app.js').then(m => {
+                    const optionsHtml = (order.options || []).map(opt => `<span class="badge badge-purple m-1">${opt}</span>`).join('');
+                    m.default.confirm({
+                        title: `Detalhes do Pedido ${order.id}`,
+                        message: `
+                            <div class="text-left space-y-4">
+                                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                    <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Cliente</p>
+                                    <p class="text-sm font-bold text-slate-800">${order.customerName}</p>
+                                </div>
+                                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                    <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Produto e Configuração</p>
+                                    <p class="text-sm font-bold text-slate-800 mb-2">${order.productName}</p>
+                                    <div class="flex flex-wrap -m-1">
+                                        ${optionsHtml || '<p class="text-xs italic text-slate-400">Sem variações</p>'}
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                        <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Valor Total</p>
+                                        <p class="text-lg font-black text-primary">R$ ${order.value.toFixed(2)}</p>
+                                    </div>
+                                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                                        <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Status Atual</p>
+                                        <p class="text-sm font-bold text-indigo-600">${order.status}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `,
+                        type: 'info',
+                        confirmLabel: 'Fechar'
+                    });
+                });
+            };
+
+            window.printOrder = (id) => {
+                const orders = DB.get('orders') || [];
+                const order = orders.find(o => o.id === id);
+                if (!order) return;
+                
+                // Simula impressão abrindo o WhatsApp formatado ou preparando print
+                import('./quotes.js').then(m => {
+                    // Podemos reusar a lógica de formatar mensagem para imprimir algo limpo
+                    window.print(); 
+                });
+            };
+
+            window.cancelOrder = (id) => {
+                import('../app.js').then(m => {
+                    m.default.confirm({
+                        title: 'Cancelar Pedido?',
+                        message: `Tem certeza que deseja cancelar o pedido ${id}? Esta ação não pode ser desfeita.`,
+                        type: 'danger',
+                        confirmLabel: 'Sim, Cancelar',
+                        onConfirm: () => {
+                            const orders = DB.get('orders') || [];
+                            const orderIdx = orders.findIndex(o => o.id === id);
+                            if (orderIdx !== -1) {
+                                orders[orderIdx].status = 'Cancelado';
+                                DB.save('orders', orders);
+                                m.default.toast('Pedido cancelado com sucesso.', 'info');
+                                Sales.render(container);
+                            }
+                        }
+                    });
+                });
+            };
         }, 0);
     }
 };
