@@ -145,24 +145,24 @@ const App = {
             </div>
         `;
         try {
-            const modules = {
-                dashboard: './pages/dashboard.js',
-                produtos: './pages/products.js',
-                clientes: './pages/customers.js',
-                producao: './pages/kanban.js',
-                vendas: './pages/sales.js',
-                orcamentos: './pages/quotes.js',
-                financeiro: './pages/finance.js',
-                estoque: './pages/inventory.js',
-                relatorios: './pages/reports.js',
-                configuracoes: './pages/settings.js',
+            const moduleLoaders = {
+                dashboard: () => import('./pages/dashboard.js'),
+                produtos: () => import('./pages/products.js'),
+                clientes: () => import('./pages/customers.js'),
+                producao: () => import('./pages/kanban.js'),
+                vendas: () => import('./pages/sales.js'),
+                orcamentos: () => import('./pages/quotes.js'),
+                financeiro: () => import('./pages/finance.js'),
+                estoque: () => import('./pages/inventory.js'),
+                relatorios: () => import('./pages/reports.js'),
+                configuracoes: () => import('./pages/settings.js'),
             };
-            const path = modules[page];
-            if (!path) {
+            const loader = moduleLoaders[page];
+            if (!loader) {
                 container.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><span class="material-symbols-outlined">construction</span></div><h3>Página não encontrada</h3><p>Esta seção não foi localizada no sistema.</p></div>`;
                 return;
             }
-            const module = await import(path);
+            const module = await loader();
             if (module && module.default) {
                 module.default.render(container);
             }
