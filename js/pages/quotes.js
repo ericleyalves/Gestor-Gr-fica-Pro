@@ -539,8 +539,8 @@ const Quotes = {
                     const typeSelect = document.getElementById('q-type');
                     if (typeSelect) typeSelect.value = p.type;
                     
-                    if (p.variations && p.variations.length > 0) {
-                        configContainer.innerHTML = p.variations.map(group => {
+                    const variationsHtml = p.variations && p.variations.length > 0 
+                        ? p.variations.map(group => {
                             const isQty = group.name.toUpperCase().includes('QUANTIDADE');
                             return `
                                 <div class="config-group">
@@ -559,12 +559,23 @@ const Quotes = {
                                     </div>
                                 </div>
                             `;
-                        }).join('');
-                    } else {
-                        configContainer.innerHTML = `<div class="p-8 text-center border-2 border-dashed rounded-2xl" style="border-color:var(--border);">
+                        }).join('')
+                        : `<div class="p-8 text-center border-2 border-dashed rounded-2xl" style="border-color:var(--border);">
                             <p class="text-sm italic" style="color:var(--text-faint);">Este produto não possui configurações avançadas cadastradas.</p>
-                        </div>`;
-                    }
+                          </div>`;
+
+                    configContainer.innerHTML = `
+                        <div class="flex items-center gap-4 p-4 rounded-2xl bg-white border mb-4" style="border-color:var(--border);">
+                            <div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 border flex-shrink-0">
+                                <img src="${p.image || 'https://via.placeholder.com/200?text=📦'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/200?text=📦'">
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-black tracking-tight" style="color:var(--text-main);">${p.name}</h4>
+                                <span class="badge badge-purple">${p.category}</span>
+                            </div>
+                        </div>
+                        ${variationsHtml}
+                    `;
                 } else {
                     configContainer.innerHTML = `<div class="p-8 text-center border-2 border-dashed rounded-2xl" style="border-color:var(--border);">
                         <p class="text-sm italic" style="color:var(--text-faint);">Selecione um produto para iniciar a configuração.</p>

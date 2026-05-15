@@ -111,8 +111,14 @@ const Products = {
                                                 <option>Cartões</option>
                                                 <option>Banners</option>
                                                 <option>Adesivos</option>
+                                                <option>Folhetos</option>
                                                 <option>Diversos</option>
                                             </select>
+                                        </div>
+                                        <div class="col-span-2">
+                                            <label>URL da Imagem (Opcional)</label>
+                                            <input type="text" id="p-image" placeholder="https://exemplo.com/imagem.jpg" autocomplete="off">
+                                            <p class="text-[10px] mt-1" style="color:var(--text-faint);">Dica: Use links de imagens do seu site ou redes sociais.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -217,10 +223,17 @@ const Products = {
         return `
             <tr style="border-bottom:1px solid #F8F6FF; transition:background 0.15s;" onmouseover="this.style.background='#FAFBFF'" onmouseout="this.style.background=''">
                 <td class="px-5 py-3.5">
-                    <p class="text-sm font-bold" style="color:var(--text-main);">${p.name}</p>
-                    <div class="flex items-center gap-2">
-                        <p class="text-xs font-semibold" style="color:var(--text-faint); text-transform:uppercase">${p.type === 'm2' ? 'Por Metro Quadrado' : 'Unidade'}</p>
-                        ${p.manageStock === false ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">SEM ESTOQUE</span>' : ''}
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 border" style="border-color:var(--border);">
+                            <img src="${p.image || 'https://via.placeholder.com/100?text=📦'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/100?text=📦'">
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold" style="color:var(--text-main);">${p.name}</p>
+                            <div class="flex items-center gap-2">
+                                <p class="text-xs font-semibold" style="color:var(--text-faint); text-transform:uppercase">${p.type === 'm2' ? 'Por Metro Quadrado' : 'Unidade'}</p>
+                                ${p.manageStock === false ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">SEM ESTOQUE</span>' : ''}
+                            </div>
+                        </div>
                     </div>
                 </td>
                 <td class="px-5 py-3.5">
@@ -353,6 +366,7 @@ const Products = {
                 if (p) {
                     document.getElementById('p-name').value = p.name;
                     document.getElementById('p-ref').value = p.ref || '';
+                    document.getElementById('p-image').value = p.image || '';
                     document.getElementById('p-category').value = p.category;
                     document.getElementById('p-type').value = p.type;
                     document.getElementById('p-cost').value = p.cost;
@@ -485,6 +499,7 @@ const Products = {
                 id: editingId || generateId(),
                 name: document.getElementById('p-name').value,
                 ref: document.getElementById('p-ref').value,
+                image: document.getElementById('p-image').value,
                 category: document.getElementById('p-category').value,
                 type: document.getElementById('p-type').value,
                 cost: cost,
