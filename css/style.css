@@ -155,7 +155,7 @@ label {
     pointer-events: none;
 }
 .input-prefix-wrap input {
-    padding-left: 2.25rem;
+    padding-left: 2.5rem !important;
 }
 
 /* ----------------------------------------------------------------

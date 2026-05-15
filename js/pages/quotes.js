@@ -156,26 +156,26 @@ const Quotes = {
                                     <div class="grid gap-3 p-4 rounded-[14px]" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr; background:#FAFBFF; border:1px solid var(--border);">
                                         <div>
                                             <label>Qtd.</label>
-                                            <input type="number" id="q-qty" value="1" min="1">
+                                            <input type="number" id="q-qty" value="" min="1">
                                         </div>
                                         <div class="item-dim">
                                             <label>Larg. (cm)</label>
-                                            <input type="number" id="q-width" value="100">
+                                            <input type="number" id="q-width" value="">
                                         </div>
                                         <div class="item-dim">
                                             <label>Alt. (cm)</label>
-                                            <input type="number" id="q-height" value="100">
+                                            <input type="number" id="q-height" value="">
                                         </div>
                                         <div>
                                             <label id="label-unit-price">Valor / m²</label>
                                             <div class="input-prefix-wrap">
                                                 <span class="prefix">R$</span>
-                                                <input type="number" id="q-unit-price" value="45.00" min="0" step="0.01">
+                                                <input type="number" id="q-unit-price" value="" min="0" step="0.01">
                                             </div>
                                         </div>
                                         <div>
                                             <label>Total</label>
-                                            <div id="q-total-item" class="total-display-premium">R$ 45,00</div>
+                                            <div id="q-total-item" class="total-display-premium">R$ 0,00</div>
                                         </div>
                                     </div>
                                 </div>
@@ -455,10 +455,24 @@ const Quotes = {
         };
 
         // Wire all inputs
-        ['q-qty','q-width','q-height','q-unit-price','q-type','q-discount','q-customer','q-product'].forEach(id => {
+        ['q-qty','q-width','q-height','q-unit-price','q-type','q-discount','q-product'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', updatePrice);
         });
+
+        const customerInput = document.getElementById('q-customer');
+        if (customerInput) {
+            customerInput.addEventListener('input', (e) => {
+                updatePrice();
+                const selected = customers.find(c => c.name === e.target.value);
+                if (selected) {
+                    const phoneInput = document.getElementById('q-whatsapp');
+                    const compInput = document.getElementById('q-company');
+                    if (phoneInput && !phoneInput.value) phoneInput.value = selected.phone || '';
+                    if (compInput && !compInput.value) compInput.value = selected.document || '';
+                }
+            });
+        }
 
         // Pill toggle
         document.querySelectorAll('.acabamento-pill').forEach(pill => {
