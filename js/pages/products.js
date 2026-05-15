@@ -23,7 +23,7 @@ const Products = {
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     ${Products.kpi('Total de Produtos', products.length, 'inventory_2', '#6C2BFF', '#F0EBFF')}
                     ${Products.kpi('Ativos', products.filter(p => p.status).length, 'check_circle', '#10B981', '#ECFDF5')}
-                    ${Products.kpi('Baixo Estoque', products.filter(p => (p.stock || 0) < 10).length, 'warning', '#D97706', '#FFFBEB')}
+                    ${Products.kpi('Baixo Estoque', products.filter(p => p.manageStock !== false && (p.stock || 0) < 10).length, 'warning', '#D97706', '#FFFBEB')}
                     ${Products.kpi('Valor em Estoque', Products.calcStockValue(products), 'payments', '#2563EB', '#EFF6FF')}
                 </div>
 
@@ -148,11 +148,23 @@ const Products = {
                                 <div class="section-card">
                                     <div class="section-header">
                                         <div class="section-icon"><span class="material-symbols-outlined">layers</span></div>
-                                        <h4 class="section-title">Estoque Inicial</h4>
+                                        <h4 class="section-title">Gestão de Estoque</h4>
                                     </div>
-                                    <div>
-                                        <label>Quantidade em Estoque</label>
-                                        <input type="number" id="p-stock" min="0" value="0">
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between p-3 rounded-xl border bg-slate-50" style="border-color:var(--border);">
+                                            <div>
+                                                <p class="text-sm font-bold" style="color:var(--text-main);">Controlar Estoque?</p>
+                                                <p class="text-[10px]" style="color:var(--text-faint);">Ative para monitorar baixas automáticas.</p>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" id="p-manage-stock" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div id="stock-qty-container">
+                                            <label>Quantidade Atual</label>
+                                            <input type="number" id="p-stock" min="0" value="0">
+                                        </div>
                                     </div>
                                 </div>
 
@@ -242,7 +254,10 @@ const Products = {
     `,
 
     calcStockValue: (products) => {
-        const total = products.reduce((sum, p) => sum + (parseFloat(p.cost || 0) * (p.stock || 0)), 0);
+        const total = products.reduce((sum, p) => {
+            if (p.manageStock === false) return sum;
+            return sum + (parseFloat(p.cost || 0) * (p.stock || 0));
+        }, 0);
         return total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     },
 
@@ -253,7 +268,10 @@ const Products = {
             <tr style="border-bottom:1px solid #F8F6FF; transition:background 0.15s;" onmouseover="this.style.background='#FAFBFF'" onmouseout="this.style.background=''">
                 <td class="px-5 py-3.5">
                     <p class="text-sm font-bold" style="color:var(--text-main);">${p.name}</p>
-                    <p class="text-xs font-semibold" style="color:var(--text-faint); uppercase">${p.type === 'm2' ? 'Por Metro Quadrado' : 'Unidade'}</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-xs font-semibold" style="color:var(--text-faint); text-transform:uppercase">${p.type === 'm2' ? 'Por Metro Quadrado' : 'Unidade'}</p>
+                        ${p.manageStock === false ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">SEM ESTOQUE</span>' : ''}
+                    </div>
                 </td>
                 <td class="px-5 py-3.5">
                     <p class="text-xs font-black" style="color:var(--primary);">${p.ref || 'S/ REF'}</p>
@@ -352,7 +370,9 @@ const Products = {
                     document.getElementById('p-cost').value = p.cost;
                     const margin = p.cost > 0 ? (((p.price / p.cost) - 1) * 100).toFixed(0) : 100;
                     document.getElementById('p-margin').value = margin;
+                    document.getElementById('p-manage-stock').checked = p.manageStock !== false;
                     document.getElementById('p-stock').value = p.stock || 0;
+                    document.getElementById('stock-qty-container').style.display = p.manageStock !== false ? 'block' : 'none';
                     currentVariations = JSON.parse(JSON.stringify(p.variations || []));
                 }
             }
@@ -361,6 +381,12 @@ const Products = {
             renderVariations();
             updateCalc();
         };
+
+        if (document.getElementById('p-manage-stock')) {
+            document.getElementById('p-manage-stock').onchange = (e) => {
+                document.getElementById('stock-qty-container').style.display = e.target.checked ? 'block' : 'none';
+            };
+        }
 
         const closeModal = () => modal.classList.add('hidden');
 
@@ -449,6 +475,7 @@ const Products = {
                 cost: cost,
                 price: price,
                 status: true,
+                manageStock: document.getElementById('p-manage-stock').checked,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 variations: currentVariations.filter(v => v.name.trim() !== '')
             };
