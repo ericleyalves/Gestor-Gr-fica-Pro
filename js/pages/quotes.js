@@ -195,6 +195,19 @@ const Quotes = {
                     </div>
                 </div>
             </div>
+
+            <!-- TELA DE HISTÓRICO (OVERLAY) -->
+            <div id="quotes-list-overlay" class="hidden fixed inset-0 z-[10001] bg-white p-10 overflow-y-auto">
+                <div class="max-w-[1300px] mx-auto animate-in slide-in-from-bottom-8 duration-500">
+                    <div class="flex justify-between items-center mb-10">
+                        <button id="btn-back-to-quotes" class="flex items-center gap-3 text-primary font-black text-[11px] uppercase tracking-[0.2em] hover:translate-x-[-5px] transition-all">
+                            <span class="material-symbols-outlined">arrow_back</span> Voltar ao Painel de Vendas
+                        </button>
+                        <h3 class="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">Histórico de Propostas</h3>
+                    </div>
+                    <div id="list-target-area"></div>
+                </div>
+            </div>
         `;
 
         Quotes.initEvents(container);
@@ -460,6 +473,61 @@ const Quotes = {
             q.unshift(newQuote);
             DB.save('quotes', q);
             import('../app.js').then(m => { m.default.toast('Orçamento finalizado!', 'success'); Quotes.render(container); });
+        };
+
+        // --- HISTÓRICO ---
+        
+        document.getElementById('btn-history').onclick = () => {
+            const overlay = document.getElementById('quotes-list-overlay');
+            overlay.classList.remove('hidden');
+            Quotes.renderList();
+        };
+
+        document.getElementById('btn-back-to-quotes').onclick = () => {
+            document.getElementById('quotes-list-overlay').classList.add('hidden');
+        };
+
+        Quotes.renderList = () => {
+            const target = document.getElementById('list-target-area');
+            const quotes = DB.get('quotes') || [];
+            const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            target.innerHTML = `
+                <div class="bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-sm">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 border-b">
+                                <th class="px-8 py-5">Proposta / Data</th>
+                                <th class="px-8 py-5">Cliente</th>
+                                <th class="px-8 py-5">Resumo</th>
+                                <th class="px-8 py-5 text-right">Valor Total</th>
+                                <th class="px-8 py-5 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            ${quotes.length === 0 ? `<tr><td colspan="5" class="p-32 text-center opacity-20 italic font-black">Nenhum orçamento arquivado.</td></tr>` : quotes.map(q => `
+                                <tr class="hover:bg-slate-50/80 transition-all">
+                                    <td class="px-8 py-6">
+                                        <p class="text-sm font-black text-primary">${q.id}</p>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase">${q.date}</p>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <p class="text-sm font-black text-slate-700">${q.customerName}</p>
+                                        <span class="badge ${q.status === 'Aprovado' ? 'badge-green' : 'badge-purple'}">${q.status}</span>
+                                    </td>
+                                    <td class="px-8 py-6 max-w-[300px]">
+                                        <p class="text-[10px] font-bold text-slate-400 truncate">${(q.items || []).map(it => it.name).join(', ')}</p>
+                                    </td>
+                                    <td class="px-8 py-6 text-right font-black text-lg text-slate-800">${fmt(q.value)}</td>
+                                    <td class="px-8 py-6 text-center">
+                                        <button onclick="window.shareQuote('${q.id}')" class="p-3 text-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all" title="Enviar WhatsApp"><span class="material-symbols-outlined">share</span></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         };
 
         // Busca no catálogo
