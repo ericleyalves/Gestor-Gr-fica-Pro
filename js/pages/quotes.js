@@ -152,32 +152,22 @@ const Quotes = {
                                             </select>
                                         </div>
                                     </div>
-                                    <!-- Calc Row -->
-                                    <div class="grid gap-3 p-4 rounded-[14px]" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr; background:#FAFBFF; border:1px solid var(--border);">
+                                    <!-- Calc Row (Apenas para m2) -->
+                                    <div id="m2-calc-row" class="grid gap-3 p-4 rounded-[14px] hidden" style="grid-template-columns:1fr 1fr; background:#FAFBFF; border:1px solid var(--border);">
                                         <div>
-                                            <label>Qtd.</label>
-                                            <input type="number" id="q-qty" value="" min="1">
-                                        </div>
-                                        <div class="item-dim">
-                                            <label>Larg. (cm)</label>
-                                            <input type="number" id="q-width" value="">
-                                        </div>
-                                        <div class="item-dim">
-                                            <label>Alt. (cm)</label>
-                                            <input type="number" id="q-height" value="">
+                                            <label>Largura (cm)</label>
+                                            <input type="number" id="q-width" value="" placeholder="0">
                                         </div>
                                         <div>
-                                            <label id="label-unit-price">Valor / m²</label>
-                                            <div class="input-prefix-wrap">
-                                                <span class="prefix">R$</span>
-                                                <input type="number" id="q-unit-price" value="" min="0" step="0.01">
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label>Total</label>
-                                            <div id="q-total-item" class="total-display-premium">R$ 0,00</div>
+                                            <label>Altura (cm)</label>
+                                            <input type="number" id="q-height" value="" placeholder="0">
                                         </div>
                                     </div>
+                                    
+                                    <!-- Hidden redundant fields for script compatibility -->
+                                    <input type="hidden" id="q-qty" value="1">
+                                    <input type="hidden" id="q-unit-price" value="0">
+                                    <div id="q-total-item" class="hidden">R$ 0,00</div>
                                 </div>
 
                                 <!-- Configurador de Produto -->
@@ -422,16 +412,14 @@ const Quotes = {
 
             // Base subtotal
             let subtotal = 0;
+            const m2Row = document.getElementById('m2-calc-row');
+
             if (type === 'm2') {
                 subtotal = (width / 100) * (height / 100) * unitPrice * qty;
-                document.querySelectorAll('.item-dim').forEach(el => el.style.display = '');
-                const lbl = document.getElementById('label-unit-price');
-                if (lbl) lbl.innerText = 'Valor / m²';
+                if (m2Row) m2Row.classList.remove('hidden');
             } else {
                 subtotal = unitPrice * qty;
-                document.querySelectorAll('.item-dim').forEach(el => el.style.display = 'none');
-                const lbl = document.getElementById('label-unit-price');
-                if (lbl) lbl.innerText = 'Valor Unitário';
+                if (m2Row) m2Row.classList.add('hidden');
             }
 
             // Apply extras & discount
