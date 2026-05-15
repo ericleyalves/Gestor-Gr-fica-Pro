@@ -249,6 +249,12 @@ const Quotes = {
                                         <span style="color:var(--text-muted);">Prazo Estimado</span>
                                         <span class="font-bold" style="color:var(--text-sub);" id="summ-deadline">3 a 5 dias úteis</span>
                                     </div>
+                                    <div class="pt-4 mt-2 border-t border-dashed" style="border-color:var(--border);">
+                                        <button type="button" id="btn-share-whatsapp" class="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all" style="background:#25D366; color:white; box-shadow: 0 4px 12px rgba(37,211,102,0.3);">
+                                            <span class="material-symbols-outlined !text-lg">share</span>
+                                            Enviar p/ WhatsApp
+                                        </button>
+                                    </div>
                                     <div class="flex justify-between items-start text-xs pt-2 border-t border-dashed" style="border-color:var(--border);">
                                         <span style="color:var(--text-muted);">Opções</span>
                                         <div id="summ-acabamentos-list" class="flex-1 ml-4">
@@ -369,12 +375,12 @@ const Quotes = {
                 <td class="px-5 py-3.5 text-right text-sm font-bold" style="color:var(--text-main);">${fmtBRL(q.value)}</td>
                 <td class="px-5 py-3.5 text-center"><span class="badge ${badgeClass}">${q.status}</span></td>
                 <td class="px-5 py-3.5 text-center">
-                    <div class="flex justify-center gap-1.5">
-                        <button class="text-xs font-bold px-3 py-1.5 rounded-[10px] transition-all" style="background:var(--primary-light); color:var(--primary);" onmouseover="this.style.background='var(--primary)';this.style.color='white'" onmouseout="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onclick="window.convertToSale('${q.id}')">
-                            Aprovar
+                    <div class="flex justify-center gap-1">
+                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:#25D366; background:rgba(37,211,102,0.1);" title="Enviar p/ WhatsApp" onclick="window.shareQuote('${q.id}')">
+                            <span class="material-symbols-outlined" style="font-size:18px;">share</span>
                         </button>
-                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#F8F6FF'" onmouseout="this.style.background='transparent'" onclick="window.shareQuote('${q.id}')">
-                            <span class="material-symbols-outlined" style="font-size:16px;">share</span>
+                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.editQuote('${q.id}')">
+                            <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
                         </button>
                     </div>
                 </td>
@@ -597,9 +603,6 @@ const Quotes = {
         if (btnClose)    btnClose.onclick    = closeModal;
         if (btnCancel)   btnCancel.onclick   = closeModal;
 
-        // Click backdrop to close (Disabled to prevent accidental data loss)
-        // modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
         // Form submit
         form.onsubmit = (e) => {
             e.preventDefault();
@@ -673,21 +676,86 @@ const Quotes = {
             });
         };
 
+        // WhatsApp Sharing Logic
         window.shareQuote = (id) => {
             const quotes = DB.get('quotes') || [];
             const q = quotes.find(item => item.id === id);
             if (!q) return;
 
-            const text = `*Orçamento Gestor Gráfico Pro*%0A%0A` +
-                `*ID:* ${q.id}%0A` +
-                `*Produto:* ${q.productName}%0A` +
-                `*Valor:* R$ ${q.value.toFixed(2)}%0A` +
-                `*Data:* ${q.date}%0A%0A` +
-                `Aguardamos sua aprovação!`;
+            const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             
-            const wpUrl = `https://api.whatsapp.com/send?text=${text}`;
-            window.open(wpUrl, '_blank');
+            let msg = `*ORÇAMENTO - #${q.id.split('-')[0].toUpperCase()}* 📄\n`;
+            msg += `------------------------------\n`;
+            msg += `*Cliente:* ${q.customerName}\n`;
+            msg += `*Produto:* ${q.productName}\n\n`;
+            
+            if (q.options && q.options.length > 0) {
+                msg += `*CONFIGURAÇÃO:*\n`;
+                q.options.forEach(opt => {
+                    msg += `✅ ${opt}\n`;
+                });
+                msg += `\n`;
+            }
+
+            msg += `*VALOR TOTAL:* ${fmt(q.value)}\n`;
+            msg += `*PRAZO:* ${q.deadline || '3 a 5 dias úteis'}\n`;
+            msg += `------------------------------\n`;
+            msg += `_Gerado por Gestor Gráfico Pro_`;
+
+            const phone = q.whatsapp ? q.whatsapp.replace(/\D/g, '') : '';
+            const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
         };
+
+        const btnShare = document.getElementById('btn-share-whatsapp');
+        if (btnShare) {
+            btnShare.onclick = () => {
+                const customerName = document.getElementById('q-customer')?.value;
+                if (!customerName) {
+                    import('../app.js').then(m => m.default.toast('Selecione um cliente primeiro!', 'error'));
+                    return;
+                }
+                
+                const productName = document.getElementById('q-product')?.value;
+                const valueStr = document.getElementById('q-total-item')?.innerText.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+                const value = parseFloat(valueStr) || 0;
+                const whatsapp = document.getElementById('q-whatsapp')?.value;
+                const deadline = document.getElementById('summ-deadline')?.innerText;
+                
+                const selectedVars = [];
+                document.querySelectorAll('.config-card.card-active').forEach(card => {
+                    selectedVars.push(card.querySelector('.config-card-label').innerText);
+                });
+
+                const formatAndShare = (qObj) => {
+                    const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    let m = `*ORÇAMENTO RÁPIDO* 📄\n`;
+                    m += `------------------------------\n`;
+                    m += `*Cliente:* ${qObj.customerName}\n`;
+                    m += `*Produto:* ${qObj.productName}\n\n`;
+                    if (qObj.options.length > 0) {
+                        m += `*CONFIGURAÇÃO:*\n`;
+                        qObj.options.forEach(opt => m += `✅ ${opt}\n`);
+                        m += `\n`;
+                    }
+                    m += `*VALOR TOTAL:* ${fmt(qObj.value)}\n`;
+                    m += `*PRAZO:* ${qObj.deadline}\n`;
+                    m += `------------------------------\n`;
+                    m += `_Gerado por Gestor Gráfico Pro_`;
+                    const p = qObj.whatsapp ? qObj.whatsapp.replace(/\D/g, '') : '';
+                    window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(m)}`, '_blank');
+                };
+
+                formatAndShare({
+                    customerName,
+                    productName,
+                    value,
+                    whatsapp,
+                    deadline,
+                    options: selectedVars
+                });
+            };
+        }
 
         // --- Auto-fill price when existing product selected ---
         const qProductInput = document.getElementById('q-product');
