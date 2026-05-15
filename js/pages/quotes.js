@@ -128,7 +128,7 @@ const Quotes = {
                                         <div class="section-icon"><span class="material-symbols-outlined">inventory_2</span></div>
                                         <h4 class="section-title">Produto & Cálculo</h4>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div class="flex flex-col gap-4 mb-4">
                                         <div>
                                             <div class="flex justify-between items-center mb-1.5">
                                                 <label style="margin-bottom:0;">Produto / Serviço</label>
