@@ -9,276 +9,196 @@ const Quotes = {
         const fmtBRL = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
         container.innerHTML = `
-            <div class="max-w-[1500px] mx-auto animate-in fade-in duration-500 pb-10">
+            <div class="max-w-[1500px] mx-auto animate-in fade-in duration-500 pb-24 lg:pb-10">
                 
-                <!-- Page Header -->
-                <div class="flex justify-between items-end mb-8">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                            <span class="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Painel Comercial</span>
-                        </div>
-                        <h2 class="text-4xl font-black text-slate-800 tracking-tighter">Gestão de Orçamentos</h2>
-                    </div>
-                    <div class="flex gap-3">
-                        <button class="btn-ghost border-slate-200 bg-white"><span class="material-symbols-outlined">filter_list</span></button>
-                        <button id="btn-add-quote" class="btn-primary shadow-2xl shadow-indigo-200 px-8 py-4 !rounded-2xl">
-                            <span class="material-symbols-outlined">add_shopping_cart</span>
-                            NOVA PROPOSTA
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Lista de Propostas Profissional -->
-                <div class="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b">
-                                <th class="px-8 py-5"># ID / Data</th>
-                                <th class="px-8 py-5">Cliente / Empresa</th>
-                                <th class="px-8 py-5 text-center">Itens</th>
-                                <th class="px-8 py-5">Timeline / Status</th>
-                                <th class="px-8 py-5 text-right">Total</th>
-                                <th class="px-8 py-5 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-50">
-                            ${quotes.length === 0 ? `
-                                <tr>
-                                    <td colspan="6" class="px-8 py-32 text-center opacity-30">
-                                        <span class="material-symbols-outlined text-6xl block mb-4">analytics</span>
-                                        <p class="text-xl font-bold italic">Nenhum orçamento em aberto no momento.</p>
-                                    </td>
-                                </tr>
-                            ` : quotes.map(q => `
-                                <tr class="hover:bg-slate-50/80 transition-all group cursor-pointer">
-                                    <td class="px-8 py-6">
-                                        <p class="text-sm font-black text-primary">${q.id}</p>
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">${q.date}</p>
-                                    </td>
-                                    <td class="px-8 py-6">
-                                        <p class="text-sm font-black text-slate-700">${q.customerName}</p>
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${q.whatsapp || 'SEM CONTATO'}</p>
-                                    </td>
-                                    <td class="px-8 py-6 text-center">
-                                        <span class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center mx-auto text-[11px] font-black text-slate-600">${q.items?.length || 0}</span>
-                                    </td>
-                                    <td class="px-8 py-6">
-                                        <div class="flex items-center gap-1">
-                                            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                                            <div class="h-1 w-6 bg-slate-200 rounded-full"></div>
-                                            <div class="w-3 h-3 rounded-full bg-slate-200"></div>
-                                            <div class="h-1 w-6 bg-slate-200 rounded-full"></div>
-                                            <div class="w-3 h-3 rounded-full bg-slate-200"></div>
-                                            <span class="ml-3 badge ${q.status === 'Aprovado' ? 'badge-green' : 'badge-purple'}">${q.status}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-8 py-6 text-right font-black text-slate-800 text-lg">${fmtBRL(q.value)}</td>
-                                    <td class="px-8 py-6">
-                                        <div class="flex justify-center gap-2">
-                                            <button onclick="window.shareQuote('${q.id}')" class="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"><span class="material-symbols-outlined !text-[20px]">share</span></button>
-                                            <button onclick="window.convertToSale('${q.id}')" class="p-2.5 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><span class="material-symbols-outlined !text-[20px]">shopping_cart_checkout</span></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- MODAL ERP PROFISSIONAL -->
-            <div id="quote-modal" class="modal-overlay hidden">
-                <div class="modal-container max-w-[1300px] h-[95vh] flex flex-col bg-slate-50 border-0 shadow-2xl">
+                <!-- MAIN LAYOUT: 70/30 -->
+                <div class="flex flex-col xl:flex-row gap-8">
                     
-                    <!-- Top Bar (Header) -->
-                    <div class="px-8 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
-                        <div class="flex items-center gap-4">
-                            <div class="p-2 bg-primary rounded-xl"><span class="material-symbols-outlined !text-white">assignment</span></div>
+                    <!-- LEFT COLUMN (70%) -->
+                    <div class="w-full xl:w-[70%] flex flex-col gap-6">
+                        
+                        <!-- Header -->
+                        <header class="flex justify-between items-center mb-2">
                             <div>
-                                <h3 class="text-sm font-black uppercase tracking-[0.2em]">Central de Pedidos v2.0</h3>
-                                <p class="text-[10px] font-bold text-slate-400">Ambiente de Alta Performance Gráfica</p>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <h2 class="text-3xl font-black text-slate-800 tracking-tighter">Novo Orçamento</h2>
+                                </div>
+                                <p class="text-slate-500 font-medium">Monte uma proposta comercial completa e profissional</p>
                             </div>
-                        </div>
-                        <div class="flex items-center gap-6">
-                            <div class="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-300">Rascunho Salvo</span>
+                            <button id="btn-list-quotes" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center gap-2">
+                                <span class="material-symbols-outlined !text-[18px]">list_alt</span> VER LISTAGEM
+                            </button>
+                        </header>
+
+                        <!-- Customer Selection Area -->
+                        <section class="bg-white rounded-[24px] shadow-sm p-8 border border-slate-200/60">
+                            <div class="flex flex-col md:flex-row gap-6 items-end">
+                                <div class="flex-1 w-full">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Cliente</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-300">person_search</span>
+                                        <input id="q-customer" class="w-full pl-12 pr-4 py-3 bg-slate-50 border-slate-100 rounded-xl focus:bg-white transition-all text-sm font-bold" placeholder="Buscar cliente por nome..." type="text" list="customers-list">
+                                        <datalist id="customers-list">${customers.map(c => `<option value="${c.name}">`).join('')}</datalist>
+                                    </div>
+                                </div>
+                                <div class="w-full md:w-64">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">WhatsApp</label>
+                                    <div class="relative">
+                                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 !text-[20px]">call</span>
+                                        <input id="q-whatsapp" class="w-full pl-12 pr-4 py-3 bg-slate-50 border-slate-100 rounded-xl focus:bg-white transition-all text-sm font-bold" placeholder="(00) 00000-0000" type="text"/>
+                                    </div>
+                                </div>
+                                <button class="w-full md:w-auto px-6 py-3 bg-indigo-50 text-primary rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-[18px]">person_add</span> NOVO CLIENTE
+                                </button>
                             </div>
-                            <button id="close-quote-modal" class="text-slate-500 hover:text-white transition-all"><span class="material-symbols-outlined">close</span></button>
+                        </section>
+
+                        <!-- Action Bar -->
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="window.addItem('catalogo')" class="px-6 py-3.5 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span> Produto do Catálogo
+                            </button>
+                            <button onclick="window.addItem('avulso')" class="px-6 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+                                <span class="material-symbols-outlined text-[18px]">design_services</span> Item Avulso
+                            </button>
+                            <button onclick="window.addItem('avulso')" class="px-6 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+                                <span class="material-symbols-outlined text-[18px]">settings_accessibility</span> Serviço
+                            </button>
                         </div>
+
+                        <!-- Itens do Pedido Area -->
+                        <section class="flex flex-col gap-4">
+                            <div class="flex items-center justify-between px-2">
+                                <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Itens Adicionados</h3>
+                                <span id="items-count" class="text-[10px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-md">0 ITENS</span>
+                            </div>
+                            
+                            <div id="items-list-container" class="space-y-4">
+                                <!-- Cards Injetados -->
+                                <div class="p-20 text-center border-2 border-dashed border-slate-200 rounded-[32px] opacity-30 flex flex-col items-center gap-4">
+                                    <span class="material-symbols-outlined text-6xl text-slate-400">add_shopping_cart</span>
+                                    <p class="text-sm font-black italic">Sua lista de pedidos está vazia.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Extras Area -->
+                        <section class="bg-white rounded-[24px] shadow-sm p-8 border border-slate-200/60">
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-8 flex items-center gap-2">
+                                <span class="material-symbols-outlined !text-lg text-primary">add_circle</span> Ajustes de Fechamento
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Frete (R$)</label>
+                                        <input id="q-shipping" class="w-full px-4 py-2 bg-slate-50 border-0 rounded-xl focus:bg-white transition-all text-sm font-bold" placeholder="0,00" type="number" value="0"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Taxa de Urgência (R$)</label>
+                                        <input id="q-urgency" class="w-full px-4 py-2 bg-slate-50 border-0 rounded-xl focus:bg-white transition-all text-sm font-bold" placeholder="0,00" type="number" value="0"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Instalação / Arte (R$)</label>
+                                        <input id="q-install" class="w-full px-4 py-2 bg-slate-50 border-0 rounded-xl focus:bg-white transition-all text-sm font-bold" placeholder="0,00" type="number" value="0"/>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Desconto (R$)</label>
+                                        <input id="q-discount" class="w-full px-4 py-2 bg-emerald-50 border-0 rounded-xl focus:bg-white transition-all text-sm font-black text-emerald-700" placeholder="0,00" type="number" value="0"/>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Observações Gerais (Impressas)</label>
+                                    <textarea id="q-obs" class="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:bg-white transition-all resize-none h-full text-sm font-medium" placeholder="Ex: Pagamento 50% entrada e 50% na entrega..." rows="4"></textarea>
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
-                    <!-- Work Area -->
-                    <div class="flex-1 flex overflow-hidden">
-                        
-                        <!-- MAIN COLUMN (70%) -->
-                        <div class="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
+                    <!-- RIGHT COLUMN (30% STICKY SIDEBAR) -->
+                    <div class="w-full xl:w-[30%]">
+                        <div class="sticky top-10 flex flex-col gap-6">
                             
-                            <!-- Section 1: Cliente -->
-                            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-end gap-6">
-                                <div class="flex-1 grid grid-cols-2 gap-4 w-full">
-                                    <div>
-                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">Cliente (Autocomplete)</label>
-                                        <div class="relative">
-                                            <span class="material-symbols-outlined absolute left-4 top-3 text-slate-300 !text-[20px]">person_search</span>
-                                            <input type="text" id="q-customer" placeholder="Busque ou cadastre..." list="customers-list" class="w-full pl-12 h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all">
-                                            <datalist id="customers-list">${customers.map(c => `<option value="${c.name}">`).join('')}</datalist>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1.5 block">WhatsApp de Cobrança</label>
-                                        <div class="relative">
-                                            <span class="material-symbols-outlined absolute left-4 top-3 text-emerald-400 !text-[20px]">add_call</span>
-                                            <input type="text" id="q-whatsapp" placeholder="(00) 00000-0000" class="w-full pl-12 h-12 bg-slate-50 border-slate-100 focus:bg-white transition-all">
-                                        </div>
-                                    </div>
+                            <!-- Order Summary Card -->
+                            <div class="bg-white rounded-[32px] shadow-2xl shadow-indigo-100/50 border border-slate-200 overflow-hidden flex flex-col">
+                                <div class="p-8 bg-slate-900 text-white">
+                                    <h3 class="text-sm font-black uppercase tracking-[0.2em]">Resumo do Pedido</h3>
                                 </div>
-                                <button class="h-12 px-6 rounded-2xl border border-dashed border-indigo-200 text-primary bg-indigo-50/30 hover:bg-indigo-50 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-                                    <span class="material-symbols-outlined !text-[18px]">person_add</span> NOVO CLIENTE
-                                </button>
-                            </div>
+                                <div class="p-8 flex flex-col gap-6">
+                                    <!-- Item List -->
+                                    <div id="summary-items-list" class="flex flex-col gap-4 pb-6 border-b border-slate-100 max-h-[300px] overflow-y-auto scrollbar-hide">
+                                        <!-- Mini Itens -->
+                                    </div>
 
-                            <!-- Section 2: Botões de Ação de Itens -->
-                            <div class="flex flex-col md:flex-row gap-4">
-                                <button onclick="window.addItem('catalogo')" class="flex-1 p-6 rounded-[24px] bg-slate-900 text-white hover:scale-[1.02] transition-all flex items-center gap-4 group shadow-xl shadow-slate-200">
-                                    <div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center group-hover:rotate-12 transition-all"><span class="material-symbols-outlined !text-white">inventory_2</span></div>
-                                    <div class="text-left">
-                                        <p class="text-xs font-black uppercase tracking-widest text-indigo-300">Catálogo</p>
-                                        <p class="text-lg font-black tracking-tighter">Produto Profissional</p>
+                                    <!-- Subtotals -->
+                                    <div class="flex flex-col gap-3 pb-6 border-b border-slate-100">
+                                        <div class="flex justify-between items-center text-xs font-bold text-slate-400"><span>Subtotal</span><span id="summ-subtotal" class="text-slate-800">R$ 0,00</span></div>
+                                        <div class="flex justify-between items-center text-xs font-bold text-indigo-600"><span>Taxas Extras</span><span id="summ-extras">+ R$ 0,00</span></div>
+                                        <div class="flex justify-between items-center text-xs font-bold text-emerald-600"><span>Desconto</span><span id="summ-discount">- R$ 0,00</span></div>
                                     </div>
-                                </button>
-                                <button onclick="window.addItem('avulso')" class="flex-1 p-6 rounded-[24px] bg-white border border-slate-200 text-slate-700 hover:scale-[1.02] transition-all flex items-center gap-4 group shadow-sm">
-                                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:rotate-12 transition-all"><span class="material-symbols-outlined">design_services</span></div>
-                                    <div class="text-left">
-                                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">Customizado</p>
-                                        <p class="text-lg font-black tracking-tighter text-slate-800">Serviço ou Item Avulso</p>
-                                    </div>
-                                </button>
-                            </div>
 
-                            <!-- Section 3: Itens Empilhados (SEM ESPAÇO VAZIO) -->
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center px-2">
-                                    <div class="flex items-center gap-4">
-                                        <h4 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Itens do Pedido</h4>
-                                        <span id="items-count-badge" class="px-2 py-0.5 rounded-full bg-slate-900 text-[10px] font-black text-white">0 ITENS</span>
-                                    </div>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prazo Total Est: <b id="total-deadline" class="text-slate-700">0 dias</b></span>
-                                </div>
-                                <div id="items-list-container" class="space-y-3">
-                                    <!-- Cards compactos injetados aqui -->
-                                    <div class="p-16 text-center border-2 border-dashed border-slate-200 rounded-[32px] opacity-30 flex flex-col items-center gap-2">
-                                        <span class="material-symbols-outlined text-4xl">add_shopping_cart</span>
-                                        <p class="text-sm font-black italic">Aguardando inclusão de produtos...</p>
+                                    <!-- Total -->
+                                    <div class="pt-2">
+                                        <div class="flex flex-col items-center gap-1 mb-6">
+                                            <span class="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Total Final</span>
+                                            <span id="summ-total" class="text-5xl font-black text-slate-900 tracking-tighter leading-none">R$ 0,00</span>
+                                        </div>
+                                        <div class="flex items-center justify-center gap-2 p-3 bg-slate-50 rounded-2xl text-slate-500">
+                                            <span class="material-symbols-outlined !text-[18px]">schedule</span>
+                                            <span id="summ-deadline" class="text-[10px] font-black uppercase tracking-widest">Prazo: 3 a 5 dias úteis</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Section 4: Extras (Observações e Taxas) -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                                    <h4 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Ajustes Financeiros</h4>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block italic">Custo Frete</label>
-                                            <input type="number" id="q-shipping" value="0" class="w-full h-10 bg-slate-50 border-0">
-                                        </div>
-                                        <div>
-                                            <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block italic">Taxa Urgência</label>
-                                            <input type="number" id="q-urgency" value="0" class="w-full h-10 bg-slate-50 border-0">
-                                        </div>
-                                        <div>
-                                            <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block italic">Instalação</label>
-                                            <input type="number" id="q-install" value="0" class="w-full h-10 bg-slate-50 border-0">
-                                        </div>
-                                        <div>
-                                            <label class="text-[9px] font-black text-slate-400 uppercase mb-1 block italic">Desconto Final (R$)</label>
-                                            <input type="number" id="q-discount" value="0" class="w-full h-10 bg-emerald-50 border-0 text-emerald-700 font-black">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                                    <h4 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Observações Técnicas</h4>
-                                    <textarea id="q-obs" rows="3" class="w-full bg-slate-50 border-0 resize-none" placeholder="Ex: Produzir em lona fosca, acabamento com ilhós a cada 20cm..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- RIGHT SIDEBAR (30% - FIXED SUMMARY) -->
-                        <div class="w-[400px] bg-white border-l border-slate-200 flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.02)]">
-                            <div class="p-8 flex-1 overflow-y-auto scrollbar-hide">
-                                <h4 class="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em] mb-8 pb-4 border-b">Detalhamento do Pedido</h4>
-                                
-                                <div id="summary-items-list" class="space-y-5 mb-10">
-                                    <!-- Mini Itens -->
-                                </div>
-
-                                <div class="space-y-4 pt-6 border-t border-dashed">
-                                    <div class="flex justify-between text-xs font-bold text-slate-400"><span>SUBTOTAL ITENS</span><span id="summ-subtotal" class="text-slate-800">R$ 0,00</span></div>
-                                    <div class="flex justify-between text-xs font-bold text-indigo-600"><span>TAXAS E FRETE</span><span id="summ-extras">+ R$ 0,00</span></div>
-                                    <div class="flex justify-between text-xs font-bold text-emerald-600"><span>DESCONTO APLICADO</span><span id="summ-discount">- R$ 0,00</span></div>
-                                    
-                                    <div class="pt-8 mt-4 border-t-4 border-slate-900">
-                                        <p class="text-[11px] font-black text-primary uppercase tracking-[0.3em] mb-1">TOTAL DA PROPOSTA</p>
-                                        <p id="summ-total" class="text-5xl font-black text-slate-900 tracking-tighter">R$ 0,00</p>
-                                    </div>
-                                    
-                                    <!-- Mini Timeline visual -->
-                                    <div class="pt-10 space-y-4">
-                                        <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Status do Fluxo</p>
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex flex-col items-center gap-2">
-                                                <div class="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-black">1</div>
-                                                <span class="text-[8px] font-black text-primary uppercase">Orçamento</span>
-                                            </div>
-                                            <div class="h-0.5 flex-1 bg-slate-100 mx-1 mb-4"></div>
-                                            <div class="flex flex-col items-center gap-2">
-                                                <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-300 flex items-center justify-center text-[10px] font-black">2</div>
-                                                <span class="text-[8px] font-black text-slate-300 uppercase">Produção</span>
-                                            </div>
-                                            <div class="h-0.5 flex-1 bg-slate-100 mx-1 mb-4"></div>
-                                            <div class="flex flex-col items-center gap-2">
-                                                <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-300 flex items-center justify-center text-[10px] font-black">3</div>
-                                                <span class="text-[8px] font-black text-slate-300 uppercase">Finalizado</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Sidebar Actions Footer -->
-                            <div class="p-8 bg-slate-50 border-t border-slate-200 space-y-4">
-                                <button id="btn-save-quote" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-sm shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3">
-                                    <span class="material-symbols-outlined">check_circle</span> FINALIZAR E SALVAR
+                            <!-- Fixed Action Buttons -->
+                            <div class="flex flex-col gap-3">
+                                <button id="btn-save-quote" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black text-sm shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3">
+                                    <span class="material-symbols-outlined">receipt_long</span> GERAR PEDIDO AGORA
                                 </button>
                                 <div class="grid grid-cols-2 gap-3">
-                                    <button class="py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                                    <button id="btn-share-whatsapp" class="py-4 bg-emerald-500 text-white rounded-[20px] font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100">
+                                        <span class="material-symbols-outlined !text-[18px]">chat</span> WHATSAPP
+                                    </button>
+                                    <button class="py-4 bg-white border border-slate-200 text-slate-700 rounded-[20px] font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
                                         <span class="material-symbols-outlined !text-[18px]">picture_as_pdf</span> PDF
                                     </button>
-                                    <button id="btn-share-whatsapp" class="py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100">
-                                        <span class="material-symbols-outlined !text-[18px]">share</span> WHATSAPP
-                                    </button>
                                 </div>
+                                <button class="w-full py-3.5 bg-transparent border border-dashed border-slate-300 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-[20px] font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 mt-2">
+                                    <span class="material-symbols-outlined !text-[18px]">save</span> SALVAR RASCUNHO
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SUB-MODAL CONFIGURADOR -->
+            <!-- MODAL CONFIGURADOR -->
             <div id="item-modal" class="modal-overlay hidden" style="z-index: 100;">
-                <div class="modal-container max-w-[850px] !p-0">
-                    <div class="p-6 border-b flex justify-between items-center bg-white rounded-t-3xl">
-                        <h3 id="item-modal-title" class="text-lg font-black text-slate-800">Configurar Item</h3>
+                <div class="modal-container max-w-[850px] !p-0 overflow-hidden shadow-2xl">
+                    <div class="p-8 border-b flex justify-between items-center bg-white">
+                        <h3 id="item-modal-title" class="text-xl font-black text-slate-800">Configurar Item</h3>
                         <button id="close-item-modal" class="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all"><span class="material-symbols-outlined">close</span></button>
                     </div>
-                    <div id="item-modal-body" class="p-8 bg-slate-50 max-h-[70vh] overflow-y-auto"></div>
-                    <div class="p-6 border-t bg-white flex justify-end gap-3 rounded-b-3xl">
+                    <div id="item-modal-body" class="p-10 bg-slate-50 max-h-[70vh] overflow-y-auto">
+                        <!-- Conteúdo Dinâmico -->
+                    </div>
+                    <div class="p-8 border-t bg-white flex justify-end gap-3">
                         <button id="btn-cancel-item" class="btn-ghost">Descartar</button>
-                        <button id="btn-confirm-item" class="btn-primary !px-10">Confirmar Item</button>
+                        <button id="btn-confirm-item" class="btn-primary !px-12 !py-4 shadow-xl shadow-indigo-100">Confirmar Item</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- LISTAGEM DE ORÇAMENTOS (HIDDEN BY DEFAULT) -->
+            <div id="quotes-list-container" class="hidden fixed inset-0 z-[60] bg-white p-8 overflow-y-auto">
+                 <!-- Botão Voltar -->
+                 <div class="max-w-[1400px] mx-auto">
+                    <button id="btn-back-to-new" class="mb-8 flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-widest">
+                        <span class="material-symbols-outlined">arrow_back</span> VOLTAR PARA NOVO ORÇAMENTO
+                    </button>
+                    <div id="list-target"></div>
+                 </div>
             </div>
         `;
 
@@ -286,9 +206,19 @@ const Quotes = {
     },
 
     initEvents: (container) => {
-        const modal = document.getElementById('quote-modal');
         const itemModal = document.getElementById('item-modal');
-        const customers = DB.get('customers') || [];
+        const listContainer = document.getElementById('quotes-list-container');
+        
+        // --- EVENTOS PRINCIPAIS ---
+        
+        document.getElementById('btn-list-quotes').onclick = () => {
+            listContainer.classList.remove('hidden');
+            Quotes.renderList();
+        };
+
+        document.getElementById('btn-back-to-new').onclick = () => {
+            listContainer.classList.add('hidden');
+        };
 
         // --- HANDLERS DE ITENS ---
         
@@ -297,33 +227,33 @@ const Quotes = {
             const title = document.getElementById('item-modal-title');
             
             if (type === 'avulso') {
-                title.innerText = 'Item Avulso / Serviço Externo';
+                title.innerText = 'Adicionar Item Avulso / Serviço';
                 body.innerHTML = `
-                    <div class="grid grid-cols-1 gap-6">
-                        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                            <label class="text-[10px] font-black text-slate-400 uppercase mb-2 block">Nome / Descrição do Serviço</label>
-                            <input type="text" id="ai-name" class="w-full text-lg font-black" placeholder="Ex: Criação de Arte para Outdoor">
+                    <div class="grid grid-cols-1 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-3 block">Descrição do Serviço</label>
+                            <input type="text" id="ai-name" class="w-full text-xl font-black text-slate-800" placeholder="Ex: Criação de Logotipo / Arte para Social Media">
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                <label class="text-[10px] font-black text-slate-400 uppercase mb-2 block">Quantidade</label>
-                                <input type="number" id="ai-qty" value="1" class="w-full text-xl font-black">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-3 block">Quantidade</label>
+                                <input type="number" id="ai-qty" value="1" class="w-full text-2xl font-black">
                             </div>
-                            <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                <label class="text-[10px] font-black text-slate-400 uppercase mb-2 block">Valor Unitário (R$)</label>
-                                <input type="number" id="ai-price" value="0" step="0.01" class="w-full text-xl font-black text-primary">
+                            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-3 block">Preço Unitário (R$)</label>
+                                <input type="number" id="ai-price" value="0" step="0.01" class="w-full text-2xl font-black text-primary">
                             </div>
                         </div>
                     </div>
                 `;
             } else {
-                title.innerText = 'Produto do Catálogo';
+                title.innerText = 'Adicionar Produto do Catálogo';
                 const products = DB.get('products') || [];
                 body.innerHTML = `
-                    <div class="space-y-6">
-                        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                            <label class="text-[10px] font-black text-slate-400 uppercase mb-2 block">Selecionar Produto</label>
-                            <input type="text" id="ai-product-search" class="w-full" placeholder="Comece a digitar..." list="p-list-ai">
+                    <div class="space-y-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-3 block">Pesquisar no Catálogo</label>
+                            <input type="text" id="ai-product-search" class="w-full text-lg font-bold" placeholder="Digite o nome do produto..." list="p-list-ai">
                             <datalist id="p-list-ai">${products.map(p => `<option value="${p.name}">`).join('')}</datalist>
                         </div>
                         <div id="ai-configurator-area"></div>
@@ -344,7 +274,7 @@ const Quotes = {
                     const qty = parseFloat(document.getElementById('ai-qty').value) || 1;
                     const price = parseFloat(document.getElementById('ai-price').value) || 0;
                     if (!name) return;
-                    newItem = { id: Math.random().toString(36).substr(2, 5).toUpperCase(), name, qty, unitPrice: price, total: qty * price, type: 'avulso', options: [], deadline: '1 a 2 dias' };
+                    newItem = { id: Math.random().toString(36).substr(2, 5).toUpperCase(), name, qty, unitPrice: price, total: qty * price, type: 'avulso', options: [], deadline: '1 dia' };
                 } else {
                     const pName = document.getElementById('ai-product-search').value;
                     const p = DB.get('products').find(it => it.name === pName);
@@ -368,7 +298,7 @@ const Quotes = {
                     Quotes.currentItems.push(newItem);
                     itemModal.classList.add('hidden');
                     Quotes.updateItemsUI();
-                    import('../app.js').then(m => m.default.toast('Item adicionado ao pedido!'));
+                    import('../app.js').then(m => m.default.toast('Item adicionado ao orçamento!'));
                 }
             };
         };
@@ -391,58 +321,71 @@ const Quotes = {
             const summary = document.getElementById('summary-items-list');
             const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-            document.getElementById('items-count-badge').innerText = `${Quotes.currentItems.length} ITENS`;
+            document.getElementById('items-count').innerText = `${Quotes.currentItems.length} ITENS`;
 
             if (Quotes.currentItems.length === 0) {
-                container.innerHTML = `<div class="p-16 text-center border-2 border-dashed border-slate-200 rounded-[32px] opacity-30 flex flex-col items-center gap-2">
-                    <span class="material-symbols-outlined text-4xl">add_shopping_cart</span>
-                    <p class="text-sm font-black italic">Aguardando inclusão de produtos...</p>
-                </div>`;
+                container.innerHTML = `<div class="p-20 text-center border-2 border-dashed border-slate-200 rounded-[32px] opacity-30 flex flex-col items-center gap-4">
+                                    <span class="material-symbols-outlined text-6xl text-slate-400">add_shopping_cart</span>
+                                    <p class="text-sm font-black italic">Sua lista de pedidos está vazia.</p>
+                                </div>`;
                 summary.innerHTML = '';
             } else {
                 container.innerHTML = Quotes.currentItems.map((it, idx) => `
-                    <div class="bg-white p-5 rounded-[24px] border border-slate-200 flex items-center gap-6 group hover:border-primary transition-all animate-in slide-in-from-right-4 duration-300">
-                        <!-- Icon/Drag -->
-                        <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 flex-shrink-0 cursor-grab active:cursor-grabbing">
-                            <span class="material-symbols-outlined">drag_indicator</span>
-                        </div>
-                        
-                        <!-- Content -->
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h5 class="text-sm font-black text-slate-800 uppercase tracking-tight truncate max-w-[400px]">${it.name}</h5>
-                                    <div class="flex items-center gap-3 mt-1">
-                                        <span class="text-[10px] font-bold text-slate-400">Qtd: <b class="text-slate-700">${it.qty} un</b></span>
-                                        <span class="text-[10px] font-bold text-slate-400">Prazo: <b class="text-slate-700">${it.deadline || '—'}</b></span>
+                    <div class="bg-white rounded-[24px] border border-slate-200/60 shadow-sm group hover:shadow-xl hover:shadow-indigo-100/50 hover:border-primary transition-all overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+                        <div class="p-6 flex flex-col md:flex-row gap-6">
+                            <!-- Reorder Handle -->
+                            <div class="hidden md:flex items-center text-slate-200 cursor-grab hover:text-slate-400 transition-colors">
+                                <span class="material-symbols-outlined">drag_indicator</span>
+                            </div>
+                            
+                            <!-- Item Details -->
+                            <div class="flex-1">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div>
+                                        <h4 class="text-lg font-black text-slate-800 uppercase tracking-tight">${it.name}</h4>
+                                        <span class="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-black text-[9px] uppercase tracking-widest">${it.type === 'avulso' ? 'Serviço Extra' : 'Produto Catálogo'}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-2xl font-black text-primary">${fmt(it.total)}</div>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase italic">Un: ${fmt(it.unitPrice)}</p>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="text-lg font-black text-slate-800">${fmt(it.total)}</p>
-                                    <p class="text-[9px] font-bold text-slate-400 uppercase italic">Unit: ${fmt(it.unitPrice)}</p>
+                                
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <div>
+                                        <span class="block text-[9px] font-black text-slate-400 uppercase mb-1">Quantidade</span>
+                                        <span class="text-sm font-black text-slate-700">${it.qty} un</span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="block text-[9px] font-black text-slate-400 uppercase mb-1">Configurações</span>
+                                        <div class="flex flex-wrap gap-1">
+                                            ${it.options.length > 0 ? it.options.map(o => `<span class="text-[10px] font-bold text-slate-500">${o}</span>`).join(' • ') : '<span class="text-[10px] italic text-slate-400">Padrão</span>'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[9px] font-black text-slate-400 uppercase mb-1">Prazo Est.</span>
+                                        <span class="text-sm font-black text-secondary uppercase">${it.deadline || '—'}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <!-- Variations Row -->
-                            <div class="flex flex-wrap gap-1 mt-3">
-                                ${it.options.map(o => `<span class="px-2 py-0.5 rounded-md bg-indigo-50 text-[9px] font-black text-primary uppercase">${o}</span>`).join('')}
-                            </div>
                         </div>
-
-                        <!-- Actions -->
-                        <div class="flex gap-1 border-l pl-5 border-slate-100 opacity-0 group-hover:opacity-100 transition-all">
-                            <button onclick="window.duplicateItem(${idx})" class="w-9 h-9 rounded-lg hover:bg-indigo-50 text-slate-400 hover:text-primary transition-all" title="Duplicar"><span class="material-symbols-outlined !text-[18px]">content_copy</span></button>
-                            <button onclick="window.removeItem(${idx})" class="w-9 h-9 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all" title="Remover"><span class="material-symbols-outlined !text-[18px]">delete</span></button>
+                        
+                        <!-- Card Actions -->
+                        <div class="bg-slate-50/50 px-6 py-3 border-t border-slate-100 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onclick="window.duplicateItem(${idx})" class="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-white shadow-sm" title="Duplicar">
+                                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                            </button>
+                            <button onclick="window.removeItem(${idx})" class="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-white shadow-sm" title="Excluir">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
                         </div>
                     </div>
                 `).join('');
                 
                 summary.innerHTML = Quotes.currentItems.map(it => `
-                    <div class="flex justify-between items-center group">
-                        <div class="max-w-[70%]">
-                            <p class="text-[10px] font-black text-slate-800 uppercase truncate group-hover:text-primary transition-all underline decoration-slate-100 decoration-2">${it.name}</p>
-                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${it.qty} un • ${it.deadline || '3d'}</p>
-                        </div>
-                        <span class="text-xs font-black text-slate-700">${fmt(it.total)}</span>
+                    <div class="flex justify-between items-start gap-4">
+                        <span class="text-[11px] font-black text-slate-700 uppercase truncate max-w-[70%] underline decoration-slate-200 underline-offset-4">${it.qty}x ${it.name}</span>
+                        <span class="text-[11px] font-black text-slate-900 flex-shrink-0">${fmt(it.total)}</span>
                     </div>
                 `).join('');
             }
@@ -452,8 +395,8 @@ const Quotes = {
         Quotes.calculateFinalTotal = () => {
             const subtotal = Quotes.currentItems.reduce((acc, it) => acc + it.total, 0);
             const extras = (parseFloat(document.getElementById('q-shipping')?.value) || 0) + 
-                           (parseFloat(document.getElementById('q-install')?.value) || 0) + 
-                           (parseFloat(document.getElementById('q-urgency')?.value) || 0);
+                           (parseFloat(document.getElementById('q-urgency')?.value) || 0) + 
+                           (parseFloat(document.getElementById('q-install')?.value) || 0);
             const discount = parseFloat(document.getElementById('q-discount')?.value) || 0;
             const total = subtotal + extras - discount;
             const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -470,14 +413,14 @@ const Quotes = {
                 ? p.variations.map(group => {
                     const isQty = group.name.toUpperCase().includes('QUANTIDADE');
                     return `
-                        <div class="config-group mt-6 first:mt-0">
-                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined !text-sm">${isQty ? 'tag' : 'reorder'}</span>
+                        <div class="config-group mt-8 first:mt-0">
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                <span class="material-symbols-outlined !text-sm">${isQty ? 'numbers' : 'layers'}</span>
                                 ${group.name}
                             </div>
-                            <div class="grid ${isQty ? 'grid-cols-4 gap-2' : 'grid-cols-2 gap-2'}">
+                            <div class="grid ${isQty ? 'grid-cols-4 gap-3' : 'grid-cols-2 gap-3'}">
                                 ${group.options.map(opt => `
-                                    <div class="config-card p-4 rounded-2xl border-2 border-white bg-white hover:border-primary transition-all cursor-pointer flex flex-col gap-0.5 shadow-sm" data-cost="${opt.price}">
+                                    <div class="config-card p-5 rounded-2xl bg-white border-2 border-slate-100 hover:border-primary transition-all cursor-pointer flex flex-col gap-1 shadow-sm" data-cost="${opt.price}">
                                         <input type="radio" name="conf-${group.name.replace(/\s/g, '-')}" class="hidden">
                                         <span class="config-card-label text-[10px] font-black uppercase text-slate-700">${opt.name}</span>
                                         <span class="config-card-price text-[9px] font-bold text-slate-400">${opt.price > 0 ? `+ R$ ${opt.price.toFixed(2)}` : 'Incluso'}</span>
@@ -487,16 +430,16 @@ const Quotes = {
                         </div>
                     `;
                 }).join('')
-                : `<div class="p-12 text-center border-2 border-dashed rounded-3xl border-slate-200 opacity-40">Sem opções avançadas.</div>`;
+                : `<div class="p-12 text-center border-2 border-dashed rounded-3xl border-slate-200 opacity-40">Sem opções avançadas para este produto.</div>`;
 
             area.innerHTML = `
-                <div class="flex items-center gap-5 p-6 rounded-3xl bg-slate-900 text-white mb-8 shadow-xl shadow-slate-200">
-                    <div class="w-16 h-16 rounded-2xl overflow-hidden bg-white/10 p-1 flex-shrink-0">
-                        <img src="${p.image || 'https://via.placeholder.com/200'}" class="w-full h-full object-cover rounded-xl">
+                <div class="flex items-center gap-6 p-8 rounded-[32px] bg-slate-900 text-white mb-10 shadow-2xl shadow-slate-200">
+                    <div class="w-20 h-20 rounded-2xl overflow-hidden bg-white/10 p-1 flex-shrink-0">
+                        <img src="${p.image || 'https://via.placeholder.com/200'}" class="w-full h-full object-cover rounded-xl shadow-inner">
                     </div>
                     <div>
-                        <h4 class="text-xl font-black tracking-tight">${p.name}</h4>
-                        <p class="text-[10px] font-black text-primary uppercase tracking-widest">${p.category}</p>
+                        <h4 class="text-2xl font-black tracking-tighter">${p.name}</h4>
+                        <span class="inline-block mt-1 px-3 py-1 bg-primary text-[10px] font-black uppercase tracking-widest rounded-lg">${p.category}</span>
                     </div>
                 </div>
                 ${variationsHtml}
@@ -505,25 +448,15 @@ const Quotes = {
             area.querySelectorAll('.config-card').forEach(card => {
                 card.onclick = () => {
                     const group = card.closest('.config-group');
-                    group.querySelectorAll('.config-card').forEach(c => c.classList.remove('card-active', 'border-primary', 'bg-indigo-50/50'));
-                    card.classList.add('card-active', 'border-primary', 'bg-indigo-50/50');
+                    group.querySelectorAll('.config-card').forEach(c => c.classList.remove('card-active', 'border-primary', 'bg-indigo-50/50', 'shadow-indigo-50'));
+                    card.classList.add('card-active', 'border-primary', 'bg-indigo-50/50', 'shadow-indigo-50');
                     card.querySelector('input').checked = true;
                 };
             });
         };
 
-        // --- BINDINGS GERAIS ---
+        // --- BINDINGS FINAIS ---
         
-        document.getElementById('btn-add-quote')?.addEventListener('click', () => {
-            modal.classList.remove('hidden');
-            Quotes.currentItems = [];
-            Quotes.updateItemsUI();
-        });
-        
-        document.getElementById('close-quote-modal')?.addEventListener('click', () => modal.classList.add('hidden'));
-        document.getElementById('close-item-modal')?.addEventListener('click', () => itemModal.classList.add('hidden'));
-        document.getElementById('btn-cancel-item')?.addEventListener('click', () => itemModal.classList.add('hidden'));
-
         ['q-shipping', 'q-urgency', 'q-install', 'q-discount'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', Quotes.calculateFinalTotal);
         });
@@ -531,7 +464,7 @@ const Quotes = {
         document.getElementById('btn-save-quote').onclick = () => {
             const customerName = document.getElementById('q-customer').value;
             if (!customerName || Quotes.currentItems.length === 0) {
-                import('../app.js').then(m => m.default.toast('Preencha o cliente e adicione itens!', 'warning'));
+                import('../app.js').then(m => m.default.toast('Selecione um cliente e adicione itens!', 'warning'));
                 return;
             }
 
@@ -546,53 +479,77 @@ const Quotes = {
                 whatsapp: document.getElementById('q-whatsapp').value,
                 items: [...Quotes.currentItems],
                 value: subtotal + extras - discount,
-                status: 'Pendente'
+                status: 'Pendente',
+                obs: document.getElementById('q-obs').value
             };
 
             const q = DB.get('quotes') || [];
             q.unshift(newQuote);
             DB.save('quotes', q);
-            import('../app.js').then(m => m.default.toast('Orçamento finalizado com sucesso!', 'success'));
-            modal.classList.add('hidden');
-            Quotes.render(container);
+            import('../app.js').then(m => m.default.toast('Orçamento gerado e salvo!', 'success'));
+            
+            // Abrir listagem após salvar
+            listContainer.classList.remove('hidden');
+            Quotes.renderList();
         };
 
+        // --- WHATSAPP ---
         window.shareQuote = (id) => {
             const q = (DB.get('quotes') || []).find(it => it.id === id);
             if (!q) return;
             const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            let msg = `*PROPOSTA COMERCIAL - ${q.id}* 📄✨\n------------------------------\n*Cliente:* ${q.customerName}\n\n`;
+            let msg = `*ORÇAMENTO - ${q.id}* 📄✨\n------------------------------\n*Cliente:* ${q.customerName}\n\n`;
             q.items.forEach((it, idx) => {
-                msg += `*${idx + 1}. ${it.name}*\nQtd: ${it.qty} un\nValor: ${fmt(it.total)}\n\n`;
+                msg += `*${idx + 1}. ${it.name}*\nQtd: ${it.qty} un\nSubtotal: ${fmt(it.total)}\n\n`;
             });
             msg += `------------------------------\n*TOTAL FINAL:* ${fmt(q.value)}\n_Gerado por Gestor Gráfico Pro_`;
             const phone = q.whatsapp ? q.whatsapp.replace(/\D/g, '') : '';
             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
         };
 
-        window.convertToSale = (id) => {
-            import('../app.js').then(m => {
-                m.default.confirm({
-                    title: 'Converter em Pedido?',
-                    message: 'Isso aprovará o orçamento e enviará os itens para o Kanban de Produção.',
-                    confirmLabel: 'Aprovar Agora',
-                    onConfirm: () => {
-                        const quotes = DB.get('quotes') || [];
-                        const q = quotes.find(it => it.id === id);
-                        if (q) {
-                            q.status = 'Aprovado';
-                            DB.save('quotes', quotes);
-                            const orders = DB.get('orders') || [];
-                            q.items.forEach(it => {
-                                orders.unshift({ id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`, date: new Date().toLocaleDateString('pt-BR'), customerName: q.customerName, productName: it.name, value: it.total, status: 'Aguardando Arte' });
-                            });
-                            DB.save('orders', orders);
-                            m.default.toast('Venda aprovada!', 'success');
-                            Quotes.render(container);
-                        }
-                    }
-                });
-            });
+        // --- LISTAGEM ---
+        Quotes.renderList = () => {
+            const target = document.getElementById('list-target');
+            const quotes = DB.get('quotes') || [];
+            const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            target.innerHTML = `
+                <div class="bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-sm">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 border-b">
+                                <th class="px-8 py-5">Proposta / Data</th>
+                                <th class="px-8 py-5">Cliente</th>
+                                <th class="px-8 py-5">Status</th>
+                                <th class="px-8 py-5 text-right">Valor Total</th>
+                                <th class="px-8 py-5 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            ${quotes.length === 0 ? `<tr><td colspan="5" class="p-20 text-center opacity-30 italic font-bold">Nenhum orçamento listado.</td></tr>` : quotes.map(q => `
+                                <tr class="hover:bg-slate-50/80 transition-all">
+                                    <td class="px-8 py-6">
+                                        <p class="text-sm font-black text-primary">${q.id}</p>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase">${q.date}</p>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <p class="text-sm font-black text-slate-700">${q.customerName}</p>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <span class="badge ${q.status === 'Aprovado' ? 'badge-green' : 'badge-purple'}">${q.status}</span>
+                                    </td>
+                                    <td class="px-8 py-6 text-right font-black text-lg">${fmt(q.value)}</td>
+                                    <td class="px-8 py-6">
+                                        <div class="flex justify-center gap-2">
+                                            <button onclick="window.shareQuote('${q.id}')" class="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"><span class="material-symbols-outlined !text-[20px]">share</span></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         };
     }
 };
