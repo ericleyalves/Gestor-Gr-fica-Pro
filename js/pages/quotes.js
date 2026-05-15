@@ -1,327 +1,286 @@
 import DB from '../db.js';
 
 const Quotes = {
-    render: (container) => {
-        const quotes    = DB.get('quotes')    || [];
-        const customers = DB.get('customers') || [];
+    currentItems: [], // Carrinho temporário do orçamento atual
+    editingItemId: null,
 
-        const openCount    = quotes.filter(q => q.status === 'Aberto').length;
-        const totalRevenue = quotes.reduce((s, q) => s + parseFloat(q.value || 0), 0);
-        const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    render: (container) => {
+        const quotes = DB.get('quotes') || [];
+        const customers = DB.get('customers') || [];
+        
+        const fmtBRL = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
         container.innerHTML = `
-            <div class="max-w-[1400px] mx-auto flex flex-col gap-5 page-enter">
-
-                <!-- KPI Row -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    ${Quotes.kpi('Total de Orçamentos', quotes.length,    'request_quote', '#6C2BFF', '#F0EBFF')}
-                    ${Quotes.kpi('Em Aberto',           openCount,         'hourglass_empty','#D97706','#FFFBEB')}
-                    ${Quotes.kpi('Taxa de Conversão',   quotes.length > 0 ? Math.round(((quotes.length - openCount) / quotes.length) * 100) + '%' : '—', 'query_stats', '#059669', '#ECFDF5')}
-                    ${Quotes.kpi('Valor Total',         fmtBRL(totalRevenue), 'payments', '#2563EB', '#EFF6FF')}
-                </div>
-
-                <!-- Action Bar -->
-                <div class="action-bar">
-                    <div class="search-input-wrap">
-                        <span class="material-symbols-outlined">search</span>
-                        <input type="text" id="quote-search" placeholder="Buscar por cliente, ID ou produto...">
+            <div class="max-w-[1600px] mx-auto flex flex-col gap-8 pb-12 animate-in fade-in duration-500">
+                
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-800">Orçamentos Profissionais</h2>
+                        <p class="text-slate-500 font-medium">Monte pedidos multitens e compartilhe propostas irresistíveis.</p>
                     </div>
                     <button id="btn-add-quote" class="btn-primary">
-                        <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+                        <span class="material-symbols-outlined">add_shopping_cart</span>
                         Novo Orçamento
                     </button>
                 </div>
 
-                <!-- Table or Empty -->
-                ${quotes.length === 0
-                    ? `<div class="data-table">
-                           <div class="empty-state">
-                               <div class="empty-state-icon"><span class="material-symbols-outlined">request_quote</span></div>
-                               <h3>Nenhum orçamento ainda</h3>
-                               <p>Crie seu primeiro orçamento e comece a converter clientes em vendas.</p>
-                               <button class="btn-primary" id="btn-add-quote-empty">Criar primeiro orçamento</button>
-                           </div>
-                       </div>`
-                    : `<div class="data-table overflow-hidden">
-                           <div class="overflow-x-auto">
-                               <table class="w-full text-left border-collapse">
-                                   <thead>
-                                       <tr style="background:#FAFBFF; border-bottom:1px solid var(--border);">
-                                           <th class="px-5 py-3 label-caps">ID / Data</th>
-                                           <th class="px-5 py-3 label-caps">Cliente</th>
-                                           <th class="px-5 py-3 label-caps">Produto</th>
-                                           <th class="px-5 py-3 label-caps text-right">Valor</th>
-                                           <th class="px-5 py-3 label-caps text-center">Status</th>
-                                           <th class="px-5 py-3 label-caps text-center">Ações</th>
-                                       </tr>
-                                   </thead>
-                                   <tbody>
-                                       ${quotes.map(q => Quotes.renderRow(q, customers)).join('')}
-                                   </tbody>
-                               </table>
-                           </div>
-                       </div>`
-                }
-            </div>
-
-            <!-- MODAL -->
-            <div id="quote-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background:rgba(10,10,20,0.5); backdrop-filter:blur(8px);">
-                <div class="quote-modal-inner">
-
-                    <!-- LEFT: Form 65% -->
-                    <div class="flex flex-col min-w-0" style="flex:0 0 65%; border-right:1px solid var(--border);">
-
-                        <!-- Modal Header -->
-                        <div class="flex justify-between items-center px-6 py-4 border-b" style="border-color:var(--border);">
-                            <div class="flex items-center gap-3">
-                                <div class="section-icon flex-shrink-0"><span class="material-symbols-outlined">receipt_long</span></div>
-                                <div>
-                                    <h3 class="text-lg font-black" style="color:var(--text-main);letter-spacing:-0.02em;">Novo Orçamento</h3>
-                                    <p class="text-xs" style="color:var(--text-faint);">Preencha os dados para gerar a proposta comercial.</p>
-                                </div>
-                            </div>
-                            <button id="close-quote-modal" class="w-8 h-8 flex items-center justify-center rounded-full transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#F8F6FF'" onmouseout="this.style.background='transparent'">
-                                <span class="material-symbols-outlined" style="font-size:18px;">close</span>
-                            </button>
+                <!-- Stats/Filters Quick Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined">description</span>
                         </div>
-
-                        <!-- Form Body -->
-                        <div class="flex-1 overflow-y-auto px-6 py-5" style="background:var(--bg-main);">
-                            <form id="form-quote" class="space-y-4">
-
-                                <!-- Cliente -->
-                                <div class="section-card">
-                                    <div class="section-header">
-                                        <div class="section-icon"><span class="material-symbols-outlined">person</span></div>
-                                        <h4 class="section-title">Dados do Cliente</h4>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label>Nome / Prospect</label>
-                                            <input type="text" id="q-customer" name="q-customer-search" placeholder="Ex: João Silva" required list="customers-list" autocomplete="off">
-                                            <datalist id="customers-list">
-                                                ${customers.map(c => `<option value="${c.name}">`).join('')}
-                                            </datalist>
-                                        </div>
-                                        <div>
-                                            <label>WhatsApp</label>
-                                            <input type="text" id="q-whatsapp" placeholder="(00) 00000-0000">
-                                        </div>
-                                        <div>
-                                            <label>Empresa</label>
-                                            <input type="text" id="q-company" placeholder="Razão social">
-                                        </div>
-                                        <div>
-                                            <label>Cidade / UF</label>
-                                            <input type="text" id="q-city" placeholder="São Paulo - SP">
-                                        </div>
-                                    </div>
-                                    <div class="mt-4">
-                                        <label>Observações Técnicas</label>
-                                        <textarea id="q-obs" rows="3" placeholder="Prazos, especificações de material, acabamentos..."></textarea>
-                                    </div>
-                                </div>
-
-                                <!-- Produto -->
-                                <div class="section-card">
-                                    <div class="section-header">
-                                        <div class="section-icon"><span class="material-symbols-outlined">inventory_2</span></div>
-                                        <h4 class="section-title">Produto & Cálculo</h4>
-                                    </div>
-                                    <div class="flex flex-col gap-4 mb-4">
-                                        <div>
-                                            <div class="flex justify-between items-center mb-1.5">
-                                                <label style="margin-bottom:0;">Produto / Serviço</label>
-                                                <button type="button" id="btn-quick-add-product" class="text-[10px] font-bold flex items-center gap-1 transition-all px-2 py-0.5 rounded-md" style="color:var(--primary); background:var(--primary-light);" onmouseover="this.style.background='var(--primary)';this.style.color='white'" onmouseout="this.style.background='var(--primary-light)';this.style.color='var(--primary)'">
-                                                    <span class="material-symbols-outlined" style="font-size:12px;">add</span>
-                                                    Novo
-                                                </button>
-                                            </div>
-                                            <input type="text" id="q-product" placeholder="Ex: Banner Lona Frontlight" required list="products-list" autocomplete="off">
-                                            <datalist id="products-list">
-                                                ${(DB.get('products')||[]).map(p => `<option value="${p.name}">`).join('')}
-                                            </datalist>
-                                        </div>
-                                        <div>
-                                            <label>Tipo de Cobrança</label>
-                                            <select id="q-type">
-                                                <option value="m2">Por metro quadrado (m²)</option>
-                                                <option value="un">Por unidade</option>
-                                                <option value="ct">Por cento (100 un)</option>
-                                                <option value="mi">Por milheiro (1.000 un)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Configurador de Produto (Subiu para cá) -->
-                                    <div id="product-configurator" class="space-y-4 mb-4">
-                                        <!-- Dynamic configuration groups will be injected here -->
-                                    </div>
-
-                                    <!-- Calc Row (Apenas para m2) -->
-                                    <div id="m2-calc-row" class="grid gap-3 p-4 rounded-[14px] hidden" style="grid-template-columns:1fr 1fr; background:#FAFBFF; border:1px solid var(--border);">
-                                        <div>
-                                            <label>Largura (cm)</label>
-                                            <input type="number" id="q-width" value="" placeholder="0">
-                                        </div>
-                                        <div>
-                                            <label>Altura (cm)</label>
-                                            <input type="number" id="q-height" value="" placeholder="0">
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Hidden redundant fields for script compatibility -->
-                                    <input type="hidden" id="q-qty" value="1">
-                                    <input type="hidden" id="q-unit-price" value="0">
-                                    <div id="q-total-item" class="hidden">R$ 0,00</div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Footer -->
-                        <div class="flex items-center justify-between px-6 py-4 border-t" style="border-color:var(--border); background:white;">
-                            <button type="button" id="btn-cancel-quote" class="btn-ghost">Cancelar</button>
-                            <button form="form-quote" type="submit" class="btn-primary">
-                                <span class="material-symbols-outlined" style="font-size:18px;">check_circle</span>
-                                Gerar Orçamento
-                            </button>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase">Total de Propostas</p>
+                            <p class="text-xl font-black text-slate-800">${quotes.length}</p>
                         </div>
                     </div>
-
-                    <!-- RIGHT: Summary 35% -->
-                    <div class="hidden lg:flex flex-col sidebar-summary overflow-y-auto" style="flex:0 0 35%;">
-                        <div class="px-6 pt-6 pb-4 border-b" style="border-color:var(--border);">
-                            <p class="label-caps">Resumo em Tempo Real</p>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <span class="material-symbols-outlined">check_circle</span>
                         </div>
-                        <div class="flex-1 px-6 py-5 space-y-4">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase">Convertidos em Venda</p>
+                            <p class="text-xl font-black text-slate-800">${quotes.filter(q => q.status === 'Aprovado').length}</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <span class="material-symbols-outlined">pending_actions</span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase">Aguardando Resposta</p>
+                            <p class="text-xl font-black text-slate-800">${quotes.filter(q => q.status === 'Pendente').length}</p>
+                        </div>
+                    </div>
+                </div>
 
-                            <!-- Total Card -->
-                            <div class="p-5 rounded-[20px] border" style="background:white; border-color:var(--border); box-shadow:var(--shadow-2);">
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center">
-                                        <span class="label-caps">Subtotal</span>
-                                        <span class="text-sm font-bold" style="color:var(--text-sub);" id="summ-subtotal">R$ 45,00</span>
+                <!-- List Section -->
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                                    <th class="px-6 py-4">Proposta / Data</th>
+                                    <th class="px-6 py-4">Cliente / Contato</th>
+                                    <th class="px-6 py-4">Itens</th>
+                                    <th class="px-6 py-4 text-right">Valor Total</th>
+                                    <th class="px-6 py-4 text-center">Status</th>
+                                    <th class="px-6 py-4 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                ${quotes.length === 0 ? `
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-20 text-center">
+                                            <div class="flex flex-col items-center gap-4 opacity-30">
+                                                <span class="material-symbols-outlined text-6xl">request_quote</span>
+                                                <p class="text-lg font-bold">Nenhum orçamento gerado ainda.</p>
+                                                <button id="btn-add-quote-empty" class="btn-primary mt-2">Começar Primeiro Pedido</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ` : quotes.map(q => {
+                                    const badgeClass = q.status === 'Aprovado' ? 'badge-green' : q.status === 'Cancelado' ? 'badge-red' : 'badge-purple';
+                                    return `
+                                        <tr class="hover:bg-slate-50/80 transition-colors group">
+                                            <td class="px-6 py-5">
+                                                <p class="text-sm font-black text-primary">${q.id}</p>
+                                                <p class="text-[10px] font-bold text-slate-400 uppercase">${q.date}</p>
+                                            </td>
+                                            <td class="px-6 py-5">
+                                                <p class="text-sm font-black text-slate-700">${q.customerName}</p>
+                                                <p class="text-xs font-bold text-slate-400">${q.whatsapp || 'Sem contato'}</p>
+                                            </td>
+                                            <td class="px-6 py-5">
+                                                <div class="flex flex-wrap gap-1">
+                                                    ${(q.items || []).slice(0, 2).map(it => `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-black text-slate-600 uppercase">${it.name}</span>`).join('')}
+                                                    ${q.items && q.items.length > 2 ? `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-black text-slate-600 uppercase">+${q.items.length - 2}</span>` : ''}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-5 text-right font-black text-slate-800">
+                                                ${fmtBRL(q.value)}
+                                            </td>
+                                            <td class="px-6 py-5 text-center">
+                                                <span class="badge ${badgeClass}">${q.status}</span>
+                                            </td>
+                                            <td class="px-6 py-5">
+                                                <div class="flex justify-center gap-1">
+                                                    <button onclick="window.shareQuote('${q.id}')" class="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="WhatsApp"><span class="material-symbols-outlined text-[20px]">share</span></button>
+                                                    <button onclick="window.convertToSale('${q.id}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Aprovar"><span class="material-symbols-outlined text-[20px]">check_circle</span></button>
+                                                    <button onclick="window.editQuote('${q.id}')" class="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all" title="Editar"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL ORÇAMENTO MULTITENS -->
+            <div id="quote-modal" class="modal-overlay hidden">
+                <div class="modal-container max-w-[1200px] h-[90vh] flex flex-col overflow-hidden">
+                    
+                    <!-- Header -->
+                    <div class="px-8 py-6 border-b flex justify-between items-center bg-white" style="border-color:var(--border);">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800">Montar Novo Orçamento</h3>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">PROPOSTA #${Math.random().toString(36).substr(2, 6).toUpperCase()}</p>
+                        </div>
+                        <button id="close-quote-modal" class="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="flex-1 flex overflow-hidden bg-slate-50">
+                        
+                        <!-- LEFT: Item List & Forms (65%) -->
+                        <div class="flex-1 overflow-y-auto p-8 space-y-8">
+                            
+                            <!-- 1. Cliente -->
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <div class="section-icon"><span class="material-symbols-outlined">person</span></div>
+                                    <h4 class="section-title">Dados do Cliente</h4>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Nome / Prospect</label>
+                                        <input type="text" id="q-customer" placeholder="Ex: João Silva" list="customers-list" class="w-full">
+                                        <datalist id="customers-list">
+                                            ${customers.map(c => `<option value="${c.name}">`).join('')}
+                                        </datalist>
                                     </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="label-caps">Acabamentos</span>
-                                        <span class="text-sm font-bold" style="color:#059669;" id="summ-extras">R$ 0,00</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="label-caps">Desconto</span>
-                                        <span class="text-sm font-bold" style="color:#D97706;" id="summ-discount-display">— %</span>
-                                    </div>
-                                    <div class="h-px" style="background:var(--border);"></div>
-                                    <div class="text-center pt-1">
-                                        <p class="label-caps mb-1" style="color:var(--primary);">TOTAL FINAL</p>
-                                        <p class="text-4xl font-black tracking-tighter" style="color:var(--text-main); letter-spacing:-0.04em;" id="summ-total">R$ 45,00</p>
-                                        <p class="text-xs mt-2" style="color:var(--text-faint);">Válido por 15 dias corridos</p>
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">WhatsApp</label>
+                                        <input type="text" id="q-whatsapp" placeholder="(00) 00000-0000" class="w-full">
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Details -->
-                            <div class="p-4 rounded-[16px] border" style="background:white; border-color:var(--border);">
-                                <p class="label-caps mb-3">Detalhes do Pedido</p>
-                                <div class="space-y-2.5">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span style="color:var(--text-muted);">Cliente</span>
-                                        <span class="font-bold truncate max-w-[140px]" style="color:var(--text-sub);" id="summ-customer">—</span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span style="color:var(--text-muted);">Produto</span>
-                                        <span class="font-bold truncate max-w-[140px]" style="color:var(--text-sub);" id="summ-product">—</span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span style="color:var(--text-muted);">Quantidade</span>
-                                        <span class="font-bold" style="color:var(--text-sub);" id="summ-qty">1 un</span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span style="color:var(--text-muted);">Prazo Estimado</span>
-                                        <span class="font-bold" style="color:var(--text-sub);" id="summ-deadline">3 a 5 dias úteis</span>
-                                    </div>
-                                    <div class="pt-4 mt-2 border-t border-dashed" style="border-color:var(--border);">
-                                        <button type="button" id="btn-share-whatsapp" class="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all" style="background:#25D366; color:white; box-shadow: 0 4px 12px rgba(37,211,102,0.3);">
-                                            <span class="material-symbols-outlined !text-lg">share</span>
-                                            Enviar p/ WhatsApp
+                            <!-- 2. Itens do Pedido -->
+                            <div class="flex flex-col gap-4">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest">Itens do Pedido</h4>
+                                    <div class="flex gap-2">
+                                        <button onclick="window.addItem('avulso')" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-sm">
+                                            <span class="material-symbols-outlined !text-[16px]">post_add</span>
+                                            + ITEM AVULSO / SERVIÇO
+                                        </button>
+                                        <button onclick="window.addItem('catalogo')" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-[10px] font-black text-white hover:bg-indigo-700 transition-all flex items-center gap-1.5 shadow-md shadow-indigo-100">
+                                            <span class="material-symbols-outlined !text-[16px]">add_shopping_cart</span>
+                                            + PRODUTO DO CATÁLOGO
                                         </button>
                                     </div>
-                                    <div class="flex justify-between items-start text-xs pt-2 border-t border-dashed" style="border-color:var(--border);">
-                                        <span style="color:var(--text-muted);">Opções</span>
-                                        <div id="summ-acabamentos-list" class="flex-1 ml-4">
-                                            <p class="text-[10px] text-right" style="color:var(--text-faint);">Nenhum</p>
-                                        </div>
+                                </div>
+
+                                <!-- Lista de Itens Adicionados -->
+                                <div id="items-list-container" class="space-y-4">
+                                    <!-- Itens injetados aqui -->
+                                    <div class="p-12 text-center border-2 border-dashed rounded-3xl border-slate-200 flex flex-col items-center gap-3">
+                                        <span class="material-symbols-outlined text-4xl text-slate-200">add_shopping_cart</span>
+                                        <p class="text-sm font-bold text-slate-400 italic">Nenhum item adicionado ao orçamento.</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Discount -->
-                            <div class="p-4 rounded-[16px] border" style="background:white; border-color:var(--border);">
-                                <p class="label-caps mb-3">Desconto Comercial</p>
-                                <div class="flex items-center gap-2">
-                                    <input type="number" id="q-discount" value="0" min="0" max="100" placeholder="0" style="font-size:14px; font-weight:700;">
-                                    <span class="font-black flex-shrink-0" style="color:var(--text-faint); font-size:14px;">%</span>
-                                </div>
-                            </div>
-
-                            <!-- Info Banner -->
-                            <div class="p-4 rounded-[16px] overflow-hidden relative" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white;">
-                                <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full" style="background:rgba(255,255,255,0.08);"></div>
-                                <div class="relative flex items-start gap-3">
-                                    <span class="material-symbols-outlined opacity-80" style="font-size:20px;">verified_user</span>
+                            <!-- 3. Taxas e Observações Gerais -->
+                            <div class="section-card">
+                                <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6">Extras e Taxas</h4>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div>
-                                        <p class="text-sm font-black">Proposta Profissional</p>
-                                        <p class="text-xs opacity-70 mt-1 leading-snug">Validade de 15 dias. Envio via WhatsApp disponível.</p>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Frete (R$)</label>
+                                        <input type="number" id="q-shipping" value="0" step="0.01" class="w-full">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Instalação (R$)</label>
+                                        <input type="number" id="q-install" value="0" step="0.01" class="w-full">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Urgência (R$)</label>
+                                        <input type="number" id="q-urgency" value="0" step="0.01" class="w-full">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Desconto (R$)</label>
+                                        <input type="number" id="q-discount" value="0" step="0.01" class="w-full">
+                                    </div>
+                                </div>
+                                <div class="mt-6">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Observações Gerais do Pedido</label>
+                                    <textarea id="q-obs" rows="3" class="w-full resize-none" placeholder="Ex: Pagamento 50% entrada e 50% na entrega..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT: Summary (35%) -->
+                        <div class="w-[350px] bg-white border-l border-slate-200 flex flex-col">
+                            <div class="p-8 flex-1 overflow-y-auto">
+                                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Resumo da Proposta</h4>
+                                
+                                <div id="summary-items-list" class="space-y-4 mb-8">
+                                    <!-- Mini lista de itens -->
+                                </div>
+
+                                <div class="space-y-3 pt-6 border-t border-dashed border-slate-200">
+                                    <div class="flex justify-between items-center text-xs font-bold text-slate-500">
+                                        <span>Subtotal Itens</span>
+                                        <span id="summ-subtotal">R$ 0,00</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs font-bold text-emerald-600">
+                                        <span>Taxas Extras</span>
+                                        <span id="summ-extras">R$ 0,00</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs font-bold text-amber-600">
+                                        <span>Descontos</span>
+                                        <span id="summ-discount">- R$ 0,00</span>
+                                    </div>
+                                    <div class="pt-6 mt-6 border-t border-slate-100 text-center">
+                                        <p class="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Total Final do Pedido</p>
+                                        <p id="summ-total" class="text-4xl font-black text-slate-800 tracking-tighter">R$ 0,00</p>
+                                        <p class="text-[10px] text-slate-400 font-bold mt-2 uppercase">Proposta válida por 15 dias</p>
                                     </div>
                                 </div>
                             </div>
-
+                            
+                            <!-- Actions Footer -->
+                            <div class="p-6 bg-slate-50 border-t border-slate-200 space-y-3">
+                                <button id="btn-save-quote" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined">save</span>
+                                    SALVAR E GERAR
+                                </button>
+                                <button id="btn-share-whatsapp" class="w-full py-3 bg-white border border-slate-200 text-emerald-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-50 transition-all flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined !text-[18px]">share</span>
+                                    Enviar via WhatsApp
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- QUICK PRODUCT MODAL -->
-            <div id="quick-product-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4" style="background:rgba(10,10,20,0.5); backdrop-filter:blur(8px);">
-                <div class="confirm-card" style="max-width: 420px; padding: 1.5rem; text-align: left;">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--primary-light); color:var(--primary);">
-                                <span class="material-symbols-outlined" style="font-size:18px;">add_box</span>
-                            </div>
-                            <h4 class="text-base font-black" style="color:var(--text-main);">Novo Produto Rápido</h4>
-                        </div>
-                        <button type="button" id="close-quick-product" class="w-7 h-7 flex items-center justify-center rounded-full transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#F8F6FF'" onmouseout="this.style.background='transparent'">
-                            <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+            <!-- SUB-MODAL: ADICIONAR ITEM (CATÁLOGO OU AVULSO) -->
+            <div id="item-modal" class="modal-overlay hidden" style="z-index: 100;">
+                <div class="modal-container max-w-[800px]">
+                    <div class="px-8 py-6 border-b flex justify-between items-center bg-white">
+                        <h3 id="item-modal-title" class="text-lg font-black text-slate-800">Adicionar Item</h3>
+                        <button id="close-item-modal" class="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
+                            <span class="material-symbols-outlined">close</span>
                         </button>
                     </div>
-                    <form id="form-quick-product" class="space-y-3">
-                        <div>
-                            <label>Nome do Produto</label>
-                            <input type="text" id="qp-name" required placeholder="Ex: Cartão de Visita Premium">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label>Categoria</label>
-                                <select id="qp-category">
-                                    <option value="Adesivos">Adesivos</option>
-                                    <option value="Banners">Banners</option>
-                                    <option value="Cartões">Cartões</option>
-                                    <option value="Diversos">Diversos</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Valor Padrão (R$)</label>
-                                <input type="number" id="qp-price" required min="0" step="0.01" value="0.00">
-                            </div>
-                        </div>
-                        <div class="pt-3 flex gap-2">
-                            <button type="button" id="btn-cancel-quick-product" class="btn-ghost flex-1 justify-center">Cancelar</button>
-                            <button type="submit" id="btn-save-quick-product" class="btn-primary flex-1 justify-center">
-                                <span class="material-symbols-outlined" style="font-size:16px;">save</span>
-                                Salvar Produto
-                            </button>
-                        </div>
-                    </form>
+                    
+                    <div id="item-modal-body" class="p-8 overflow-y-auto max-h-[70vh]">
+                        <!-- Injetado dinamicamente -->
+                    </div>
+
+                    <div class="px-8 py-6 border-t bg-slate-50 flex justify-end gap-3 rounded-b-3xl">
+                        <button id="btn-cancel-item" class="btn-ghost">Cancelar</button>
+                        <button id="btn-confirm-item" class="btn-primary">Confirmar Item</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -329,345 +288,332 @@ const Quotes = {
         Quotes.initEvents(container);
     },
 
-    kpi: (label, value, icon, color, bg) => `
-        <div class="kpi-card">
-            <div class="flex justify-between items-start gap-3">
-                <div class="w-11 h-11 rounded-[14px] flex items-center justify-center flex-shrink-0" style="background:${bg}; color:${color};">
-                    <span class="material-symbols-outlined" style="font-size:22px;">${icon}</span>
-                </div>
-                <div class="flex flex-col items-end flex-1 min-w-0">
-                    <span class="label-caps text-right">${label}</span>
-                    <span class="text-2xl font-black mt-1" style="color:var(--text-main); letter-spacing:-0.03em;">${value}</span>
-                </div>
-            </div>
-        </div>
-    `,
-
-    renderRow: (q, customers) => {
-        const customer = customers.find(c => c.id === q.customerId);
-        const name = customer?.name || q.customerName || '—';
-        const badgeClass = q.status === 'Aberto' ? 'badge-orange' : 'badge-green';
-        const fmtBRL = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        return `
-            <tr style="border-bottom:1px solid #F8F6FF; transition:background 0.15s;" onmouseover="this.style.background='#FAFBFF'" onmouseout="this.style.background=''">
-                <td class="px-5 py-3.5">
-                    <p class="text-xs font-black" style="color:var(--primary);">${q.id}</p>
-                    <p class="text-xs" style="color:var(--text-faint);">${q.date}</p>
-                </td>
-                <td class="px-5 py-3.5">
-                    <p class="text-sm font-bold" style="color:var(--text-main);">${name}</p>
-                    <p class="text-xs" style="color:var(--text-faint);">${q.whatsapp || '—'}</p>
-                </td>
-                <td class="px-5 py-3.5">
-                    <p class="text-sm font-medium" style="color:var(--text-sub);">${q.productName || '—'}</p>
-                    <p class="text-xs truncate max-w-[200px]" style="color:var(--text-faint);">${q.obs || 'Sem observações'}</p>
-                </td>
-                <td class="px-5 py-3.5 text-right text-sm font-bold" style="color:var(--text-main);">${fmtBRL(q.value)}</td>
-                <td class="px-5 py-3.5 text-center"><span class="badge ${badgeClass}">${q.status}</span></td>
-                <td class="px-5 py-3.5 text-center">
-                    <div class="flex justify-center gap-1">
-                        <button class="text-[10px] font-black px-2 py-1 rounded-lg transition-all" style="background:#ECFDF5; color:#10B981; border: 1px solid #D1FAE5;" onmouseover="this.style.background='#10B981';this.style.color='white'" onmouseout="this.style.background='#ECFDF5';this.style.color='#10B981'" onclick="window.convertToSale('${q.id}')">
-                            APROVAR
-                        </button>
-                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:#25D366; background:rgba(37,211,102,0.1);" title="Enviar p/ WhatsApp" onclick="window.shareQuote('${q.id}')">
-                            <span class="material-symbols-outlined" style="font-size:18px;">share</span>
-                        </button>
-                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.editQuote('${q.id}')">
-                            <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    },
-
     initEvents: (container) => {
-        const modal    = document.getElementById('quote-modal');
-        const btnAdd   = document.getElementById('btn-add-quote');
-        const btnAddEmpty = document.getElementById('btn-add-quote-empty');
-        const btnClose = document.getElementById('close-quote-modal');
-        const btnCancel= document.getElementById('btn-cancel-quote');
-        const form     = document.getElementById('form-quote');
+        const modal = document.getElementById('quote-modal');
+        const itemModal = document.getElementById('item-modal');
+        
+        // Reset carrinho
+        Quotes.currentItems = [];
 
-        if (!form) return;
-
-        let currentQuoteTotal = 0;
-
-        // -- Price Calculation ----------------------------------------
-        const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-        const updatePrice = () => {
-            const qty       = parseFloat(document.getElementById('q-qty')?.value)        || 0;
-            const width     = parseFloat(document.getElementById('q-width')?.value)      || 0;
-            const height    = parseFloat(document.getElementById('q-height')?.value)     || 0;
-            const unitPrice = parseFloat(document.getElementById('q-unit-price')?.value) || 0;
-            const type      = document.getElementById('q-type')?.value || 'm2';
-            const discount  = Math.min(100, Math.max(0, parseFloat(document.getElementById('q-discount')?.value) || 0));
-
-            // Calculate extras from selection cards
-            let extras = 0;
-            document.querySelectorAll('.config-card.card-active').forEach(card => {
-                extras += parseFloat(card.dataset.cost || 0);
-            });
-
-            // Base subtotal
-            let subtotal = 0;
-            const m2Row = document.getElementById('m2-calc-row');
-
-            if (type === 'm2') {
-                subtotal = (width / 100) * (height / 100) * unitPrice * qty;
-                if (m2Row) m2Row.classList.remove('hidden');
-            } else {
-                subtotal = unitPrice * qty;
-                if (m2Row) m2Row.classList.add('hidden');
-            }
-
-            // Apply extras & discount
-            const withExtras = subtotal + extras;
-            currentQuoteTotal = withExtras * (1 - discount / 100);
-
-            // Update DOM
-            const set = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+        // --- HANDLERS GLOBAIS ---
+        
+        window.addItem = (type) => {
+            const body = document.getElementById('item-modal-body');
+            const title = document.getElementById('item-modal-title');
             
-            // Get selected variation names for summary
-            const selectedVars = [];
-            document.querySelectorAll('.config-card.card-active').forEach(card => {
-                const label = card.querySelector('.config-card-label').innerText;
-                selectedVars.push(label);
-            });
-
-            set('q-total-item',         fmtBRL(currentQuoteTotal));
-            set('summ-subtotal',        fmtBRL(subtotal));
-            set('summ-extras',          extras > 0 ? `+ ${fmtBRL(extras)}` : 'R$ 0,00');
-            set('summ-discount-display',discount > 0 ? `- ${discount}%` : '— %');
-            set('summ-total',           fmtBRL(currentQuoteTotal));
-            set('summ-customer',        document.getElementById('q-customer')?.value || '—');
-            set('summ-product',         document.getElementById('q-product')?.value  || '—');
-            
-            // If there's a selected quantity variation, use it in the summary
-            const qtyGroup = Array.from(document.querySelectorAll('.config-group'))
-                .find(g => g.querySelector('.config-group-title').innerText.includes('QUANTIDADE'));
-            
-            const qtyVar = qtyGroup?.querySelector('.card-active .config-card-label')?.innerText;
-            
-            set('summ-qty',             qtyVar || `${document.getElementById('q-qty')?.value || 1} un`);
-            
-            // Deadline (Reset to static since extra days were removed)
-            set('summ-deadline', `3 a 5 dias úteis`);
-
-            // Update the "Acabamentos" list in summary
-            const acabList = document.getElementById('summ-acabamentos-list');
-            if (acabList) {
-                acabList.innerHTML = selectedVars.length > 0 
-                    ? selectedVars.map(v => `<p class="text-[10px] text-right font-semibold" style="color:var(--primary);">${v}</p>`).join('')
-                    : '<p class="text-[10px] text-right" style="color:var(--text-faint);">Nenhum</p>';
-            }
-
-            // Highlight summary
-            const summPanel = document.querySelector('.sidebar-summary');
-            if (summPanel) {
-                summPanel.classList.add('highlight-pulse');
-                setTimeout(() => summPanel.classList.remove('highlight-pulse'), 500);
-            }
-        };
-
-        // Wire all inputs
-        ['q-qty','q-width','q-height','q-unit-price','q-type','q-discount','q-product'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('input', updatePrice);
-        });
-
-        const customerInput = document.getElementById('q-customer');
-        if (customerInput) {
-            customerInput.addEventListener('input', (e) => {
-                updatePrice();
-                const customers = DB.get('customers') || [];
-                const selected = customers.find(c => c.name === e.target.value);
-                if (selected) {
-                    const phoneInput = document.getElementById('q-whatsapp');
-                    const compInput = document.getElementById('q-company');
-                    if (phoneInput) phoneInput.value = selected.phone || '';
-                    if (compInput) compInput.value = selected.document || '';
-                }
-            });
-        }
-
-        // Configurator selection logic (Atual Card style)
-        const configContainer = document.getElementById('product-configurator');
-        if (configContainer) {
-            configContainer.addEventListener('click', (e) => {
-                const card = e.target.closest('.config-card');
-                if (card) {
-                    const group = card.closest('.config-group');
-                    const radio = card.querySelector('input[type="radio"]');
-                    
-                    if (radio) {
-                        // Unselect others in group
-                        group.querySelectorAll('.config-card').forEach(c => c.classList.remove('card-active'));
-                        group.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
-                        
-                        // Select current
-                        card.classList.add('card-active');
-                        radio.checked = true;
-
-                        // Sync Quantity if applicable
-                        if (group.querySelector('.config-group-title').innerText.includes('QUANTIDADE')) {
-                            const qtyInput = document.getElementById('q-qty');
-                            if (qtyInput) qtyInput.value = 1;
-                        }
-                        
-                        updatePrice();
-                    }
-                }
-            });
-        }
-
-        // Product selection logic for variations
-        const productInput = document.getElementById('q-product');
-        if (productInput) {
-            productInput.addEventListener('input', (e) => {
-                const products = DB.get('products') || [];
-                const p = products.find(item => item.name === e.target.value);
-                const varSelector = document.getElementById('variations-selector');
-                
-                if (p) {
-                    const priceInput = document.getElementById('q-unit-price');
-                    if (priceInput) priceInput.value = p.price.toFixed(2);
-                    const typeSelect = document.getElementById('q-type');
-                    if (typeSelect) typeSelect.value = p.type;
-                    
-                    const variationsHtml = p.variations && p.variations.length > 0 
-                        ? p.variations.map(group => {
-                            const isQty = group.name.toUpperCase().includes('QUANTIDADE');
-                            return `
-                                <div class="config-group">
-                                    <div class="config-group-title">
-                                        <span class="material-symbols-outlined !text-sm">${isQty ? 'format_list_numbered' : 'settings'}</span>
-                                        ${group.name}
-                                    </div>
-                                    <div class="config-grid ${isQty ? 'config-grid-qty' : ''}">
-                                        ${group.options.map(opt => `
-                                            <div class="config-card ${isQty ? 'config-card-qty' : ''}" data-cost="${opt.price}">
-                                                <input type="radio" name="conf-${group.name.replace(/\s/g, '-')}" class="hidden">
-                                                <span class="config-card-label">${opt.name}</span>
-                                                <span class="config-card-price">+ R$ ${opt.price.toFixed(2)}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')
-                        : `<div class="p-8 text-center border-2 border-dashed rounded-2xl" style="border-color:var(--border);">
-                            <p class="text-sm italic" style="color:var(--text-faint);">Este produto não possui configurações avançadas cadastradas.</p>
-                          </div>`;
-
-                    configContainer.innerHTML = `
-                        <div class="flex items-center gap-4 p-4 rounded-2xl bg-white border mb-4" style="border-color:var(--border);">
-                            <div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 border flex-shrink-0">
-                                <img src="${p.image || 'https://via.placeholder.com/200?text=📦'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/200?text=📦'">
+            if (type === 'avulso') {
+                title.innerText = 'Adicionar Item Avulso / Serviço';
+                body.innerHTML = `
+                    <div class="grid grid-cols-1 gap-5">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Nome do Serviço / Produto</label>
+                            <input type="text" id="ai-name" class="w-full" placeholder="Ex: Arte para Redes Sociais">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Quantidade</label>
+                                <input type="number" id="ai-qty" value="1" min="1" class="w-full">
                             </div>
                             <div>
-                                <h4 class="text-lg font-black tracking-tight" style="color:var(--text-main);">${p.name}</h4>
-                                <span class="badge badge-purple">${p.category}</span>
+                                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Valor Unitário (R$)</label>
+                                <input type="number" id="ai-price" value="0" step="0.01" class="w-full">
                             </div>
                         </div>
-                        ${variationsHtml}
-                    `;
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Observação do Item</label>
+                            <textarea id="ai-obs" rows="2" class="w-full resize-none" placeholder="Detalhes específicos deste item..."></textarea>
+                        </div>
+                    </div>
+                `;
+            } else {
+                title.innerText = 'Selecionar Produto do Catálogo';
+                const products = DB.get('products') || [];
+                body.innerHTML = `
+                    <div class="flex flex-col gap-6">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Pesquisar Produto</label>
+                            <input type="text" id="ai-product-search" class="w-full mb-4" placeholder="Digite o nome do produto..." list="p-list-ai">
+                            <datalist id="p-list-ai">
+                                ${products.map(p => `<option value="${p.name}">`).join('')}
+                            </datalist>
+                        </div>
+                        <div id="ai-configurator-area" class="space-y-4">
+                            <!-- Injetado ao selecionar produto -->
+                            <div class="p-12 text-center border-2 border-dashed rounded-3xl border-slate-200">
+                                <p class="text-sm font-bold text-slate-300 italic">Selecione um produto para configurar.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Listener de busca de produto no catálogo
+                const search = document.getElementById('ai-product-search');
+                search.addEventListener('input', (e) => {
+                    const p = products.find(item => item.name === e.target.value);
+                    if (p) Quotes.renderConfigurator(p);
+                });
+            }
+            
+            itemModal.classList.remove('hidden');
+            
+            document.getElementById('btn-confirm-item').onclick = () => {
+                if (type === 'avulso') {
+                    const name = document.getElementById('ai-name').value;
+                    const qty = parseFloat(document.getElementById('ai-qty').value) || 1;
+                    const price = parseFloat(document.getElementById('ai-price').value) || 0;
+                    if (!name) return;
+                    
+                    Quotes.currentItems.push({
+                        id: Math.random().toString(36).substr(2, 5).toUpperCase(),
+                        name,
+                        qty,
+                        unitPrice: price,
+                        total: qty * price,
+                        type: 'avulso',
+                        options: [],
+                        obs: document.getElementById('ai-obs').value
+                    });
                 } else {
-                    configContainer.innerHTML = `<div class="p-8 text-center border-2 border-dashed rounded-2xl" style="border-color:var(--border);">
-                        <p class="text-sm italic" style="color:var(--text-faint);">Selecione um produto para iniciar a configuração.</p>
-                    </div>`;
+                    // Lógica para item de catálogo (pegar do configurador)
+                    const pName = document.getElementById('ai-product-search').value;
+                    const product = DB.get('products').find(p => p.name === pName);
+                    if (!product) return;
+
+                    let extras = 0;
+                    const options = [];
+                    document.querySelectorAll('.config-card.card-active').forEach(card => {
+                        extras += parseFloat(card.dataset.cost || 0);
+                        options.push(card.querySelector('.config-card-label').innerText);
+                    });
+
+                    // Tenta achar a quantidade nas variações
+                    let qty = 1;
+                    const qtyCard = document.querySelector('.config-group:has(.config-group-title:contains("QUANTIDADE")) .card-active');
+                    // Como contains é jQuery, usamos fallback manual
+                    const groups = Array.from(document.querySelectorAll('.config-group'));
+                    const qGroup = groups.find(g => g.innerText.includes('QUANTIDADE'));
+                    const qVal = qGroup?.querySelector('.card-active .config-card-label')?.innerText;
+                    if (qVal) qty = parseInt(qVal.replace(/\D/g, '')) || 1;
+
+                    const total = product.price + extras;
+
+                    Quotes.currentItems.push({
+                        id: Math.random().toString(36).substr(2, 5).toUpperCase(),
+                        name: product.name,
+                        qty: qty,
+                        unitPrice: total / qty,
+                        total: total,
+                        type: 'catalogo',
+                        options: options,
+                        image: product.image
+                    });
                 }
-                updatePrice();
+                
+                itemModal.classList.add('hidden');
+                Quotes.updateItemsUI();
+            };
+        };
+
+        window.removeItem = (idx) => {
+            Quotes.currentItems.splice(idx, 1);
+            Quotes.updateItemsUI();
+        };
+
+        window.duplicateItem = (idx) => {
+            const item = { ...Quotes.currentItems[idx], id: Math.random().toString(36).substr(2, 5).toUpperCase() };
+            Quotes.currentItems.splice(idx + 1, 0, item);
+            Quotes.updateItemsUI();
+        };
+
+        // --- UI UPDATERS ---
+        
+        Quotes.updateItemsUI = () => {
+            const container = document.getElementById('items-list-container');
+            const summary = document.getElementById('summary-items-list');
+            const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            if (Quotes.currentItems.length === 0) {
+                container.innerHTML = `<div class="p-12 text-center border-2 border-dashed rounded-3xl border-slate-200 flex flex-col items-center gap-3">
+                    <span class="material-symbols-outlined text-4xl text-slate-200">add_shopping_cart</span>
+                    <p class="text-sm font-bold text-slate-400 italic">Nenhum item adicionado ao orçamento.</p>
+                </div>`;
+                summary.innerHTML = '';
+            } else {
+                container.innerHTML = Quotes.currentItems.map((it, idx) => `
+                    <div class="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col md:flex-row items-center gap-6 group hover:shadow-lg hover:shadow-indigo-50 transition-all">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            ${it.image ? `<img src="${it.image}" class="w-full h-full object-cover">` : `<span class="material-symbols-outlined text-slate-300 text-3xl">${it.type === 'avulso' ? 'design_services' : 'package_2'}</span>`}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h5 class="text-sm font-black text-slate-800 uppercase tracking-tight">${it.name}</h5>
+                                    <p class="text-[10px] font-bold text-slate-400">${it.qty} un • ${fmtBRL(it.unitPrice)} cada</p>
+                                </div>
+                                <p class="text-lg font-black text-slate-800">${fmtBRL(it.total)}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1 mt-3">
+                                ${it.options.map(opt => `<span class="px-2 py-0.5 rounded-md bg-indigo-50 text-[10px] font-black text-primary uppercase">${opt}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="flex gap-2 border-l pl-6 border-slate-100">
+                            <button onclick="window.duplicateItem(${idx})" class="p-2 text-slate-300 hover:text-indigo-600 transition-all"><span class="material-symbols-outlined !text-[20px]">content_copy</span></button>
+                            <button onclick="window.removeItem(${idx})" class="p-2 text-slate-300 hover:text-red-500 transition-all"><span class="material-symbols-outlined !text-[20px]">delete</span></button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                summary.innerHTML = Quotes.currentItems.map(it => `
+                    <div class="flex justify-between items-center">
+                        <div class="max-w-[70%]">
+                            <p class="text-[10px] font-black text-slate-800 uppercase truncate">${it.name}</p>
+                            <p class="text-[9px] font-bold text-slate-400">${it.qty} un</p>
+                        </div>
+                        <span class="text-xs font-black text-slate-700">${fmtBRL(it.total)}</span>
+                    </div>
+                `).join('');
+            }
+            
+            Quotes.calculateFinalTotal();
+        };
+
+        Quotes.calculateFinalTotal = () => {
+            const subtotal = Quotes.currentItems.reduce((acc, it) => acc + it.total, 0);
+            const shipping = parseFloat(document.getElementById('q-shipping')?.value) || 0;
+            const install  = parseFloat(document.getElementById('q-install')?.value) || 0;
+            const urgency  = parseFloat(document.getElementById('q-urgency')?.value) || 0;
+            const discount = parseFloat(document.getElementById('q-discount')?.value) || 0;
+            
+            const extras = shipping + install + urgency;
+            const total = subtotal + extras - discount;
+            
+            const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const set = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+            
+            set('summ-subtotal', fmt(subtotal));
+            set('summ-extras', `+ ${fmt(extras)}`);
+            set('summ-discount', `- ${fmt(discount)}`);
+            set('summ-total', fmt(total));
+        };
+
+        Quotes.renderConfigurator = (p) => {
+            const area = document.getElementById('ai-configurator-area');
+            const variationsHtml = p.variations && p.variations.length > 0 
+                ? p.variations.map(group => {
+                    const isQty = group.name.toUpperCase().includes('QUANTIDADE');
+                    return `
+                        <div class="config-group">
+                            <div class="config-group-title text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <span class="material-symbols-outlined !text-sm">${isQty ? 'format_list_numbered' : 'settings'}</span>
+                                ${group.name}
+                            </div>
+                            <div class="config-grid ${isQty ? 'config-grid-qty' : 'grid grid-cols-2 md:grid-cols-3 gap-2'}">
+                                ${group.options.map(opt => `
+                                    <div class="config-card ${isQty ? 'config-card-qty' : 'p-3 border rounded-xl cursor-pointer hover:border-primary transition-all'} flex flex-col gap-1" data-cost="${opt.price}">
+                                        <input type="radio" name="conf-${group.name.replace(/\s/g, '-')}" class="hidden">
+                                        <span class="config-card-label text-[10px] font-black uppercase text-slate-700">${opt.name}</span>
+                                        <span class="config-card-price text-[9px] font-bold text-slate-400">+ R$ ${opt.price.toFixed(2)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')
+                : `<div class="p-8 text-center border-2 border-dashed rounded-3xl border-slate-100">
+                    <p class="text-sm font-bold text-slate-300 italic">Este produto não possui configurações avançadas.</p>
+                  </div>`;
+
+            area.innerHTML = `
+                <div class="p-4 rounded-2xl bg-white border border-slate-100 flex items-center gap-4 mb-6">
+                    <div class="w-16 h-16 rounded-xl overflow-hidden bg-slate-50 border flex-shrink-0">
+                        <img src="${p.image || 'https://via.placeholder.com/200'}" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <h4 class="text-md font-black text-slate-800">${p.name}</h4>
+                        <span class="badge badge-purple">${p.category}</span>
+                    </div>
+                </div>
+                ${variationsHtml}
+            `;
+            
+            // Configurator card selection logic
+            area.querySelectorAll('.config-card').forEach(card => {
+                card.onclick = () => {
+                    const group = card.closest('.config-group');
+                    group.querySelectorAll('.config-card').forEach(c => c.classList.remove('card-active', 'border-primary', 'bg-indigo-50/30'));
+                    card.classList.add('card-active', 'border-primary', 'bg-indigo-50/30');
+                    card.querySelector('input').checked = true;
+                };
             });
-        }
+        };
 
-        // Run initial calc
-        updatePrice();
-
-        // Modal open/close
-        const openModal = () => { modal.classList.remove('hidden'); setTimeout(() => document.getElementById('q-customer')?.focus(), 100); };
+        // --- MODAL CONTROLS ---
+        
+        const openModal = () => { 
+            modal.classList.remove('hidden'); 
+            Quotes.currentItems = []; 
+            Quotes.updateItemsUI();
+        };
         const closeModal = () => modal.classList.add('hidden');
+        
+        document.getElementById('btn-add-quote')?.addEventListener('click', openModal);
+        document.getElementById('btn-add-quote-empty')?.addEventListener('click', openModal);
+        document.getElementById('close-quote-modal')?.addEventListener('click', closeModal);
+        document.getElementById('close-item-modal')?.addEventListener('click', () => itemModal.classList.add('hidden'));
+        document.getElementById('btn-cancel-item')?.addEventListener('click', () => itemModal.classList.add('hidden'));
 
-        if (btnAdd)      btnAdd.onclick      = openModal;
-        if (btnAddEmpty) btnAddEmpty.onclick = openModal;
-        if (btnClose)    btnClose.onclick    = closeModal;
-        if (btnCancel)   btnCancel.onclick   = closeModal;
+        // Watch summary inputs
+        ['q-shipping', 'q-install', 'q-urgency', 'q-discount'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', Quotes.calculateFinalTotal);
+        });
 
-        // Form submit
-        form.onsubmit = (e) => {
-            e.preventDefault();
+        // --- FINAL SAVE ---
+        
+        document.getElementById('btn-save-quote').onclick = () => {
+            if (Quotes.currentItems.length === 0) {
+                import('../app.js').then(m => m.default.toast('Adicione pelo menos um item!', 'warning'));
+                return;
+            }
             
-            // Validation: Check if all configuration groups have a selection
-            const groups = document.querySelectorAll('.config-group');
-            let allSelected = true;
-            let missingGroup = '';
-            
-            groups.forEach(g => {
-                if (!g.querySelector('.card-active')) {
-                    allSelected = false;
-                    missingGroup = g.querySelector('.config-group-title').innerText;
-                }
-            });
-            
-            if (!allSelected) {
-                import('../app.js').then(m => m.default.toast(`Por favor, selecione uma opção para: ${missingGroup}`, 'error'));
+            const customerName = document.getElementById('q-customer').value;
+            if (!customerName) {
+                import('../app.js').then(m => m.default.toast('Selecione um cliente!', 'warning'));
                 return;
             }
 
-            const customerName = document.getElementById('q-customer')?.value || '';
-            const allCustomers = DB.get('customers') || [];
-            const matchedC = allCustomers.find(c => c.name === customerName);
+            const subtotal = Quotes.currentItems.reduce((acc, it) => acc + it.total, 0);
+            const shipping = parseFloat(document.getElementById('q-shipping').value) || 0;
+            const install  = parseFloat(document.getElementById('q-install').value) || 0;
+            const urgency  = parseFloat(document.getElementById('q-urgency').value) || 0;
+            const discount = parseFloat(document.getElementById('q-discount').value) || 0;
+            const total = subtotal + shipping + install + urgency - discount;
 
             const newQuote = {
-                id:           `QUO-${Math.floor(100 + Math.random() * 900)}`,
-                customerId:   matchedC ? matchedC.id : null,
-                customerName: customerName,
-                whatsapp:     document.getElementById('q-whatsapp')?.value || '',
-                productName:  document.getElementById('q-product')?.value  || '',
-                company:      document.getElementById('q-company')?.value  || '',
-                city:         document.getElementById('q-city')?.value     || '',
-                value:        currentQuoteTotal,
-                status:       'Aberto',
-                date:         new Date().toISOString().split('T')[0],
-                obs:          document.getElementById('q-obs')?.value || ''
+                id: `ORC-${Math.floor(1000 + Math.random() * 9000)}`,
+                date: new Date().toLocaleDateString('pt-BR'),
+                customerName,
+                whatsapp: document.getElementById('q-whatsapp').value,
+                items: [...Quotes.currentItems],
+                shipping,
+                install,
+                urgency,
+                discount,
+                value: total,
+                status: 'Pendente',
+                obs: document.getElementById('q-obs').value
             };
 
             const quotes = DB.get('quotes') || [];
             quotes.unshift(newQuote);
             DB.save('quotes', quotes);
 
-            import('../app.js').then(m => m.default.toast('Orçamento salvo com sucesso!'));
-
+            import('../app.js').then(m => m.default.toast('Orçamento salvo com sucesso!', 'success'));
             closeModal();
             Quotes.render(container);
         };
 
-        // Convert to sale
-        window.convertToSale = (id) => {
-            import('../app.js').then(m => {
-                m.default.confirm({
-                    title: 'Converter em Venda?',
-                    message: `O orçamento ${id} será transformado em pedido de produção.`,
-                    type: 'success',
-                    confirmLabel: 'Converter',
-                    onConfirm: () => {
-                        const quotes = DB.get('quotes') || [];
-                        const quote  = quotes.find(q => q.id === id);
-                        if (quote) {
-                            const orders = DB.get('orders') || [];
-                            orders.unshift({ ...quote, id: `ORD-${quote.id.split('-')[1] || Math.floor(Math.random()*1000)}`, status: 'Aguardando Arte' });
-                            DB.save('orders', orders);
-                            DB.save('quotes', quotes.filter(q => q.id !== id));
-                            m.default.toast('Venda gerada! O pedido já está no Kanban.', 'success');
-                            Quotes.render(container);
-                        }
-                    }
-                });
-            });
-        };
-
-        // WhatsApp Sharing Logic
+        // --- WHATSAPP SHARING ---
+        
         window.shareQuote = (id) => {
             const quotes = DB.get('quotes') || [];
             const q = quotes.find(item => item.id === id);
@@ -675,21 +621,25 @@ const Quotes = {
 
             const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             
-            let msg = `*ORÇAMENTO - #${q.id.split('-')[0].toUpperCase()}* 📄\n`;
+            let msg = `*ORÇAMENTO - ${q.id}* 📄✨\n`;
             msg += `------------------------------\n`;
-            msg += `*Cliente:* ${q.customerName}\n`;
-            msg += `*Produto:* ${q.productName}\n\n`;
+            msg += `*Cliente:* ${q.customerName}\n\n`;
             
-            if (q.options && q.options.length > 0) {
-                msg += `*CONFIGURAÇÃO:*\n`;
-                q.options.forEach(opt => {
-                    msg += `✅ ${opt}\n`;
-                });
-                msg += `\n`;
-            }
+            q.items.forEach((it, idx) => {
+                msg += `*${idx + 1}. ${it.name}*\n`;
+                msg += `Qtd: ${it.qty} un\n`;
+                if (it.options && it.options.length > 0) msg += `Config: ${it.options.join(', ')}\n`;
+                msg += `Subtotal: ${fmt(it.total)}\n\n`;
+            });
 
+            if (q.shipping > 0)  msg += `*Frete:* ${fmt(q.shipping)}\n`;
+            if (q.install > 0)   msg += `*Instalação:* ${fmt(q.install)}\n`;
+            if (q.urgency > 0)   msg += `*Taxa de Urgência:* ${fmt(q.urgency)}\n`;
+            if (q.discount > 0)  msg += `*Desconto:* - ${fmt(q.discount)}\n`;
+
+            msg += `------------------------------\n`;
             msg += `*VALOR TOTAL:* ${fmt(q.value)}\n`;
-            msg += `*PRAZO:* ${q.deadline || '3 a 5 dias úteis'}\n`;
+            msg += `*PRAZO:* 3 a 5 dias úteis\n`;
             msg += `------------------------------\n`;
             msg += `_Gerado por Gestor Gráfico Pro_`;
 
@@ -698,145 +648,44 @@ const Quotes = {
             window.open(url, '_blank');
         };
 
-        const btnShare = document.getElementById('btn-share-whatsapp');
-        if (btnShare) {
-            btnShare.onclick = () => {
-                const customerName = document.getElementById('q-customer')?.value;
-                if (!customerName) {
-                    import('../app.js').then(m => m.default.toast('Selecione um cliente primeiro!', 'error'));
-                    return;
-                }
-                
-                const productName = document.getElementById('q-product')?.value;
-                const valueStr = document.getElementById('q-total-item')?.innerText.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
-                const value = parseFloat(valueStr) || 0;
-                const whatsapp = document.getElementById('q-whatsapp')?.value;
-                const deadline = document.getElementById('summ-deadline')?.innerText;
-                
-                const selectedVars = [];
-                document.querySelectorAll('.config-card.card-active').forEach(card => {
-                    selectedVars.push(card.querySelector('.config-card-label').innerText);
-                });
-
-                const formatAndShare = (qObj) => {
-                    const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    let m = `*ORÇAMENTO RÁPIDO* 📄\n`;
-                    m += `------------------------------\n`;
-                    m += `*Cliente:* ${qObj.customerName}\n`;
-                    m += `*Produto:* ${qObj.productName}\n\n`;
-                    if (qObj.options.length > 0) {
-                        m += `*CONFIGURAÇÃO:*\n`;
-                        qObj.options.forEach(opt => m += `✅ ${opt}\n`);
-                        m += `\n`;
-                    }
-                    m += `*VALOR TOTAL:* ${fmt(qObj.value)}\n`;
-                    m += `*PRAZO:* ${qObj.deadline}\n`;
-                    m += `------------------------------\n`;
-                    m += `_Gerado por Gestor Gráfico Pro_`;
-                    const p = qObj.whatsapp ? qObj.whatsapp.replace(/\D/g, '') : '';
-                    window.open(`https://api.whatsapp.com/send?phone=${p}&text=${encodeURIComponent(m)}`, '_blank');
-                };
-
-                formatAndShare({
-                    customerName,
-                    productName,
-                    value,
-                    whatsapp,
-                    deadline,
-                    options: selectedVars
-                });
-            };
-        }
-
-        // --- Auto-fill price when existing product selected ---
-        const qProductInput = document.getElementById('q-product');
-        if (qProductInput) {
-            qProductInput.addEventListener('change', (e) => {
-                const val = e.target.value;
-                const products = DB.get('products') || [];
-                const matched = products.find(p => p.name === val);
-                if (matched) {
-                    const priceInput = document.getElementById('q-unit-price');
-                    if (priceInput) {
-                        priceInput.value = parseFloat(matched.price || 0).toFixed(2);
-                        priceInput.dispatchEvent(new Event('input'));
-                    }
-                }
-            });
-        }
-
-        // --- Quick Add Product Logic ---
-        const btnQuickAdd = document.getElementById('btn-quick-add-product');
-        const modalQuick = document.getElementById('quick-product-modal');
-        const formQuick = document.getElementById('form-quick-product');
+        // --- CONVERT TO SALE ---
         
-        if (btnQuickAdd) {
-            btnQuickAdd.addEventListener('click', () => {
-                modalQuick.classList.remove('hidden');
-                setTimeout(() => document.getElementById('qp-name')?.focus(), 100);
+        window.convertToSale = (id) => {
+            import('../app.js').then(m => {
+                m.default.confirm({
+                    title: 'Aprovar Orçamento?',
+                    message: 'Isso criará os pedidos de produção no Kanban e registrará a venda no financeiro.',
+                    confirmLabel: 'Aprovar agora',
+                    onConfirm: () => {
+                        const quotes = DB.get('quotes') || [];
+                        const qIdx = quotes.findIndex(q => q.id === id);
+                        if (qIdx === -1) return;
+
+                        const q = quotes[qIdx];
+                        q.status = 'Aprovado';
+                        DB.save('quotes', quotes);
+
+                        // Criar pedidos no Kanban (um para cada item do orçamento)
+                        const orders = DB.get('orders') || [];
+                        q.items.forEach(it => {
+                            orders.unshift({
+                                id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+                                date: new Date().toLocaleDateString('pt-BR'),
+                                customerName: q.customerName,
+                                productName: it.name,
+                                value: it.total,
+                                status: 'Aguardando Arte',
+                                options: it.options
+                            });
+                        });
+                        DB.save('orders', orders);
+
+                        m.default.toast('Venda registrada e enviada para produção!', 'success');
+                        Quotes.render(container);
+                    }
+                });
             });
-        }
-        
-        const closeQuick = () => {
-            modalQuick.classList.add('hidden');
-            formQuick?.reset();
         };
-
-        document.getElementById('close-quick-product')?.addEventListener('click', closeQuick);
-        document.getElementById('btn-cancel-quick-product')?.addEventListener('click', closeQuick);
-
-        // Click backdrop to close
-        modalQuick?.addEventListener('click', (e) => { if (e.target === modalQuick) closeQuick(); });
-
-        formQuick?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const btnSave = document.getElementById('btn-save-quick-product');
-            const originalHTML = btnSave.innerHTML;
-            btnSave.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:16px;">sync</span> Salvando...';
-            btnSave.disabled = true;
-            
-            setTimeout(() => {
-                const name = document.getElementById('qp-name').value;
-                const price = parseFloat(document.getElementById('qp-price').value) || 0;
-                const category = document.getElementById('qp-category').value;
-                
-                const products = DB.get('products') || [];
-                products.unshift({
-                    id: `PROD-${Math.floor(1000 + Math.random() * 9000)}`,
-                    name,
-                    category,
-                    price,
-                    cost: price * 0.5,
-                    stock: 99,
-                    status: true
-                });
-                DB.save('products', products);
-                
-                import('../app.js').then(m => m.default.toast('Produto cadastrado!'));
-                
-                // Update quote form fields
-                if (qProductInput) {
-                    qProductInput.value = name;
-                    
-                    // Update datalist without fully re-rendering
-                    const dlist = document.getElementById('products-list');
-                    if (dlist) {
-                        dlist.innerHTML = products.map(p => `<option value="${p.name}">`).join('');
-                    }
-                    qProductInput.dispatchEvent(new Event('input'));
-                }
-                
-                const qPrice = document.getElementById('q-unit-price');
-                if (qPrice) {
-                    qPrice.value = price.toFixed(2);
-                    qPrice.dispatchEvent(new Event('input'));
-                }
-                
-                closeQuick();
-                btnSave.innerHTML = originalHTML;
-                btnSave.disabled = false;
-            }, 400); // 400ms loading for premium UX feel
-        });
     }
 };
 
