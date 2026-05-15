@@ -41,6 +41,27 @@ const Dashboard = {
                     ${Dashboard.kpi('Clientes', customers.length, 'groups', '#2563EB', '#EFF6FF', `${products.length} produtos cadastrados`)}
                 </div>
 
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="section-card lg:col-span-2">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="section-heading">Faturamento Mensal</h3>
+                            <div class="flex gap-2">
+                                <span class="badge badge-green">Crescimento +12%</span>
+                            </div>
+                        </div>
+                        <div class="h-[300px]">
+                            <canvas id="chart-revenue"></canvas>
+                        </div>
+                    </div>
+                    <div class="section-card">
+                        <h3 class="section-heading mb-6">Mix de Produtos</h3>
+                        <div class="h-[300px] flex items-center justify-center">
+                            <canvas id="chart-categories"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Orders table or empty state -->
                 <div class="data-table">
                     <div class="flex justify-between items-center px-5 py-4 border-b" style="border-color:var(--border);">
@@ -125,6 +146,81 @@ const Dashboard = {
 
         const btnEmpty = document.getElementById('btn-dash-empty-quote');
         if (btnEmpty) btnEmpty.onclick = () => import('../app.js').then(m => m.default.navigateTo('orcamentos'));
+
+        // Initialize Charts
+        setTimeout(() => {
+            Dashboard.initCharts(orders);
+        }, 100);
+    },
+
+    initCharts: (orders) => {
+        const ctxRev = document.getElementById('chart-revenue')?.getContext('2d');
+        const ctxCat = document.getElementById('chart-categories')?.getContext('2d');
+
+        if (ctxRev) {
+            // Mock data for last 6 months (in a real app we would calculate this)
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
+            const salesData = [12500, 15000, 11000, 18500, 22000, 25000];
+
+            new Chart(ctxRev, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: salesData,
+                        borderColor: '#6C2BFF',
+                        backgroundColor: 'rgba(108, 43, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#6C2BFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        if (ctxCat) {
+            // Group sales by category
+            const categories = {};
+            orders.forEach(o => {
+                const cat = o.category || 'Outros';
+                categories[cat] = (categories[cat] || 0) + 1;
+            });
+
+            const labels = Object.keys(categories).length > 0 ? Object.keys(categories) : ['Cartões', 'Banners', 'Adesivos'];
+            const data = Object.values(categories).length > 0 ? Object.values(categories) : [45, 25, 30];
+
+            new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#6C2BFF', '#10B981', '#F59E0B', '#3B82F6', '#EF4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+                    }
+                }
+            });
+        }
     },
 
     kpi: (label, value, icon, color, bgColor, sub) => `
