@@ -144,6 +144,17 @@ const Products = {
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <div class="section-icon"><span class="material-symbols-outlined">layers</span></div>
+                                        <h4 class="section-title">Estoque Inicial</h4>
+                                    </div>
+                                    <div>
+                                        <label>Quantidade em Estoque</label>
+                                        <input type="number" id="p-stock" min="0" value="0">
+                                    </div>
+                                </div>
                             </form>
                         </div>
 
@@ -277,6 +288,7 @@ const Products = {
                     document.getElementById('p-cost').value = p.cost;
                     const margin = p.cost > 0 ? (((p.price / p.cost) - 1) * 100).toFixed(0) : 100;
                     document.getElementById('p-margin').value = margin;
+                    document.getElementById('p-stock').value = p.stock || 0;
                 }
             }
             
@@ -349,7 +361,7 @@ const Products = {
                 cost: cost,
                 price: price,
                 status: true,
-                stock: editingId ? (products.find(p => p.id === editingId)?.stock || 150) : 150
+                stock: parseInt(document.getElementById('p-stock').value) || 0
             };
 
             if (editingId) {

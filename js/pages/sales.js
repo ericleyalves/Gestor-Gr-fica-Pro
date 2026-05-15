@@ -38,7 +38,7 @@ const Sales = {
                                             <p class="text-[10px] text-slate-400 font-bold">${order.date}</p>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <p class="text-sm font-bold text-slate-700">${DB.get('customers').find(c => c.id === order.customerId)?.name || 'Cliente'}</p>
+                                            <p class="text-sm font-bold text-slate-700">${DB.get('customers').find(c => c.id === order.customerId)?.name || order.customerName || 'Cliente sem cadastro'}</p>
                                         </td>
                                         <td class="px-6 py-4">
                                             <p class="text-sm text-slate-500 font-medium">${order.productName}</p>

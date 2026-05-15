@@ -98,7 +98,10 @@ const Quotes = {
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
                                             <label>Nome / Prospect</label>
-                                            <input type="text" id="q-customer" placeholder="Ex: João Silva" required>
+                                            <input type="text" id="q-customer" placeholder="Ex: João Silva" required list="customers-list" autocomplete="off">
+                                            <datalist id="customers-list">
+                                                ${customers.map(c => `<option value="${c.name}">`).join('')}
+                                            </datalist>
                                         </div>
                                         <div>
                                             <label>WhatsApp</label>
@@ -402,6 +405,8 @@ const Quotes = {
 
         if (!form) return;
 
+        let currentQuoteTotal = 0;
+
         // -- Price Calculation ----------------------------------------
         const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -435,15 +440,15 @@ const Quotes = {
 
             // Apply extras & discount
             const withExtras = subtotal + extras;
-            const total      = withExtras * (1 - discount / 100);
+            currentQuoteTotal = withExtras * (1 - discount / 100);
 
             // Update DOM
             const set = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
-            set('q-total-item',         fmtBRL(total));
+            set('q-total-item',         fmtBRL(currentQuoteTotal));
             set('summ-subtotal',        fmtBRL(subtotal));
             set('summ-extras',          extras > 0 ? `+ ${fmtBRL(extras)}` : 'R$ 0,00');
             set('summ-discount-display',discount > 0 ? `- ${discount}%` : '— %');
-            set('summ-total',           fmtBRL(total));
+            set('summ-total',           fmtBRL(currentQuoteTotal));
             set('summ-customer',        document.getElementById('q-customer')?.value || '—');
             set('summ-product',         document.getElementById('q-product')?.value  || '—');
             set('summ-qty',             `${document.getElementById('q-qty')?.value || 1} un`);
@@ -485,19 +490,20 @@ const Quotes = {
         // Form submit
         form.onsubmit = (e) => {
             e.preventDefault();
-            const summTotalEl = document.getElementById('summ-total');
-            const rawText = summTotalEl ? summTotalEl.innerText : 'R$ 0,00';
-            // Robust parse: remove currency symbol, spaces, thousand dots, convert comma to dot
-            const total = parseFloat(rawText.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+            
+            const customerName = document.getElementById('q-customer')?.value || '';
+            const allCustomers = DB.get('customers') || [];
+            const matchedC = allCustomers.find(c => c.name === customerName);
 
             const newQuote = {
                 id:           `QUO-${Math.floor(100 + Math.random() * 900)}`,
-                customerName: document.getElementById('q-customer')?.value || '',
+                customerId:   matchedC ? matchedC.id : null,
+                customerName: customerName,
                 whatsapp:     document.getElementById('q-whatsapp')?.value || '',
                 productName:  document.getElementById('q-product')?.value  || '',
                 company:      document.getElementById('q-company')?.value  || '',
                 city:         document.getElementById('q-city')?.value     || '',
-                value:        total,
+                value:        currentQuoteTotal,
                 status:       'Aberto',
                 date:         new Date().toISOString().split('T')[0],
                 obs:          document.getElementById('q-obs')?.value || ''
