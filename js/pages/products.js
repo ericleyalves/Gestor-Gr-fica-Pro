@@ -99,11 +99,11 @@ const Products = {
                                     <div class="grid grid-cols-2 gap-4">
                                         <div class="col-span-2">
                                             <label>Nome do Produto</label>
-                                            <input type="text" id="p-name" placeholder="Ex: Cartão de Visita Couchê 300g" required>
+                                            <input type="text" id="p-name" placeholder="Ex: Cartão de Visita Couchê 300g" required autocomplete="off">
                                         </div>
                                         <div>
                                             <label>Referência / SKU</label>
-                                            <input type="text" id="p-ref" placeholder="EX: CV-300">
+                                            <input type="text" id="p-ref" placeholder="EX: CV-300" autocomplete="off">
                                         </div>
                                         <div>
                                             <label>Categoria</label>

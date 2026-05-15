@@ -98,7 +98,7 @@ const Quotes = {
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
                                             <label>Nome / Prospect</label>
-                                            <input type="text" id="q-customer" name="q-customer-search" placeholder="Ex: João Silva" required list="customers-list" autocomplete="new-password">
+                                            <input type="text" id="q-customer" name="q-customer-search" placeholder="Ex: João Silva" required list="customers-list" autocomplete="off">
                                             <datalist id="customers-list">
                                                 ${customers.map(c => `<option value="${c.name}">`).join('')}
                                             </datalist>
