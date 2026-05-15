@@ -181,13 +181,36 @@ const Customers = {
         
         window.deleteCustomer = (id) => {
             import('../app.js').then(m => {
+                const quotes = DB.get('quotes') || [];
+                const orders = DB.get('orders') || [];
+                const customers = DB.get('customers') || [];
+                const cust = customers.find(c => c.id === id);
+                
+                // Relational check
+                const inUse = quotes.some(q => q.customerId === id) || orders.some(o => o.customerId === id);
+                
+                if (inUse) {
+                    m.default.confirm({
+                        title: 'Ação Bloqueada (Dado em uso)',
+                        message: 'Não é possível excluir este item porque ele já foi utilizado em vendas/orçamentos. Você pode apenas desativá-lo.',
+                        type: 'warning',
+                        confirmLabel: 'Desativar Cliente',
+                        onConfirm: () => {
+                            if (cust) cust.status = false;
+                            DB.save('customers', customers);
+                            m.default.toast('Cliente desativado com sucesso.', 'info');
+                            Customers.render(container);
+                        }
+                    });
+                    return;
+                }
+
                 m.default.confirm({
                     title: 'Excluir Cliente?',
-                    message: 'Isso removerá o cliente da base, mas não afetará orçamentos antigos.',
+                    message: 'Tem certeza que deseja remover este cliente definitivamente da base?',
                     type: 'danger',
                     onConfirm: () => {
-                        const current = DB.get('customers') || [];
-                        DB.save('customers', current.filter(c => c.id !== id));
+                        DB.save('customers', customers.filter(c => c.id !== id));
                         m.default.toast('Cliente removido');
                         Customers.render(container);
                     }
@@ -199,7 +222,7 @@ const Customers = {
             e.preventDefault();
             const customers = DB.get('customers') || [];
             const data = {
-                id: editingId || Date.now(),
+                id: editingId || crypto.randomUUID(),
                 name: document.getElementById('c-name').value,
                 document: document.getElementById('c-doc').value,
                 email: document.getElementById('c-email').value,

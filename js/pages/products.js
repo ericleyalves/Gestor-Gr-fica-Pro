@@ -331,12 +331,34 @@ const Products = {
         
         window.deleteProduct = (id) => {
             import('../app.js').then(m => {
+                const quotes = DB.get('quotes') || [];
+                const orders = DB.get('orders') || [];
+                const products = DB.get('products') || [];
+                const prod = products.find(p => p.id === id);
+                
+                const inUse = quotes.some(q => q.productName === prod?.name) || orders.some(o => o.productName === prod?.name);
+                
+                if (inUse) {
+                    m.default.confirm({
+                        title: 'Ação Bloqueada (Dado em uso)',
+                        message: 'Não é possível excluir este item porque ele já foi utilizado em vendas/orçamentos. Você pode apenas desativá-lo.',
+                        type: 'warning',
+                        confirmLabel: 'Desativar Produto',
+                        onConfirm: () => {
+                            if (prod) prod.status = false;
+                            DB.save('products', products);
+                            m.default.toast('Produto desativado com sucesso.', 'info');
+                            Products.render(container);
+                        }
+                    });
+                    return;
+                }
+
                 m.default.confirm({
                     title: 'Excluir Produto?',
-                    message: 'Tem certeza que deseja remover este produto do catálogo?',
+                    message: 'Tem certeza que deseja remover este produto do catálogo definitivamente?',
                     type: 'danger',
                     onConfirm: () => {
-                        const products = DB.get('products') || [];
                         DB.save('products', products.filter(p => p.id !== id));
                         m.default.toast('Produto removido', 'info');
                         Products.render(container);
@@ -353,7 +375,7 @@ const Products = {
 
             const products = DB.get('products') || [];
             const data = {
-                id: editingId || Date.now(),
+                id: editingId || crypto.randomUUID(),
                 name: document.getElementById('p-name').value,
                 ref: document.getElementById('p-ref').value,
                 category: document.getElementById('p-category').value,
