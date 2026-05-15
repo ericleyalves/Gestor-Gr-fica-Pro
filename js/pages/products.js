@@ -475,9 +475,14 @@ const Products = {
             const margin = parseInt(document.getElementById('p-margin').value) || 0;
             const price = cost * (1 + margin / 100);
 
+            const generateId = () => {
+                try { return crypto.randomUUID(); } 
+                catch (e) { return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15); }
+            };
+
             const products = DB.get('products') || [];
             const data = {
-                id: editingId || crypto.randomUUID(),
+                id: editingId || generateId(),
                 name: document.getElementById('p-name').value,
                 ref: document.getElementById('p-ref').value,
                 category: document.getElementById('p-category').value,

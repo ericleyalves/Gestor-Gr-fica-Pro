@@ -40,7 +40,20 @@ const DB = {
                 const { data, error } = await supabaseClient.from(table).select('*');
                 if (!error && data && data.length > 0) {
                     const camelData = data.map(toCamelCase);
-                    localStorage.setItem(`ggp_${table}`, JSON.stringify(camelData));
+                    const localData = JSON.parse(localStorage.getItem(`ggp_${table}`) || '[]');
+                    
+                    // Mesclar dados: Prioriza o que está na nuvem para IDs existentes, 
+                    // mas mantém itens locais que ainda não subiram.
+                    const cloudIds = new Set(camelData.map(d => d.id));
+                    const merged = [...camelData];
+                    
+                    localData.forEach(localItem => {
+                        if (!cloudIds.has(localItem.id)) {
+                            merged.push(localItem);
+                        }
+                    });
+
+                    localStorage.setItem(`ggp_${table}`, JSON.stringify(merged));
                 }
             } catch (e) {
                 console.error(`Erro ao puxar ${table}:`, e);
