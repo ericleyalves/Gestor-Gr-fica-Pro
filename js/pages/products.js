@@ -236,6 +236,9 @@ const Products = {
                 </td>
                 <td class="px-5 py-3.5 text-center">
                     <div class="flex justify-center gap-1">
+                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#F0F9FF';this.style.color='#0EA5E9'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.duplicateProduct('${p.id}')" title="Duplicar Produto">
+                            <span class="material-symbols-outlined" style="font-size:18px;">content_copy</span>
+                        </button>
                         <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.editProduct('${p.id}')">
                             <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
                         </button>
@@ -414,6 +417,20 @@ const Products = {
         // CRUD Actions
         window.editProduct = (id) => openModal(id);
         
+        window.duplicateProduct = (id) => {
+            const products = DB.get('products') || [];
+            const p = products.find(item => item.id === id);
+            if (p) {
+                const newP = JSON.parse(JSON.stringify(p));
+                newP.id = crypto.randomUUID();
+                newP.name = `${p.name} (Cópia)`;
+                products.unshift(newP);
+                DB.save('products', products);
+                import('../app.js').then(m => m.default.toast('Produto duplicado com sucesso!'));
+                Products.render(container);
+            }
+        };
+
         window.deleteProduct = (id) => {
             import('../app.js').then(m => {
                 const quotes = DB.get('quotes') || [];
