@@ -65,7 +65,18 @@ const Kanban = {
                                         </div>
                                         
                                         <h4 class="text-sm font-black mb-1" style="color: var(--text-main);">${order.productName}</h4>
-                                        <p class="text-xs font-semibold mb-4" style="color: var(--text-muted);">${DB.get('customers')?.find(c => c.id === order.customerId)?.name || order.customerName || 'Cliente'}</p>
+                                        <p class="text-[11px] font-semibold mb-2" style="color: var(--text-muted);">${DB.get('customers')?.find(c => c.id === order.customerId)?.name || order.customerName || 'Cliente'}</p>
+                                        
+                                        <!-- Chosen Options -->
+                                        ${order.options && order.options.length > 0 ? `
+                                            <div class="flex flex-wrap gap-1 mb-4">
+                                                ${order.options.map(opt => `
+                                                    <span class="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold uppercase tracking-tight">
+                                                        ${opt}
+                                                    </span>
+                                                `).join('')}
+                                            </div>
+                                        ` : ''}
                                         
                                         <div class="flex justify-between items-center pt-3 border-t" style="border-color: var(--border);">
                                             <p class="text-xs font-black" style="color: var(--text-main);">${fmtBRL(order.value)}</p>

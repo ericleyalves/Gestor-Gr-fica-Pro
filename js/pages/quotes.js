@@ -376,6 +376,9 @@ const Quotes = {
                 <td class="px-5 py-3.5 text-center"><span class="badge ${badgeClass}">${q.status}</span></td>
                 <td class="px-5 py-3.5 text-center">
                     <div class="flex justify-center gap-1">
+                        <button class="text-[10px] font-black px-2 py-1 rounded-lg transition-all" style="background:#ECFDF5; color:#10B981; border: 1px solid #D1FAE5;" onmouseover="this.style.background='#10B981';this.style.color='white'" onmouseout="this.style.background='#ECFDF5';this.style.color='#10B981'" onclick="window.convertToSale('${q.id}')">
+                            APROVAR
+                        </button>
                         <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:#25D366; background:rgba(37,211,102,0.1);" title="Enviar p/ WhatsApp" onclick="window.shareQuote('${q.id}')">
                             <span class="material-symbols-outlined" style="font-size:18px;">share</span>
                         </button>
@@ -665,10 +668,10 @@ const Quotes = {
                         const quote  = quotes.find(q => q.id === id);
                         if (quote) {
                             const orders = DB.get('orders') || [];
-                            orders.unshift({ ...quote, id: `ORD-${quote.id.split('-')[1]}`, status: 'Produção' });
+                            orders.unshift({ ...quote, id: `ORD-${quote.id.split('-')[1] || Math.floor(Math.random()*1000)}`, status: 'Aguardando Arte' });
                             DB.save('orders', orders);
                             DB.save('quotes', quotes.filter(q => q.id !== id));
-                            m.default.toast('Venda gerada com sucesso!', 'success');
+                            m.default.toast('Venda gerada! O pedido já está no Kanban.', 'success');
                             Quotes.render(container);
                         }
                     }
