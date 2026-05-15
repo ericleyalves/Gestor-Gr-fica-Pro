@@ -464,12 +464,13 @@ const Quotes = {
         if (customerInput) {
             customerInput.addEventListener('input', (e) => {
                 updatePrice();
+                const customers = DB.get('customers') || [];
                 const selected = customers.find(c => c.name === e.target.value);
                 if (selected) {
                     const phoneInput = document.getElementById('q-whatsapp');
                     const compInput = document.getElementById('q-company');
-                    if (phoneInput && !phoneInput.value) phoneInput.value = selected.phone || '';
-                    if (compInput && !compInput.value) compInput.value = selected.document || '';
+                    if (phoneInput) phoneInput.value = selected.phone || '';
+                    if (compInput) compInput.value = selected.document || '';
                 }
             });
         }
