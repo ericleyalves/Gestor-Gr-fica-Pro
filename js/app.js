@@ -87,15 +87,43 @@ const App = {
 
     checkLogin: () => {
         const user = DB.get('user');
-        user ? App.showApp() : App.showLogin();
+        if (user) {
+            App.updateProfileUI(user);
+            App.showApp();
+        } else {
+            App.showLogin();
+        }
+    },
+
+    updateProfileUI: (user) => {
+        const profileName = document.getElementById('user-profile-name');
+        const profileEmail = document.getElementById('user-profile-email');
+        const profileInitials = document.getElementById('user-profile-initials');
+        
+        if(profileName) profileName.innerText = user.name || 'Usuário';
+        if(profileEmail) profileEmail.innerText = user.email || '';
+        if(profileInitials && user.name) profileInitials.innerText = user.name.substring(0,2).toUpperCase();
     },
 
     login: () => {
-        const email = document.getElementById('email').value;
+        const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-        if (email && password) {
-            DB.save('user', { email, name: 'Administrador' });
+        
+        const validUsers = [
+            { email: 'admin@graficapro.com.br', pass: '123456', name: 'Administrador' },
+            { email: 'natan.lf@gmail.com', pass: '123', name: 'Natan' }
+        ];
+
+        const match = validUsers.find(u => u.email === email && u.pass === password);
+
+        if (match) {
+            const user = { email: match.email, name: match.name };
+            DB.save('user', user);
+            App.updateProfileUI(user);
             App.showApp();
+        } else {
+            // Import toast dynamically just in case App.toast isn't defined here
+            import('./app.js').then(m => m.default.toast('E-mail ou senha incorretos!', 'error'));
         }
     },
 
