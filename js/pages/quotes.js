@@ -152,6 +152,12 @@ const Quotes = {
                                             </select>
                                         </div>
                                     </div>
+
+                                    <!-- Configurador de Produto (Subiu para cá) -->
+                                    <div id="product-configurator" class="space-y-4 mb-4">
+                                        <!-- Dynamic configuration groups will be injected here -->
+                                    </div>
+
                                     <!-- Calc Row (Apenas para m2) -->
                                     <div id="m2-calc-row" class="grid gap-3 p-4 rounded-[14px] hidden" style="grid-template-columns:1fr 1fr; background:#FAFBFF; border:1px solid var(--border);">
                                         <div>
@@ -169,12 +175,6 @@ const Quotes = {
                                     <input type="hidden" id="q-unit-price" value="0">
                                     <div id="q-total-item" class="hidden">R$ 0,00</div>
                                 </div>
-
-                                <!-- Configurador de Produto -->
-                                <div id="product-configurator" class="space-y-4">
-                                    <!-- Dynamic configuration groups will be injected here -->
-                                </div>
-
                             </form>
                         </div>
 
