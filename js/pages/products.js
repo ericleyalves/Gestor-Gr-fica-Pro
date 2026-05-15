@@ -90,6 +90,7 @@ const Products = {
 
                         <div class="flex-1 overflow-y-auto px-6 py-5" style="background:var(--bg-main);">
                             <form id="form-product" class="space-y-4">
+                                <!-- 1. Informações Gerais -->
                                 <div class="section-card">
                                     <div class="section-header">
                                         <div class="section-icon"><span class="material-symbols-outlined">info</span></div>
@@ -116,10 +117,29 @@ const Products = {
                                     </div>
                                 </div>
 
+                                <!-- 2. Variações / Acabamentos (MOVED UP) -->
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <div class="section-icon"><span class="material-symbols-outlined">tune</span></div>
+                                        <div class="flex-1">
+                                            <h4 class="section-title">Variações / Opções</h4>
+                                            <p class="text-xs" style="color:var(--text-faint);">Ex: Quantidade, Verniz, Material...</p>
+                                        </div>
+                                        <button type="button" id="btn-add-variation" class="btn-ghost !py-1 !px-2 text-xs">
+                                            <span class="material-symbols-outlined !text-sm">add</span>
+                                            Nova Variação
+                                        </button>
+                                    </div>
+                                    <div id="variations-container" class="space-y-4 mt-4">
+                                        <!-- Variations will be rendered here -->
+                                    </div>
+                                </div>
+
+                                <!-- 3. Precificação -->
                                 <div class="section-card">
                                     <div class="section-header">
                                         <div class="section-icon"><span class="material-symbols-outlined">payments</span></div>
-                                        <h4 class="section-title">Precificação</h4>
+                                        <h4 class="section-title">Precificação Base</h4>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
@@ -145,6 +165,7 @@ const Products = {
                                     </div>
                                 </div>
                                 
+                                <!-- 4. Estoque -->
                                 <div class="section-card">
                                     <div class="section-header">
                                         <div class="section-icon"><span class="material-symbols-outlined">layers</span></div>
@@ -165,24 +186,6 @@ const Products = {
                                             <label>Quantidade Atual</label>
                                             <input type="number" id="p-stock" min="0" value="0">
                                         </div>
-                                    </div>
-                                </div>
-
-                                <!-- Variações / Acabamentos -->
-                                <div class="section-card">
-                                    <div class="section-header">
-                                        <div class="section-icon"><span class="material-symbols-outlined">tune</span></div>
-                                        <div class="flex-1">
-                                            <h4 class="section-title">Variações / Acabamentos</h4>
-                                            <p class="text-xs" style="color:var(--text-faint);">Adicione opções como Verniz, Laminação, etc.</p>
-                                        </div>
-                                        <button type="button" id="btn-add-variation" class="btn-ghost !py-1 !px-2 text-xs">
-                                            <span class="material-symbols-outlined !text-sm">add</span>
-                                            Adicionar
-                                        </button>
-                                    </div>
-                                    <div id="variations-container" class="space-y-3 mt-4">
-                                        <!-- Variations will be rendered here -->
                                     </div>
                                 </div>
                             </form>
@@ -286,10 +289,10 @@ const Products = {
                 </td>
                 <td class="px-5 py-3.5 text-center">
                     <div class="flex justify-center gap-1">
-                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.editProduct(${p.id})">
+                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.editProduct('${p.id}')">
                             <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
                         </button>
-                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#FEF2F2';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.deleteProduct(${p.id})">
+                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#FEF2F2';this.style.color='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.deleteProduct('${p.id}')">
                             <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
                         </button>
                     </div>
@@ -312,23 +315,44 @@ const Products = {
         let currentVariations = [];
 
         const renderVariations = () => {
-            varContainer.innerHTML = currentVariations.map((v, idx) => `
-                <div class="grid grid-cols-[1fr,80px,80px,40px] gap-2 items-end p-3 rounded-lg border bg-slate-50" style="border-color:var(--border);">
-                    <div>
-                        <label class="text-[10px] !mb-1 uppercase">Nome da Variação</label>
-                        <input type="text" value="${v.name}" oninput="window.updateVariation(${idx}, 'name', this.value)" placeholder="Ex: Verniz Total" class="!py-1.5 text-xs">
+            varContainer.innerHTML = currentVariations.map((v, gIdx) => `
+                <div class="p-4 rounded-xl border bg-slate-50/50" style="border-color:var(--border);">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex-1 mr-4">
+                            <label class="text-[10px] !mb-1 uppercase font-black" style="color:var(--primary);">Nome da Variação (Ex: Quantidade)</label>
+                            <input type="text" value="${v.name}" oninput="window.updateVariationGroup(${gIdx}, this.value)" placeholder="Ex: Verniz Total" class="!py-1.5 text-sm font-bold">
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <button type="button" onclick="window.addOption(${gIdx})" class="btn-ghost !py-1 !px-2 text-[10px] font-bold h-8">
+                                <span class="material-symbols-outlined !text-xs">add</span> Opção
+                            </button>
+                            <button type="button" onclick="window.removeVariationGroup(${gIdx})" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400">
+                                <span class="material-symbols-outlined !text-sm">delete</span>
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-[10px] !mb-1 uppercase">Custo +</label>
-                        <input type="number" value="${v.cost}" oninput="window.updateVariation(${idx}, 'cost', this.value)" placeholder="0.00" step="0.01" class="!py-1.5 text-xs text-right">
+                    
+                    <div class="space-y-2 pl-4 border-l-2" style="border-color:var(--primary-light);">
+                        ${v.options.map((opt, oIdx) => `
+                            <div class="grid grid-cols-[1fr,80px,80px,40px] gap-2 items-end">
+                                <div>
+                                    <label class="text-[9px] !mb-0.5 uppercase">Opção (Ex: 1000 un)</label>
+                                    <input type="text" value="${opt.name}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'name', this.value)" placeholder="Ex: 500 un" class="!py-1 text-xs">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] !mb-0.5 uppercase">Custo +</label>
+                                    <input type="number" value="${opt.cost}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'cost', this.value)" placeholder="0.00" step="0.01" class="!py-1 text-xs text-right">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] !mb-0.5 uppercase">Preço +</label>
+                                    <input type="number" value="${opt.price}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'price', this.value)" placeholder="0.00" step="0.01" class="!py-1 text-xs text-right">
+                                </div>
+                                <button type="button" onclick="window.removeOption(${gIdx}, ${oIdx})" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400">
+                                    <span class="material-symbols-outlined !text-xs">close</span>
+                                </button>
+                            </div>
+                        `).join('')}
                     </div>
-                    <div>
-                        <label class="text-[10px] !mb-1 uppercase">Preço +</label>
-                        <input type="number" value="${v.price}" oninput="window.updateVariation(${idx}, 'price', this.value)" placeholder="0.00" step="0.01" class="!py-1.5 text-xs text-right">
-                    </div>
-                    <button type="button" onclick="window.removeVariation(${idx})" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400">
-                        <span class="material-symbols-outlined !text-sm">delete</span>
-                    </button>
                 </div>
             `).join('');
 
@@ -337,18 +361,32 @@ const Products = {
             }
         };
 
-        window.updateVariation = (idx, field, value) => {
-            currentVariations[idx][field] = field === 'name' ? value : parseFloat(value) || 0;
+        window.updateVariationGroup = (gIdx, name) => {
+            currentVariations[gIdx].name = name;
         };
 
-        window.removeVariation = (idx) => {
-            currentVariations.splice(idx, 1);
+        window.addOption = (gIdx) => {
+            currentVariations[gIdx].options.push({ name: '', price: 0, cost: 0 });
+            renderVariations();
+        };
+
+        window.updateOption = (gIdx, oIdx, field, value) => {
+            currentVariations[gIdx].options[oIdx][field] = field === 'name' ? value : parseFloat(value) || 0;
+        };
+
+        window.removeOption = (gIdx, oIdx) => {
+            currentVariations[gIdx].options.splice(oIdx, 1);
+            renderVariations();
+        };
+
+        window.removeVariationGroup = (gIdx) => {
+            currentVariations.splice(gIdx, 1);
             renderVariations();
         };
 
         if (btnAddVar) {
             btnAddVar.onclick = () => {
-                currentVariations.push({ name: '', price: 0, cost: 0 });
+                currentVariations.push({ name: '', options: [{ name: '', price: 0, cost: 0 }] });
                 renderVariations();
             };
         }
@@ -399,8 +437,12 @@ const Products = {
 
         // Calculator Logic
         const updateCalc = () => {
-            const cost = parseFloat(document.getElementById('p-cost').value) || 0;
-            const margin = parseInt(document.getElementById('p-margin').value) || 0;
+            const costInput = document.getElementById('p-cost');
+            const marginInput = document.getElementById('p-margin');
+            if (!costInput || !marginInput) return;
+
+            const cost = parseFloat(costInput.value) || 0;
+            const margin = parseInt(marginInput.value) || 0;
             
             const finalPrice = cost * (1 + margin / 100);
             const profit = finalPrice - cost;
@@ -416,7 +458,10 @@ const Products = {
             document.getElementById('roi-bar').style.width = `${Math.min(100, roi / 2)}%`;
         };
 
-        ['p-cost', 'p-margin'].forEach(id => document.getElementById(id).oninput = updateCalc);
+        ['p-cost', 'p-margin'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.oninput = updateCalc;
+        });
 
         // CRUD Actions
         window.editProduct = (id) => openModal(id);

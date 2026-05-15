@@ -463,14 +463,26 @@ const Quotes = {
             });
         }
 
-        // Pill toggle (using delegation since they are dynamic)
+        // Variation selection logic (Radio-style per group)
         document.getElementById('variations-selector').addEventListener('click', (e) => {
             const pill = e.target.closest('.acabamento-pill');
             if (pill) {
+                const group = pill.closest('.variation-group');
                 const check = pill.querySelector('.acabamento-check');
+                
                 if (check) {
-                    check.checked = !check.checked;
-                    pill.classList.toggle('pill-active', check.checked);
+                    const wasChecked = check.checked;
+                    
+                    // Uncheck all in this group
+                    group.querySelectorAll('.acabamento-check').forEach(c => c.checked = false);
+                    group.querySelectorAll('.acabamento-pill').forEach(p => p.classList.remove('pill-active'));
+                    
+                    // Toggle current (or just check if it was unchecked)
+                    if (!wasChecked) {
+                        check.checked = true;
+                        pill.classList.add('pill-active');
+                    }
+                    
                     updatePrice();
                 }
             }
@@ -491,11 +503,18 @@ const Quotes = {
                     if (typeSelect) typeSelect.value = p.type;
                     
                     if (p.variations && p.variations.length > 0) {
-                        varSelector.innerHTML = p.variations.map(v => `
-                            <label class="acabamento-pill" data-cost="${v.price}">
-                                <input type="checkbox" class="hidden acabamento-check">
-                                <span class="acabamento-label">${v.name} (+ R$ ${v.price.toFixed(2)})</span>
-                            </label>
+                        varSelector.innerHTML = p.variations.map(group => `
+                            <div class="variation-group space-y-2 pb-3 border-b border-dashed last:border-0" style="border-color:var(--border);">
+                                <p class="text-[10px] uppercase font-black" style="color:var(--text-faint);">${group.name}</p>
+                                <div class="flex flex-wrap gap-2">
+                                    ${group.options.map(opt => `
+                                        <label class="acabamento-pill" data-cost="${opt.price}">
+                                            <input type="radio" name="var-${group.name.replace(/\s/g, '-')}" class="hidden acabamento-check">
+                                            <span class="acabamento-label">${opt.name} (+ R$ ${opt.price.toFixed(2)})</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
                         `).join('');
                     } else {
                         varSelector.innerHTML = `<p class="text-[11px] italic" style="color:var(--text-faint);">Este produto não possui variações cadastradas.</p>`;
