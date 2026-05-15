@@ -216,7 +216,42 @@ const App = {
 
         const close = () => modal.classList.add('hidden');
         btnNo.onclick = close;
-        btnYes.onclick = () => { onConfirm && onConfirm(); close(); };
+        btnYes.onclick = () => {
+            onConfirm();
+            close();
+        };
+    },
+
+    toast: (message, type = 'success') => {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: 'check_circle',
+            error: 'error',
+            info: 'info'
+        };
+
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <span class="material-symbols-outlined" style="font-size:20px;">${icons[type] || 'info'}</span>
+            </div>
+            <div class="toast-message">${message}</div>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 };
 

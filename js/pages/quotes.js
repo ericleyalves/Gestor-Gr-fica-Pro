@@ -383,7 +383,7 @@ const Quotes = {
                         <button class="text-xs font-bold px-3 py-1.5 rounded-[10px] transition-all" style="background:var(--primary-light); color:var(--primary);" onmouseover="this.style.background='var(--primary)';this.style.color='white'" onmouseout="this.style.background='var(--primary-light)';this.style.color='var(--primary)'" onclick="window.convertToSale('${q.id}')">
                             Aprovar
                         </button>
-                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#F8F6FF'" onmouseout="this.style.background='transparent'">
+                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#F8F6FF'" onmouseout="this.style.background='transparent'" onclick="window.shareQuote('${q.id}')">
                             <span class="material-symbols-outlined" style="font-size:16px;">share</span>
                         </button>
                     </div>
@@ -507,6 +507,8 @@ const Quotes = {
             quotes.unshift(newQuote);
             DB.save('quotes', quotes);
 
+            import('../app.js').then(m => m.default.toast('Orçamento salvo com sucesso!'));
+
             closeModal();
             Quotes.render(container);
         };
@@ -527,11 +529,28 @@ const Quotes = {
                             orders.unshift({ ...quote, id: `ORD-${quote.id.split('-')[1]}`, status: 'Produção' });
                             DB.save('orders', orders);
                             DB.save('quotes', quotes.filter(q => q.id !== id));
+                            m.default.toast('Venda gerada com sucesso!', 'success');
                             Quotes.render(container);
                         }
                     }
                 });
             });
+        };
+
+        window.shareQuote = (id) => {
+            const quotes = DB.get('quotes') || [];
+            const q = quotes.find(item => item.id === id);
+            if (!q) return;
+
+            const text = `*Orçamento Gestor Gráfico Pro*%0A%0A` +
+                `*ID:* ${q.id}%0A` +
+                `*Produto:* ${q.productName}%0A` +
+                `*Valor:* R$ ${q.value.toFixed(2)}%0A` +
+                `*Data:* ${q.date}%0A%0A` +
+                `Aguardamos sua aprovação!`;
+            
+            const wpUrl = `https://api.whatsapp.com/send?text=${text}`;
+            window.open(wpUrl, '_blank');
         };
 
         // --- Auto-fill price when existing product selected ---
@@ -597,6 +616,8 @@ const Quotes = {
                     status: true
                 });
                 DB.save('products', products);
+                
+                import('../app.js').then(m => m.default.toast('Produto cadastrado!'));
                 
                 // Update quote form fields
                 if (qProductInput) {
