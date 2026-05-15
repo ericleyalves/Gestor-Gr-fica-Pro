@@ -109,10 +109,16 @@ const App = {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         
-        const validUsers = [
-            { email: 'admin@graficapro.com.br', pass: '123456', name: 'Administrador' },
-            { email: 'natan.lf@gmail.com', pass: '123', name: 'Natan' }
-        ];
+        let validUsers = DB.get('app_users') || [];
+        
+        // Se estiver vazio (primeiro acesso), cria os usuários padrão
+        if (validUsers.length === 0) {
+            validUsers = [
+                { id: '1', email: 'admin@graficapro.com.br', pass: '123456', name: 'Administrador', role: 'admin' },
+                { id: '2', email: 'natan.lf@gmail.com', pass: '123', name: 'Natan', role: 'user' }
+            ];
+            DB.save('app_users', validUsers);
+        }
 
         const match = validUsers.find(u => u.email === email && u.pass === password);
 
