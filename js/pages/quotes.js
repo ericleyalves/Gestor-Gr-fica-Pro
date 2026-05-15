@@ -407,10 +407,8 @@ const Quotes = {
 
             // Calculate extras from selection cards
             let extras = 0;
-            let extraDays = 0;
             document.querySelectorAll('.config-card.card-active').forEach(card => {
                 extras += parseFloat(card.dataset.cost || 0);
-                extraDays += parseInt(card.dataset.days || 0);
             });
 
             // Base subtotal
@@ -457,10 +455,8 @@ const Quotes = {
             
             set('summ-qty',             qtyVar || `${document.getElementById('q-qty')?.value || 1} un`);
             
-            // Deadline calculation
-            const baseDaysMin = 3;
-            const totalDaysMin = baseDaysMin + extraDays;
-            set('summ-deadline', `${totalDaysMin} a ${totalDaysMin + 2} dias úteis`);
+            // Deadline (Reset to static since extra days were removed)
+            set('summ-deadline', `3 a 5 dias úteis`);
 
             // Update the "Acabamentos" list in summary
             const acabList = document.getElementById('summ-acabamentos-list');
@@ -554,7 +550,7 @@ const Quotes = {
                                     </div>
                                     <div class="config-grid ${isQty ? 'config-grid-qty' : ''}">
                                         ${group.options.map(opt => `
-                                            <div class="config-card ${isQty ? 'config-card-qty' : ''}" data-cost="${opt.price}" data-days="${opt.days || 0}">
+                                            <div class="config-card ${isQty ? 'config-card-qty' : ''}" data-cost="${opt.price}">
                                                 <input type="radio" name="conf-${group.name.replace(/\s/g, '-')}" class="hidden">
                                                 <span class="config-card-label">${opt.name}</span>
                                                 <span class="config-card-price">+ R$ ${opt.price.toFixed(2)}</span>
