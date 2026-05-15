@@ -186,22 +186,10 @@ const Quotes = {
                                         <div class="section-icon"><span class="material-symbols-outlined">auto_awesome</span></div>
                                         <h4 class="section-title">Acabamentos Especiais</h4>
                                     </div>
-                                    <div class="flex flex-wrap gap-2">
-                                        ${[
-                                            { label: 'Ilhós', cost: 15 },
-                                            { label: 'Laminação Fosca', cost: 25 },
-                                            { label: 'Verniz UV', cost: 30 },
-                                            { label: 'Dobra', cost: 10 },
-                                            { label: 'Corte Especial', cost: 20 },
-                                            { label: 'Instalação', cost: 50 },
-                                        ].map(opt => `
-                                            <label class="acabamento-pill" data-cost="${opt.cost}">
-                                                <input type="checkbox" class="hidden acabamento-check">
-                                                <span class="acabamento-label">${opt.label}</span>
-                                            </label>
-                                        `).join('')}
+                                    <div class="flex flex-wrap gap-2" id="variations-selector">
+                                        <p class="text-[11px] italic" style="color:var(--text-faint);">Selecione um produto para ver os acabamentos.</p>
                                     </div>
-                                    <p class="text-xs mt-3" style="color:var(--text-faint);">Cada acabamento adiciona custo fixo ao total do orçamento.</p>
+                                    <p class="text-xs mt-3" style="color:var(--text-faint);">Variações cadastradas no produto adicionam valor ao total.</p>
                                 </div>
 
                             </form>
@@ -475,17 +463,49 @@ const Quotes = {
             });
         }
 
-        // Pill toggle
-        document.querySelectorAll('.acabamento-pill').forEach(pill => {
-            pill.addEventListener('click', () => {
+        // Pill toggle (using delegation since they are dynamic)
+        document.getElementById('variations-selector').addEventListener('click', (e) => {
+            const pill = e.target.closest('.acabamento-pill');
+            if (pill) {
                 const check = pill.querySelector('.acabamento-check');
                 if (check) {
                     check.checked = !check.checked;
                     pill.classList.toggle('pill-active', check.checked);
                     updatePrice();
                 }
-            });
+            }
         });
+
+        // Product selection logic for variations
+        const productInput = document.getElementById('q-product');
+        if (productInput) {
+            productInput.addEventListener('input', (e) => {
+                const products = DB.get('products') || [];
+                const p = products.find(item => item.name === e.target.value);
+                const varSelector = document.getElementById('variations-selector');
+                
+                if (p) {
+                    const priceInput = document.getElementById('q-unit-price');
+                    if (priceInput) priceInput.value = p.price.toFixed(2);
+                    const typeSelect = document.getElementById('q-type');
+                    if (typeSelect) typeSelect.value = p.type;
+                    
+                    if (p.variations && p.variations.length > 0) {
+                        varSelector.innerHTML = p.variations.map(v => `
+                            <label class="acabamento-pill" data-cost="${v.price}">
+                                <input type="checkbox" class="hidden acabamento-check">
+                                <span class="acabamento-label">${v.name} (+ R$ ${v.price.toFixed(2)})</span>
+                            </label>
+                        `).join('');
+                    } else {
+                        varSelector.innerHTML = `<p class="text-[11px] italic" style="color:var(--text-faint);">Este produto não possui variações cadastradas.</p>`;
+                    }
+                } else {
+                    varSelector.innerHTML = `<p class="text-[11px] italic" style="color:var(--text-faint);">Selecione um produto para ver os acabamentos.</p>`;
+                }
+                updatePrice();
+            });
+        }
 
         // Run initial calc
         updatePrice();

@@ -155,6 +155,24 @@ const Products = {
                                         <input type="number" id="p-stock" min="0" value="0">
                                     </div>
                                 </div>
+
+                                <!-- Variações / Acabamentos -->
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <div class="section-icon"><span class="material-symbols-outlined">tune</span></div>
+                                        <div class="flex-1">
+                                            <h4 class="section-title">Variações / Acabamentos</h4>
+                                            <p class="text-xs" style="color:var(--text-faint);">Adicione opções como Verniz, Laminação, etc.</p>
+                                        </div>
+                                        <button type="button" id="btn-add-variation" class="btn-ghost !py-1 !px-2 text-xs">
+                                            <span class="material-symbols-outlined !text-sm">add</span>
+                                            Adicionar
+                                        </button>
+                                    </div>
+                                    <div id="variations-container" class="space-y-3 mt-4">
+                                        <!-- Variations will be rendered here -->
+                                    </div>
+                                </div>
                             </form>
                         </div>
 
@@ -269,12 +287,58 @@ const Products = {
         const btnClose = document.getElementById('close-product-modal');
         const btnCancel = document.getElementById('btn-cancel-product');
         const form = document.getElementById('form-product');
+        const varContainer = document.getElementById('variations-container');
+        const btnAddVar = document.getElementById('btn-add-variation');
         
         let editingId = null;
+        let currentVariations = [];
+
+        const renderVariations = () => {
+            varContainer.innerHTML = currentVariations.map((v, idx) => `
+                <div class="grid grid-cols-[1fr,80px,80px,40px] gap-2 items-end p-3 rounded-lg border bg-slate-50" style="border-color:var(--border);">
+                    <div>
+                        <label class="text-[10px] !mb-1 uppercase">Nome da Variação</label>
+                        <input type="text" value="${v.name}" oninput="window.updateVariation(${idx}, 'name', this.value)" placeholder="Ex: Verniz Total" class="!py-1.5 text-xs">
+                    </div>
+                    <div>
+                        <label class="text-[10px] !mb-1 uppercase">Custo +</label>
+                        <input type="number" value="${v.cost}" oninput="window.updateVariation(${idx}, 'cost', this.value)" placeholder="0.00" step="0.01" class="!py-1.5 text-xs text-right">
+                    </div>
+                    <div>
+                        <label class="text-[10px] !mb-1 uppercase">Preço +</label>
+                        <input type="number" value="${v.price}" oninput="window.updateVariation(${idx}, 'price', this.value)" placeholder="0.00" step="0.01" class="!py-1.5 text-xs text-right">
+                    </div>
+                    <button type="button" onclick="window.removeVariation(${idx})" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400">
+                        <span class="material-symbols-outlined !text-sm">delete</span>
+                    </button>
+                </div>
+            `).join('');
+
+            if (currentVariations.length === 0) {
+                varContainer.innerHTML = `<p class="text-[11px] text-center py-2 italic" style="color:var(--text-faint);">Nenhuma variação adicionada.</p>`;
+            }
+        };
+
+        window.updateVariation = (idx, field, value) => {
+            currentVariations[idx][field] = field === 'name' ? value : parseFloat(value) || 0;
+        };
+
+        window.removeVariation = (idx) => {
+            currentVariations.splice(idx, 1);
+            renderVariations();
+        };
+
+        if (btnAddVar) {
+            btnAddVar.onclick = () => {
+                currentVariations.push({ name: '', price: 0, cost: 0 });
+                renderVariations();
+            };
+        }
 
         const openModal = (id = null) => {
             editingId = id;
             form.reset();
+            currentVariations = [];
             document.getElementById('modal-title').innerText = id ? 'Editar Produto' : 'Novo Produto';
             
             if (id) {
@@ -289,10 +353,12 @@ const Products = {
                     const margin = p.cost > 0 ? (((p.price / p.cost) - 1) * 100).toFixed(0) : 100;
                     document.getElementById('p-margin').value = margin;
                     document.getElementById('p-stock').value = p.stock || 0;
+                    currentVariations = JSON.parse(JSON.stringify(p.variations || []));
                 }
             }
             
             modal.classList.remove('hidden');
+            renderVariations();
             updateCalc();
         };
 
@@ -383,7 +449,8 @@ const Products = {
                 cost: cost,
                 price: price,
                 status: true,
-                stock: parseInt(document.getElementById('p-stock').value) || 0
+                stock: parseInt(document.getElementById('p-stock').value) || 0,
+                variations: currentVariations.filter(v => v.name.trim() !== '')
             };
 
             if (editingId) {
