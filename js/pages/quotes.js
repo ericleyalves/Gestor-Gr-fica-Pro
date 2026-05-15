@@ -254,7 +254,7 @@ const Quotes = {
                                     </div>
                                     <div class="flex justify-between items-center text-xs">
                                         <span style="color:var(--text-muted);">Prazo Estimado</span>
-                                        <span class="font-bold" style="color:var(--text-sub);">3 a 5 dias úteis</span>
+                                        <span class="font-bold" style="color:var(--text-sub);" id="summ-deadline">3 a 5 dias úteis</span>
                                     </div>
                                     <div class="flex justify-between items-start text-xs pt-2 border-t border-dashed" style="border-color:var(--border);">
                                         <span style="color:var(--text-muted);">Opções</span>
@@ -414,8 +414,10 @@ const Quotes = {
 
             // Calculate extras from checked pills
             let extras = 0;
+            let extraDays = 0;
             document.querySelectorAll('.acabamento-pill.pill-active').forEach(pill => {
                 extras += parseFloat(pill.dataset.cost || 0);
+                extraDays += parseInt(pill.dataset.days || 0);
             });
 
             // Base subtotal
@@ -461,12 +463,24 @@ const Quotes = {
             
             set('summ-qty',             qtyVar || `${document.getElementById('q-qty')?.value || 1} un`);
             
-            // Update the "Acabamentos" list in summary if needed (optional, but good for UX)
+            // Deadline calculation
+            const baseDaysMin = 3;
+            const totalDaysMin = baseDaysMin + extraDays;
+            set('summ-deadline', `${totalDaysMin} a ${totalDaysMin + 2} dias úteis`);
+
+            // Update the "Acabamentos" list in summary
             const acabList = document.getElementById('summ-acabamentos-list');
             if (acabList) {
                 acabList.innerHTML = selectedVars.length > 0 
                     ? selectedVars.map(v => `<p class="text-[10px] text-right font-semibold" style="color:var(--primary);">${v}</p>`).join('')
                     : '<p class="text-[10px] text-right" style="color:var(--text-faint);">Nenhum</p>';
+            }
+
+            // Highlight summary
+            const summPanel = document.querySelector('.sidebar-summary');
+            if (summPanel) {
+                summPanel.classList.add('highlight-pulse');
+                setTimeout(() => summPanel.classList.remove('highlight-pulse'), 500);
             }
         };
 
@@ -540,7 +554,7 @@ const Quotes = {
                                 <p class="text-[10px] uppercase font-black" style="color:var(--text-faint);">${group.name}</p>
                                 <div class="flex flex-wrap gap-2">
                                     ${group.options.map(opt => `
-                                        <label class="acabamento-pill" data-cost="${opt.price}">
+                                        <label class="acabamento-pill" data-cost="${opt.price}" data-days="${opt.days || 0}">
                                             <input type="radio" name="var-${group.name.replace(/\s/g, '-')}" class="hidden acabamento-check">
                                             <span class="acabamento-label">${opt.name} (+ R$ ${opt.price.toFixed(2)})</span>
                                         </label>
@@ -577,6 +591,23 @@ const Quotes = {
         form.onsubmit = (e) => {
             e.preventDefault();
             
+            // Validation: Check if all variation groups have a selection
+            const groups = document.querySelectorAll('.variation-group');
+            let allSelected = true;
+            let missingGroup = '';
+            
+            groups.forEach(g => {
+                if (!g.querySelector('.pill-active')) {
+                    allSelected = false;
+                    missingGroup = g.querySelector('p').innerText;
+                }
+            });
+            
+            if (!allSelected) {
+                import('../app.js').then(m => m.default.toast(`Por favor, selecione uma opção para: ${missingGroup}`, 'error'));
+                return;
+            }
+
             const customerName = document.getElementById('q-customer')?.value || '';
             const allCustomers = DB.get('customers') || [];
             const matchedC = allCustomers.find(c => c.name === customerName);

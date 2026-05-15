@@ -334,18 +334,22 @@ const Products = {
                     
                     <div class="space-y-2 pl-4 border-l-2" style="border-color:var(--primary-light);">
                         ${v.options.map((opt, oIdx) => `
-                            <div class="grid grid-cols-[1fr,80px,80px,40px] gap-2 items-end">
+                            <div class="grid grid-cols-[1fr,70px,70px,60px,32px] gap-1.5 items-end">
                                 <div>
                                     <label class="text-[9px] !mb-0.5 uppercase">Opção (Ex: 1000 un)</label>
                                     <input type="text" value="${opt.name}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'name', this.value)" placeholder="Ex: 500 un" class="!py-1 text-xs">
                                 </div>
                                 <div>
-                                    <label class="text-[9px] !mb-0.5 uppercase">Custo +</label>
+                                    <label class="text-[9px] !mb-0.5 uppercase text-right">Custo +</label>
                                     <input type="number" value="${opt.cost}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'cost', this.value)" placeholder="0.00" step="0.01" class="!py-1 text-xs text-right">
                                 </div>
                                 <div>
-                                    <label class="text-[9px] !mb-0.5 uppercase">Preço +</label>
+                                    <label class="text-[9px] !mb-0.5 uppercase text-right">Preço +</label>
                                     <input type="number" value="${opt.price}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'price', this.value)" placeholder="0.00" step="0.01" class="!py-1 text-xs text-right">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] !mb-0.5 uppercase text-center">Dias +</label>
+                                    <input type="number" value="${opt.days || 0}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'days', this.value)" placeholder="0" class="!py-1 text-xs text-center">
                                 </div>
                                 <button type="button" onclick="window.removeOption(${gIdx}, ${oIdx})" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400">
                                     <span class="material-symbols-outlined !text-xs">close</span>
@@ -366,7 +370,7 @@ const Products = {
         };
 
         window.addOption = (gIdx) => {
-            currentVariations[gIdx].options.push({ name: '', price: 0, cost: 0 });
+            currentVariations[gIdx].options.push({ name: '', price: 0, cost: 0, days: 0 });
             renderVariations();
         };
 
@@ -386,7 +390,7 @@ const Products = {
 
         if (btnAddVar) {
             btnAddVar.onclick = () => {
-                currentVariations.push({ name: '', options: [{ name: '', price: 0, cost: 0 }] });
+                currentVariations.push({ name: '', options: [{ name: '', price: 0, cost: 0, days: 0 }] });
                 renderVariations();
             };
         }
