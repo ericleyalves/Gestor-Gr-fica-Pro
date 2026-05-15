@@ -141,17 +141,17 @@ const Quotes = {
                 </div>
             </div>
 
-            <!-- MODAL CATÁLOGO SPLIT (90% LARGURA) -->
-            <div id="item-modal" class="modal-overlay hidden" style="z-index: 10000; padding: 20px;">
-                <div class="catalog-modal bg-white shadow-2xl animate-in zoom-in-95 duration-300">
+            <!-- MODAL CATÁLOGO SPLIT (CENTRALIZADO) -->
+            <div id="item-modal" class="fixed inset-0 z-[10000] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-10">
+                <div class="catalog-modal bg-white shadow-[0_0_100px_rgba(0,0,0,0.2)] animate-in zoom-in-95 duration-300">
                     
                     <!-- Header -->
-                    <div class="px-8 py-4 border-b flex justify-between items-center bg-white shrink-0">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center"><span class="material-symbols-outlined">menu_book</span></div>
+                    <div class="px-8 py-5 border-b flex justify-between items-center bg-white shrink-0">
+                        <div class="flex items-center gap-4 text-left">
+                            <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg"><span class="material-symbols-outlined">menu_book</span></div>
                             <div>
-                                <h3 id="item-modal-title" class="text-lg font-black text-slate-800 tracking-tight">Catálogo Master</h3>
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Navegue e selecione o produto para configurar</p>
+                                <h3 id="item-modal-title" class="text-xl font-black text-slate-800 tracking-tight leading-none">Catálogo Master</h3>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Configurador de Pedidos v3.0</p>
                             </div>
                         </div>
                         <button id="close-item-modal" class="w-10 h-10 rounded-full hover:bg-slate-100 text-slate-400 transition-all flex items-center justify-center"><span class="material-symbols-outlined">close</span></button>
