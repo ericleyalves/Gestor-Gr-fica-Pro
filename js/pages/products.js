@@ -61,7 +61,7 @@ const Products = {
                                            <th class="px-5 py-3 label-caps text-center">Ações</th>
                                        </tr>
                                    </thead>
-                                   <tbody>
+                                   <tbody id="products-tbody">
                                        ${products.map(p => Products.renderRow(p)).join('')}
                                    </tbody>
                                </table>
@@ -141,10 +141,23 @@ const Products = {
                                     </div>
                                 </div>
 
-                                <!-- 3. Precificação Base REMOVED -->
-                                <input type="hidden" id="p-type" value="un">
-                                <input type="hidden" id="p-cost" value="0">
-                                <input type="hidden" id="p-margin" value="0">
+                                <!-- 3. Precificação Base -->
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <div class="section-icon"><span class="material-symbols-outlined">payments</span></div>
+                                        <h4 class="section-title">Precificação Base</h4>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label>Valor da Compra (Custo R$)</label>
+                                            <input type="number" id="p-cost" placeholder="0.00" step="0.01" class="w-full">
+                                        </div>
+                                        <div>
+                                            <label>Valor da Venda (Preço Final R$)</label>
+                                            <input type="number" id="p-price" placeholder="0.00" step="0.01" class="w-full">
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <!-- 4. Estoque -->
                                 <div class="section-card">
@@ -273,9 +286,31 @@ const Products = {
         const form = document.getElementById('form-product');
         const varContainer = document.getElementById('variations-container');
         const btnAddVar = document.getElementById('btn-add-variation');
+        const searchInput = document.getElementById('product-search');
         
         let editingId = null;
         let currentVariations = [];
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const tbody = document.getElementById('products-tbody');
+                if (tbody) {
+                    const products = DB.get('products') || [];
+                    const filtered = products.filter(p => 
+                        p.name.toLowerCase().includes(term) || 
+                        (p.category && p.category.toLowerCase().includes(term)) ||
+                        (p.ref && p.ref.toLowerCase().includes(term))
+                    );
+                    
+                    if (filtered.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-outline italic">Nenhum produto encontrado.</td></tr>`;
+                    } else {
+                        tbody.innerHTML = filtered.map(p => Products.renderRow(p)).join('');
+                    }
+                }
+            });
+        }
 
         const renderVariations = () => {
             varContainer.innerHTML = currentVariations.map((v, gIdx) => `
@@ -368,10 +403,8 @@ const Products = {
                     document.getElementById('p-ref').value = p.ref || '';
                     document.getElementById('p-image').value = p.image || '';
                     document.getElementById('p-category').value = p.category;
-                    document.getElementById('p-type').value = p.type;
-                    document.getElementById('p-cost').value = p.cost;
-                    const margin = p.cost > 0 ? (((p.price / p.cost) - 1) * 100).toFixed(0) : 100;
-                    document.getElementById('p-margin').value = margin;
+                    document.getElementById('p-cost').value = p.cost || 0;
+                    document.getElementById('p-price').value = p.price || 0;
                     document.getElementById('p-manage-stock').checked = p.manageStock !== false;
                     document.getElementById('p-stock').value = p.stock || 0;
                     document.getElementById('stock-qty-container').style.display = p.manageStock !== false ? 'block' : 'none';
@@ -403,14 +436,13 @@ const Products = {
         // Calculator Logic
         const updateCalc = () => {
             const costInput = document.getElementById('p-cost');
-            const marginInput = document.getElementById('p-margin');
-            if (!costInput || !marginInput) return;
+            const priceInput = document.getElementById('p-price');
+            if (!costInput || !priceInput) return;
 
             const cost = parseFloat(costInput.value) || 0;
-            const margin = parseInt(marginInput.value) || 0;
-            
-            const finalPrice = cost * (1 + margin / 100);
+            const finalPrice = parseFloat(priceInput.value) || 0;
             const profit = finalPrice - cost;
+            const margin = cost > 0 ? (((finalPrice / cost) - 1) * 100).toFixed(0) : 100;
             const roi = cost > 0 ? (profit / cost * 100).toFixed(0) : 0;
 
             const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -423,7 +455,7 @@ const Products = {
             document.getElementById('roi-bar').style.width = `${Math.min(100, roi / 2)}%`;
         };
 
-        ['p-cost', 'p-margin'].forEach(id => {
+        ['p-cost', 'p-price'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.oninput = updateCalc;
         });
@@ -456,14 +488,13 @@ const Products = {
                 
                 if (inUse) {
                     m.default.confirm({
-                        title: 'Ação Bloqueada (Dado em uso)',
-                        message: 'Não é possível excluir este item porque ele já foi utilizado em vendas/orçamentos. Você pode apenas desativá-lo.',
+                        title: 'Atenção: Produto em Uso!',
+                        message: 'Este produto já foi utilizado em vendas ou orçamentos. Excluí-lo não afetará o histórico dos pedidos antigos, mas ele sumirá do catálogo. Deseja excluir mesmo assim?',
                         type: 'warning',
-                        confirmLabel: 'Desativar Produto',
+                        confirmLabel: 'Excluir Mesmo Assim',
                         onConfirm: () => {
-                            if (prod) prod.status = false;
-                            DB.save('products', products);
-                            m.default.toast('Produto desativado com sucesso.', 'info');
+                            DB.save('products', products.filter(p => p.id !== id));
+                            m.default.toast('Produto removido definitivamente', 'info');
                             Products.render(container);
                         }
                     });
@@ -486,8 +517,7 @@ const Products = {
         form.onsubmit = (e) => {
             e.preventDefault();
             const cost = parseFloat(document.getElementById('p-cost').value) || 0;
-            const margin = parseInt(document.getElementById('p-margin').value) || 0;
-            const price = cost * (1 + margin / 100);
+            const price = parseFloat(document.getElementById('p-price').value) || 0;
 
             const generateId = () => {
                 try { return crypto.randomUUID(); } 
@@ -495,16 +525,17 @@ const Products = {
             };
 
             const products = DB.get('products') || [];
+            const existing = editingId ? products.find(p => p.id === editingId) : null;
             const data = {
                 id: editingId || generateId(),
                 name: document.getElementById('p-name').value,
                 ref: document.getElementById('p-ref').value,
                 image: document.getElementById('p-image').value,
                 category: document.getElementById('p-category').value,
-                type: document.getElementById('p-type').value,
+                type: existing?.type || 'un',
                 cost: cost,
                 price: price,
-                status: true,
+                status: existing ? existing.status : true,
                 manageStock: document.getElementById('p-manage-stock').checked,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 variations: currentVariations.filter(v => v.name.trim() !== '')
@@ -512,7 +543,8 @@ const Products = {
 
             if (editingId) {
                 const idx = products.findIndex(p => p.id === editingId);
-                products[idx] = data;
+                if (idx !== -1) products[idx] = { ...products[idx], ...data };
+                else products.unshift(data);
             } else {
                 products.unshift(data);
             }

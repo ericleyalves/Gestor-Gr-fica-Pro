@@ -896,3 +896,14 @@ label {
     100% { transform: scale(1); }
 }
 
+
+/* Elevação de cards nos relatórios (antes feita via JS mouseenter/mouseleave) */
+.card-elevation {
+    box-shadow: 0px 4px 20px rgba(109, 40, 255, 0.04);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-elevation:hover {
+    transform: translateY(-4px);
+    box-shadow: 0px 10px 30px rgba(109, 40, 255, 0.08);
+}

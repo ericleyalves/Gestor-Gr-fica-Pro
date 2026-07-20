@@ -83,6 +83,17 @@ const App = {
                 });
             }
         });
+
+        // Global search
+        const globalSearch = document.getElementById('global-search-input');
+        if (globalSearch) {
+            globalSearch.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && globalSearch.value.trim() !== '') {
+                    App.toast(`Buscando por: "${globalSearch.value.trim()}"... (Em desenvolvimento)`, 'info');
+                    // In a real app, you would route to a search results page or filter data here.
+                }
+            });
+        }
     },
 
     checkLogin: () => {
@@ -128,8 +139,7 @@ const App = {
             App.updateProfileUI(user);
             App.showApp();
         } else {
-            // Import toast dynamically just in case App.toast isn't defined here
-            import('./app.js').then(m => m.default.toast('E-mail ou senha incorretos!', 'error'));
+            App.toast('E-mail ou senha incorretos!', 'error');
         }
     },
 

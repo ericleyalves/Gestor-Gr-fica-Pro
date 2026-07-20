@@ -1,9 +1,11 @@
 import DB from '../db.js';
+import { fmtBRL } from '../utils.js';
 
 const Sales = {
     render: (container) => {
         const orders = DB.get('orders') || [];
-        
+        const customers = DB.get('customers') || [];
+
         container.innerHTML = `
             <div class="max-w-[1600px] mx-auto flex flex-col gap-8 pb-12 animate-in fade-in duration-500">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -17,6 +19,15 @@ const Sales = {
                     </button>
                 </div>
 
+                ${orders.length === 0 ? `
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 flex flex-col items-center justify-center text-center">
+                    <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-300">
+                        <span class="material-symbols-outlined text-[32px]">receipt_long</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">Nenhuma venda realizada</h3>
+                    <p class="text-sm text-slate-500 max-w-sm mb-6">Você ainda não gerou nenhum pedido. Crie um novo orçamento para começar a registrar suas vendas.</p>
+                </div>
+                ` : `
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -38,13 +49,13 @@ const Sales = {
                                             <p class="text-[10px] text-slate-400 font-bold">${order.date}</p>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <p class="text-sm font-bold text-slate-700">${DB.get('customers').find(c => c.id === order.customerId)?.name || order.customerName || 'Cliente sem cadastro'}</p>
+                                            <p class="text-sm font-bold text-slate-700">${customers.find(c => c.id === order.customerId)?.name || order.customerName || 'Cliente sem cadastro'}</p>
                                         </td>
                                         <td class="px-6 py-4">
                                             <p class="text-sm text-slate-500 font-medium">${order.productName}</p>
                                         </td>
                                         <td class="px-6 py-4 text-right font-black text-slate-800">
-                                            R$ ${order.value.toFixed(2)}
+                                            ${fmtBRL(order.value)}
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase ${order.status === 'Concluído' ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'}">
@@ -71,6 +82,7 @@ const Sales = {
                         </table>
                     </div>
                 </div>
+                `}
             </div>
         `;
 
@@ -105,7 +117,7 @@ const Sales = {
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                         <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Valor Total</p>
-                                        <p class="text-lg font-black text-primary">R$ ${order.value.toFixed(2)}</p>
+                                        <p class="text-lg font-black text-primary">${fmtBRL(order.value)}</p>
                                     </div>
                                     <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                         <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Status Atual</p>
