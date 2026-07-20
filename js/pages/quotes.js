@@ -625,7 +625,55 @@ const Quotes = {
         });
 
         container.querySelector('#btn-whatsapp')?.addEventListener('click', () => {
-            App.toast('Compartilhar no WhatsApp (Em desenvolvimento)', 'info');
+            const customerName = container.querySelector('#input-customer')?.value.trim();
+            if (!customerName) {
+                App.toast('Informe o cliente primeiro', 'error');
+                return;
+            }
+            if (Quotes.currentItems.length === 0) {
+                App.toast('Adicione pelo menos um item', 'error');
+                return;
+            }
+
+            const { subtotal, freight, urgency, art, discount, total } = Quotes.computeTotals();
+            const notes = document.getElementById('input-notes')?.value.trim();
+
+            const lines = [
+                '*ORÇAMENTO*',
+                '',
+                `*Cliente:* ${customerName}`,
+                '',
+                '*Itens:*',
+                ...Quotes.currentItems.map(i => `• ${i.quantity}x ${i.name} — ${fmtBRL(i.price)}`),
+                '',
+                `*Subtotal:* ${fmtBRL(subtotal)}`
+            ];
+            if (freight > 0) lines.push(`*Frete:* + ${fmtBRL(freight)}`);
+            if (urgency > 0) lines.push(`*Taxa de Urgência:* + ${fmtBRL(urgency)}`);
+            if (art > 0) lines.push(`*Instalação / Arte:* + ${fmtBRL(art)}`);
+            if (discount > 0) lines.push(`*Desconto:* - ${fmtBRL(discount)}`);
+            lines.push(`*TOTAL:* ${fmtBRL(total)}`);
+            lines.push('', '_Prazo estimado: 3 a 5 dias úteis_');
+            if (notes) lines.push('', `Obs: ${notes}`);
+
+            // Número do campo WhatsApp: só dígitos, com DDI 55 se vier no formato local
+            let phone = (container.querySelector('#input-whatsapp')?.value || '').replace(/\D/g, '');
+            if (phone.length === 10 || phone.length === 11) phone = '55' + phone;
+
+            const text = encodeURIComponent(lines.join('\n'));
+            const url = phone
+                ? `https://wa.me/${phone}?text=${text}`
+                : `https://wa.me/?text=${text}`;
+
+            // Âncora temporária em vez de window.open: não é barrada por bloqueador de popup
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            App.toast('Abrindo WhatsApp...', 'success');
         });
         
         container.querySelector('#btn-pdf')?.addEventListener('click', () => {
