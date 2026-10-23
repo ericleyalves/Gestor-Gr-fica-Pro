@@ -1,5 +1,5 @@
 import DB from '../db.js';
-import { fmtBRL } from '../utils.js';
+import { fmtBRL, docNo } from '../utils.js';
 import { esc } from '../utils.js';
 import QuotePDF from '../pdf.js';
 import Payments from '../payments.js';
@@ -76,7 +76,7 @@ const Sales = {
                                 ${orders.map(order => `
                                     <tr class="hover:bg-slate-50/80 transition-colors group ${isCanceled(order) ? 'opacity-60' : ''}">
                                         <td class="px-6 py-4">
-                                            <p class="text-sm font-bold text-primary">${order.id}</p>
+                                            <p class="text-sm font-bold text-primary" title="${esc(order.id)}">Nº ${esc(docNo(order))}</p>
                                             <p class="text-[10px] text-slate-400 font-bold">${order.date}</p>
                                         </td>
                                         <td class="px-6 py-4">
@@ -150,7 +150,7 @@ const Sales = {
                 import('../app.js').then(m => {
                     const optionsHtml = (order.options || []).map(opt => `<span class="badge badge-purple m-1">${esc(opt)}</span>`).join('');
                     m.default.confirm({
-                        title: `Detalhes do Pedido ${order.id}`,
+                        title: `Detalhes do Pedido Nº ${docNo(order)}`,
                         message: `
                             <div class="text-left space-y-4">
                                 <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -195,7 +195,7 @@ const Sales = {
                 import('../app.js').then(m => {
                     m.default.confirm({
                         title: 'Cancelar Pedido?',
-                        message: `Cancelar o pedido ${id}? Ele sai da produção e não conta mais na receita. Depois você pode reativá-lo na aba "Cancelados".`,
+                        message: `Cancelar o pedido Nº ${docNo((DB.get('orders') || []).find(o => o.id === id))}? Ele sai da produção e não conta mais na receita. Depois você pode reativá-lo na aba "Cancelados".`,
                         type: 'danger',
                         confirmLabel: 'Sim, Cancelar',
                         onConfirm: () => {
@@ -226,7 +226,7 @@ const Sales = {
                 o.status = o.previousStatus && o.previousStatus !== 'Cancelado' ? o.previousStatus : 'Aguardando Arte';
                 delete o.previousStatus;
                 DB.save('orders', orders);
-                import('../app.js').then(m => m.default.toast(`Pedido ${id} reativado (${o.status}).`, 'success'));
+                import('../app.js').then(m => m.default.toast(`Pedido Nº ${docNo(o)} reativado (${o.status}).`, 'success'));
                 Sales.render(container);
             };
 

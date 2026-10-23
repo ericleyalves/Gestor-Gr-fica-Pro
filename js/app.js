@@ -1,4 +1,5 @@
 import DB from './db.js';
+import { assignNumbers } from './utils.js';
 
 const App = {
     currentPage: 'dashboard',
@@ -44,9 +45,19 @@ const App = {
     },
 
     /** Sincroniza em segundo plano e redesenha a tela atual se algo mudou. */
+    /** Garante número sequencial (001, 002…) em pedidos e orçamentos antigos. */
+    ensureNumbers: () => {
+        let any = false;
+        ['orders', 'quotes'].forEach(key => {
+            const { list, changed } = assignNumbers(DB.get(key) || []);
+            if (changed) { DB.save(key, list); any = true; }
+        });
+        return any;
+    },
+
     sync: async () => {
         try {
-            const changed = await DB.syncFromCloud();
+            const changed = (await DB.syncFromCloud()) | App.ensureNumbers();
             if (changed) App.loadPage(App.currentPage);
         } catch (e) { console.error('Falha na sincronização:', e); }
     },

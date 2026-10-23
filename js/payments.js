@@ -5,7 +5,7 @@
  * Pedidos antigos (sem payments) concluídos contam como pagos; os demais, como nada recebido.
  */
 import DB from './db.js';
-import { esc, fmtBRL, isoDate } from './utils.js';
+import { esc, fmtBRL, isoDate, docNo } from './utils.js';
 
 export const METHODS = ['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito', 'Transferência', 'Boleto'];
 
@@ -127,7 +127,7 @@ const Payments = {
                     <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color:var(--border);">
                         <div>
                             <h3 class="text-lg font-black" style="color:var(--text-main);">Pagamentos do pedido</h3>
-                            <p class="text-xs" style="color:var(--text-faint);">${esc(o.id)} · ${esc(o.customerName || '')}</p>
+                            <p class="text-xs" style="color:var(--text-faint);">Pedido Nº ${esc(docNo(o))} · ${esc(o.customerName || '')}</p>
                         </div>
                         <button type="button" data-close class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100" style="color:var(--text-faint);">
                             <span class="material-symbols-outlined" style="font-size:18px;">close</span>

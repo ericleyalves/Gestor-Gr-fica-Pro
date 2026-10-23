@@ -1,5 +1,5 @@
 import DB from '../db.js';
-import { fmtBRL } from '../utils.js';
+import { fmtBRL, docNo } from '../utils.js';
 import { esc } from '../utils.js';
 import Files from '../files.js';
 import QuotePDF from '../pdf.js';
@@ -85,7 +85,7 @@ const Kanban = {
                              onclick="window.openOrderDetails('${order.id}')">
                             
                             <div class="flex justify-between items-start mb-3">
-                                <span class="badge badge-purple" style="font-size: 10px;">${order.id}</span>
+                                <span class="badge badge-purple" style="font-size: 11px;" title="${esc(order.id)}">Nº ${esc(docNo(order))}</span>
                                 ${(() => {
                                     if (!order.dueDate) return `<span class="text-[10px] font-bold" style="color: var(--text-faint);">${order.date}</span>`;
                                     const today = new Date(); const t = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -207,7 +207,7 @@ const Kanban = {
                     DB.save('orders', orders);
                     
                     // Toast
-                    import('../app.js').then(m => m.default.toast(`Pedido ${orderId} movido para ${newStatus}`));
+                    import('../app.js').then(m => m.default.toast(`Pedido Nº ${docNo(orders[orderIdx])} movido para ${newStatus}`));
                     
                     // Re-render
                     Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || '');

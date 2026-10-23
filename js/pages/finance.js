@@ -8,7 +8,7 @@
  */
 import DB from '../db.js';
 import App from '../app.js';
-import { fmtBRL, esc, isoDate } from '../utils.js';
+import { fmtBRL, esc, isoDate, docNo } from '../utils.js';
 import Payments, { METHODS } from '../payments.js';
 
 const OUT_CATEGORIES = ['Material (MDF/Acrílico)', 'Insumos (tinta, cola, embalagem)', 'Energia', 'Aluguel', 'Internet/Telefone',
@@ -60,7 +60,7 @@ const Finance = {
             pays.forEach(p => list.push({
                 id: p.id, source: 'order', orderId: o.id, type: 'in', paid: true,
                 date: p.date, amount: round(p.amount), method: p.method || '',
-                category: 'Venda (pedido)', description: `${o.id} · ${custName(o)}`
+                category: 'Venda (pedido)', description: `Pedido Nº ${docNo(o)} · ${custName(o)}`
             }));
         });
 

@@ -1,6 +1,6 @@
 import DB from '../db.js';
 import App from '../app.js';
-import { fmtBRL, addBusinessDays, isoDate, fmtShortDate, bindCepLookup } from '../utils.js';
+import { fmtBRL, addBusinessDays, isoDate, fmtShortDate, bindCepLookup, docNo, nextNumber } from '../utils.js';
 import { esc } from '../utils.js';
 import QuotePDF from '../pdf.js';
 import Payments from '../payments.js';
@@ -488,7 +488,8 @@ const Quotes = {
     /** Título da tela + contador de rascunhos. */
     setTitle: (container) => {
         const t = container.querySelector('#quote-title');
-        if (t) t.textContent = Quotes.editingQuoteId ? `Editando ${Quotes.editingQuoteId}` : 'Novo Orçamento';
+        const q = Quotes.editingQuoteId && (DB.get('quotes') || []).find(x => x.id === Quotes.editingQuoteId);
+        if (t) t.textContent = q ? `Editando orçamento Nº ${docNo(q)}` : 'Novo Orçamento';
         const n = container.querySelector('#drafts-count');
         if (n) n.textContent = Quotes.drafts().length;
     },
@@ -515,7 +516,7 @@ const Quotes = {
         Quotes.editingQuoteId = q.id;
         Quotes.refreshItems(container);
         Quotes.setTitle(container);
-        App.toast(`Orçamento ${q.id} aberto`, 'success');
+        App.toast(`Orçamento Nº ${docNo(q)} aberto`, 'success');
     },
 
     /** Janela com os rascunhos salvos. */
@@ -545,7 +546,7 @@ const Quotes = {
                         <div class="flex items-center gap-4 p-4 rounded-xl border bg-white" style="border-color:var(--border);" data-quote="${esc(q.id)}">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs font-black" style="color:var(--primary);">${esc(q.id)}</span>
+                                    <span class="text-xs font-black" style="color:var(--primary);">Nº ${esc(docNo(q))}</span>
                                     <span class="text-[11px]" style="color:var(--text-faint);">${d ? `${d}/${m}/${y}` : ''}</span>
                                 </div>
                                 <p class="text-sm font-bold truncate" style="color:var(--text-main);">${esc(q.customerName || 'Sem cliente')}</p>
@@ -1054,6 +1055,10 @@ const Quotes = {
                 id: isDraft && Quotes.editingQuoteId ? Quotes.editingQuoteId
                     : `${isDraft ? 'ORC' : 'ORD'}-${Date.now().toString(36).toUpperCase()}`,
                 date: new Date().toISOString().split('T')[0],
+                // Número amigável: orçamento reaproveita o seu; pedido ganha o próximo da sequência
+                number: isDraft
+                    ? ((DB.get('quotes') || []).find(q => q.id === Quotes.editingQuoteId)?.number || nextNumber(DB.get('quotes')))
+                    : nextNumber(DB.get('orders')),
                 customerId: customerInput.dataset.customerId || null,
                 customerName: customerName,
                 productName: Quotes.currentItems.map(i => i.name).join(', '),
@@ -1166,7 +1171,7 @@ const Quotes = {
             const pad = (n) => String(n).padStart(2, '0');
             QuotePDF.open({
                 // Nº legível e único o bastante p/ uma gráfica: ORC-AAMMDD-HHMM
-                number: `ORC-${String(now.getFullYear()).slice(2)}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`,
+                number: docNo((DB.get('quotes') || []).find(x => x.id === Quotes.editingQuoteId)) || String(nextNumber(DB.get('quotes'))).padStart(3, '0'),
                 date: now,
                 customer: customerName,
                 phone: container.querySelector('#input-whatsapp')?.value.trim(),

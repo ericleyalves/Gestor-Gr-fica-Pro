@@ -7,7 +7,7 @@
  * Texto vetorial (nítido e pesquisável), sem biblioteca extra.
  */
 import DB from './db.js';
-import { esc, fmtBRL } from './utils.js';
+import { esc, fmtBRL, docNo } from './utils.js';
 import Files from './files.js';
 import Payments from './payments.js';
 
@@ -348,7 +348,7 @@ const QuotePDF = {
         const detail = (i) => [i.optionsText, i.material, i.colors, i.finish].filter(v => v && v !== '-').map(esc).join(' · ');
 
         const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>Ficha-${esc(order.id)}</title>
+<title>Ficha-Pedido-${esc(docNo(order))}</title>
 <style>
     @page { size: A4; margin: 12mm; }
     * { box-sizing: border-box; }
@@ -383,7 +383,7 @@ const QuotePDF = {
     <div class="top">
         <div>
             <div class="op">FICHA DE PRODUÇÃO · ${esc(shop.name || '')}</div>
-            <div class="num">${esc(order.id)}</div>
+            <div class="num">Pedido Nº ${esc(docNo(order))}</div>
             <div class="muted">Pedido em ${fmtD(order.date)} · Status: <b>${esc(order.status || '')}</b></div>
         </div>
         <div class="due">
@@ -464,7 +464,7 @@ const QuotePDF = {
         QuotePDF.open({
             kind,
             deadline,
-            number: order.id,
+            number: docNo(order),
             date: y ? new Date(y, m - 1, d) : new Date(),
             status: order.status,
             customer: customer?.name || order.customerName || 'Cliente',

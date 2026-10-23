@@ -57,3 +57,21 @@ export const bindCepLookup = (cepEl, addressEl) => {
         } finally { cepEl.style.opacity = ''; }
     });
 };
+
+/** Número amigável do pedido/orçamento: 1 → "001". Sem número (ainda) mostra o código interno. */
+export const docNo = (o) => (o && Number(o.number) > 0 ? String(o.number).padStart(3, '0') : (o?.id || ''));
+
+/** Próximo número da sequência (maior número existente + 1). */
+export const nextNumber = (list) => (list || []).reduce((m, x) => Math.max(m, Number(x?.number) || 0), 0) + 1;
+
+/**
+ * Dá número sequencial aos registros que ainda não têm (pela data de criação).
+ * Retorna a lista atualizada e se algo mudou.
+ */
+export const assignNumbers = (list) => {
+    let next = nextNumber(list), changed = false;
+    const missing = (list || []).filter(x => x && !(Number(x.number) > 0))
+        .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.id).localeCompare(String(b.id)));
+    missing.forEach(x => { x.number = next++; changed = true; });
+    return { list, changed };
+};

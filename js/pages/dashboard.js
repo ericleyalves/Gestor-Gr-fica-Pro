@@ -1,5 +1,5 @@
 import DB from '../db.js';
-import { esc } from '../utils.js';
+import { esc, docNo } from '../utils.js';
 
 const Dashboard = {
     render: (container) => {
@@ -42,7 +42,7 @@ const Dashboard = {
                 </div>
                 <div class="flex-1 min-w-0 cursor-pointer" data-goto-production>
                     <p class="text-sm font-semibold truncate" style="color:var(--text-main);">${esc(o.productName || 'Pedido')}</p>
-                    <p class="text-xs truncate" style="color:var(--text-muted);">${esc(custName(o))} · ${esc(o.id)} · ${esc(o.status || '')}</p>
+                    <p class="text-xs truncate" style="color:var(--text-muted);">${esc(custName(o))} · Nº ${esc(docNo(o))} · ${esc(o.status || '')}</p>
                 </div>
                 <button type="button" data-sheet="${esc(o.id)}" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-violet-50 flex-shrink-0" style="color:var(--text-faint);" title="Ficha de produção">
                     <span class="material-symbols-outlined" style="font-size:18px;">print</span>
@@ -152,7 +152,7 @@ const Dashboard = {
                                        ${activeOrders.slice(0, 6).map(order => `
                                            <tr style="border-bottom:1px solid #F8F6FF; transition:background 0.15s;" onmouseover="this.style.background='#FAFBFF'" onmouseout="this.style.background=''">
                                                <td class="px-5 py-3.5">
-                                                   <p class="text-sm font-bold" style="color:var(--primary);">${order.id}</p>
+                                                   <p class="text-sm font-bold" style="color:var(--primary);">Nº ${esc(docNo(order))}</p>
                                                    <p class="text-xs" style="color:var(--text-faint);">${order.date}</p>
                                                </td>
                                                <td class="px-5 py-3.5 text-sm font-medium" style="color:var(--text-sub);">${esc((DB.get('customers') || []).find(c => c.id === order.customerId)?.name || order.customerName || '—')}</td>
