@@ -200,7 +200,22 @@ const Products = {
                                         </div>
                                     </div>
                                 </div>
-                            <!-- 5. Arquivos de Corte / Gabaritos -->
+                            <!-- Materiais usados (baixa automática no estoque) -->
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <div class="section-icon"><span class="material-symbols-outlined">inventory</span></div>
+                                        <div class="flex-1">
+                                            <h4 class="section-title">Materiais usados <span class="font-normal text-xs" style="color:var(--text-faint);">(por unidade)</span></h4>
+                                            <p class="text-xs" style="color:var(--text-faint);">Descontados do Estoque quando o pedido entra em produção. Ex.: 1 chaveiro = 0,02 chapa.</p>
+                                        </div>
+                                        <button type="button" id="btn-add-material" class="btn-ghost !py-1 !px-2 text-xs">
+                                            <span class="material-symbols-outlined !text-sm">add</span> Material
+                                        </button>
+                                    </div>
+                                    <div id="p-materials" class="space-y-2 mt-4"></div>
+                                </div>
+
+                                <!-- 5. Arquivos de Corte / Gabaritos -->
                                 <div class="section-card">
                                     <div class="section-header">
                                         <div class="section-icon"><span class="material-symbols-outlined">folder_zip</span></div>
@@ -461,6 +476,45 @@ const Products = {
             if (e.key === 'Escape') { e.preventDefault(); toggleNewCategory(false); }
         });
 
+        // ---- Materiais usados (product.materials = [{ materialId, qty }]) ----
+        let currentMaterials = [];
+        const matBox = document.getElementById('p-materials');
+        const renderMaterials = () => {
+            const mats = (DB.get('materials') || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+            if (!mats.length) {
+                matBox.innerHTML = `<p class="text-[11px] italic text-center py-2" style="color:var(--text-faint);">Cadastre seus materiais na tela <b>Estoque</b> para poder vinculá-los aqui.</p>`;
+                return;
+            }
+            matBox.innerHTML = currentMaterials.length ? currentMaterials.map((u, i) => {
+                const m = mats.find(x => x.id === u.materialId);
+                return `
+                <div class="grid gap-3 items-center" style="grid-template-columns: minmax(0,1fr) 130px 40px;">
+                    <select data-mat-sel="${i}">${mats.map(x => `<option value="${esc(x.id)}" ${x.id === u.materialId ? 'selected' : ''}>${esc(x.name)} (${esc(x.unit)})</option>`).join('')}</select>
+                    <div class="relative"><input type="number" data-mat-qty="${i}" value="${Number(u.qty) || ''}" step="0.001" min="0" placeholder="0" class="pr-12 text-right" inputmode="decimal">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);">${esc(m?.unit || '')}</span></div>
+                    <button type="button" data-mat-rm="${i}" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-50 hover:text-red-500 text-slate-400" title="Remover"><span class="material-symbols-outlined" style="font-size:18px;">close</span></button>
+                </div>`;
+            }).join('') : `<p class="text-[11px] italic text-center py-2" style="color:var(--text-faint);">Nenhum material vinculado.</p>`;
+        };
+        document.getElementById('btn-add-material').onclick = () => {
+            const mats = DB.get('materials') || [];
+            if (!mats.length) return toast('Cadastre os materiais primeiro em Estoque.', 'error');
+            currentMaterials.push({ materialId: mats[0].id, qty: 0 });
+            renderMaterials();
+        };
+        matBox.addEventListener('change', (e) => {
+            const s = e.target.closest('[data-mat-sel]');
+            if (s) { currentMaterials[+s.dataset.matSel].materialId = s.value; renderMaterials(); }
+        });
+        matBox.addEventListener('input', (e) => {
+            const q = e.target.closest('[data-mat-qty]');
+            if (q) currentMaterials[+q.dataset.matQty].qty = Number(q.value) || 0;
+        });
+        matBox.addEventListener('click', (e) => {
+            const r = e.target.closest('[data-mat-rm]');
+            if (r) { currentMaterials.splice(+r.dataset.matRm, 1); renderMaterials(); }
+        });
+
         // ---- Galeria de fotos (product.images; product.image = capa = 1ª foto) ----
         const imgInput = document.getElementById('p-image');
         const imgFile = document.getElementById('p-image-file');
@@ -654,6 +708,7 @@ const Products = {
             currentFiles = [];
             uploadedNow = [];
             removedNow = [];
+            currentMaterials = [];
             uploadedImages = [];
             currentImages = [];
             originalImages = [];
@@ -678,6 +733,7 @@ const Products = {
                     document.getElementById('stock-qty-container').style.display = p.manageStock !== false ? 'block' : 'none';
                     currentVariations = JSON.parse(JSON.stringify(p.variations || []));
                     currentFiles = JSON.parse(JSON.stringify(p.files || []));
+                    currentMaterials = JSON.parse(JSON.stringify(p.materials || []));
                 }
             }
             
@@ -685,6 +741,7 @@ const Products = {
             renderVariations();
             renderFiles();
             renderGallery();
+            renderMaterials();
             updateCalc();
         };
 
@@ -823,7 +880,8 @@ const Products = {
                 manageStock: document.getElementById('p-manage-stock').checked,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 variations: currentVariations.filter(v => v.name.trim() !== ''),
-                files: currentFiles.filter(f => !f.uploading)
+                files: currentFiles.filter(f => !f.uploading),
+                materials: currentMaterials.filter(u => u.materialId && Number(u.qty) > 0)
             };
 
             if (editingId) {

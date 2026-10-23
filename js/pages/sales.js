@@ -4,6 +4,7 @@ import { esc } from '../utils.js';
 import QuotePDF from '../pdf.js';
 import Payments from '../payments.js';
 import OrderDetails from '../order-details.js';
+import Stock from '../stock.js';
 
 const isCanceled = (o) => o.status === 'Cancelado';
 const isDone = (o) => /Conclu|Pronto|Entregue/i.test(String(o.status || ''));
@@ -168,6 +169,7 @@ const Sales = {
                                 orders[orderIdx].previousStatus = orders[orderIdx].status;   // para poder reativar
                                 orders[orderIdx].status = 'Cancelado';
                                 DB.save('orders', orders);
+                                Stock.syncOrder(id);   // devolve o estoque se já tinha baixado
                                 m.default.toast('Pedido cancelado com sucesso.', 'info');
                                 Sales.render(container);
                             }
@@ -189,6 +191,7 @@ const Sales = {
                 o.status = o.previousStatus && o.previousStatus !== 'Cancelado' ? o.previousStatus : 'Aguardando Arte';
                 delete o.previousStatus;
                 DB.save('orders', orders);
+                Stock.syncOrder(id);
                 import('../app.js').then(m => m.default.toast(`Pedido Nº ${docNo(o)} reativado (${o.status}).`, 'success'));
                 Sales.render(container);
             };

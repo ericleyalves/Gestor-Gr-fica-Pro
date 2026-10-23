@@ -5,6 +5,7 @@ import Files from '../files.js';
 import QuotePDF from '../pdf.js';
 import Payments from '../payments.js';
 import OrderDetails from '../order-details.js';
+import Stock from '../stock.js';
 
 const COLUMNS = [
     { id: 'aguardando', title: 'Aguardando Arte', color: '#f59e0b', bg: '#FFFBEB' },
@@ -212,6 +213,7 @@ const Kanban = {
                     
                     orders[orderIdx].status = newStatus;
                     DB.save('orders', orders);
+                    Stock.syncOrder(orderId);   // baixa automática ao entrar em produção
                     
                     // Toast
                     import('../app.js').then(m => m.default.toast(`Pedido Nº ${docNo(orders[orderIdx])} movido para ${newStatus}`));

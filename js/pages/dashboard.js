@@ -80,6 +80,16 @@ const Dashboard = {
                     ${Dashboard.kpi('Clientes', customers.length, 'groups', '#2563EB', '#EFF6FF', `${products.length} produtos cadastrados`)}
                 </div>
 
+                ${(() => {
+                    const low = (DB.get('materials') || []).filter(m => Number(m.minQty) > 0 && Number(m.stock) <= Number(m.minQty));
+                    return low.length ? `
+                <button type="button" id="dash-low-stock" class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-2xl border" style="background:#FEF2F2; border-color:#FCA5A5; color:#B91C1C;">
+                    <span class="material-symbols-outlined">inventory</span>
+                    <span class="text-sm font-semibold flex-1"><b>${low.length} material(is) abaixo do mínimo:</b> ${low.slice(0, 4).map(m => esc(m.name)).join(', ')}${low.length > 4 ? '…' : ''}</span>
+                    <span class="text-xs font-black">Ver estoque →</span>
+                </button>` : '';
+                })()}
+
                 <!-- Entregas -->
                 <div class="section-card">
                     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -203,6 +213,7 @@ const Dashboard = {
         `;
 
         // Events
+        container.querySelector('#dash-low-stock')?.addEventListener('click', () => import('../app.js').then(m => m.default.navigateTo('estoque')));
         container.querySelectorAll('[data-goto-production]').forEach(el => el.addEventListener('click', () => import('../app.js').then(m => m.default.navigateTo('producao'))));
         container.querySelectorAll('[data-sheet]').forEach(b => b.addEventListener('click', () => {
             const o = (DB.get('orders') || []).find(x => x.id === b.dataset.sheet);

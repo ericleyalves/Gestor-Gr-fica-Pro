@@ -8,6 +8,7 @@ import { esc, fmtBRL, docNo, isoDate } from './utils.js';
 import Payments from './payments.js';
 import Files from './files.js';
 import QuotePDF from './pdf.js';
+import Stock from './stock.js';
 
 export const STATUSES = ['Aguardando Arte', 'Produção', 'Finalizado', 'Concluído', 'Entregue'];
 export const DELIVERY_METHODS = ['Retirada na loja', 'Entrega própria', 'Motoboy', 'Correios', 'Transportadora', 'Uber/99 Entrega'];
@@ -32,6 +33,7 @@ const OrderDetails = {
             const history = [...(list[i].history || []), { at: new Date().toISOString(), text }];
             list[i] = { ...list[i], ...patch, history };
             DB.save('orders', list);
+            if ('status' in patch) Stock.syncOrder(orderId);   // baixa/estorno de estoque
             onChange?.();
             render();
         };
@@ -233,6 +235,7 @@ const OrderDetails = {
                 history: [...(cur.history || []), { at: new Date().toISOString(), text: `Entregue (${method}${to ? ` para ${to}` : ''})${pay ? ` · recebido ${fmtBRL(pay.amount)} (${pay.method})` : ''}` }]
             };
             DB.save('orders', list);
+            Stock.syncOrder(orderId);   // se pulou direto para entregue, baixa o estoque
             close();
             onChange?.();
             (await app()).toast(`Pedido Nº ${docNo(list[i])} entregue ✓`);
