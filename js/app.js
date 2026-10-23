@@ -1,15 +1,71 @@
 import DB from './db.js';
 
 const App = {
-    init: () => {
+    currentPage: 'dashboard',
+
+    init: async () => {
         App.bindEvents();
-        App.checkLogin();
+        App.bindMoneyFormat();
+        await App.checkLogin();
+
+        // Link de "Esqueceu a senha?" abre o sistema já logado: leva direto à troca de senha
+        DB.client()?.auth.onAuthStateChange((event) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                App.toast('Defina sua nova senha em Configurações > Equipe e Acessos.', 'info');
+                import('./pages/settings.js').then(m => { m.default.currentTab = 'users'; App.navigateTo('configuracoes'); });
+            }
+        });
+
+        // Status da sincronização (aviso só quando falhar)
+        window.addEventListener('db_status', (e) => {
+            if (!e.detail.ok) App.toast(`Sem conexão com a nuvem. ${e.detail.pending} alteração(ões) aguardando envio.`, 'error');
+        });
+    },
+
+    /**
+     * Campos de dinheiro (input number com step 0.01) sempre com 2 casas: 2,5 → 2,50.
+     * Formata ao sair do campo e quando a tela/modal preenche o valor.
+     */
+    bindMoneyFormat: () => {
+        const SEL = 'input[type="number"][step="0.01"]';
+        const fmt = (el) => {
+            if (el === document.activeElement || el.value === '') return;
+            const v = parseFloat(el.value);
+            if (!isNaN(v) && el.value !== v.toFixed(2)) el.value = v.toFixed(2);
+        };
+        document.addEventListener('focusout', (e) => { if (e.target.matches?.(SEL)) fmt(e.target); });
+        // Valores colocados por código (abrir produto, carregar orçamento…): formata logo depois
+        let pending = false;
+        new MutationObserver(() => {
+            if (pending) return;
+            pending = true;
+            requestAnimationFrame(() => { pending = false; document.querySelectorAll(SEL).forEach(fmt); });
+        }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    },
+
+    /** Sincroniza em segundo plano e redesenha a tela atual se algo mudou. */
+    sync: async () => {
+        try {
+            const changed = await DB.syncFromCloud();
+            if (changed) App.loadPage(App.currentPage);
+        } catch (e) { console.error('Falha na sincronização:', e); }
     },
 
     bindEvents: () => {
         // Login form
         const loginForm = document.getElementById('login-form');
         if (loginForm) loginForm.addEventListener('submit', (e) => { e.preventDefault(); App.login(); });
+
+        // Esqueceu a senha
+        const forgot = document.getElementById('forgot-password');
+        if (forgot) forgot.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            if (!email) return App.toast('Digite seu e-mail no campo acima primeiro.', 'info');
+            if (!DB.ready()) return App.toast('Sem conexão com o servidor.', 'error');
+            const { error } = await DB.resetPassword(email);
+            App.toast(error ? 'Não foi possível enviar o e-mail de recuperação.' : 'Enviamos um link de recuperação para seu e-mail.', error ? 'error' : 'success');
+        });
 
         // Desktop nav links
         document.querySelectorAll('#sidebar-nav .nav-link').forEach(link => {
@@ -96,64 +152,109 @@ const App = {
         }
     },
 
-    checkLogin: () => {
-        const user = DB.get('user');
-        if (user) {
-            App.updateProfileUI(user);
-            App.showApp();
-        } else {
-            App.showLogin();
+    checkLogin: async () => {
+        // Atualizou a página já logado? Entra na hora e confere o acesso em segundo plano.
+        const cached = DB.get('user');
+        const storedEmail = DB.storedSessionEmail();
+        if (cached?.email && storedEmail === String(cached.email).toLowerCase()) {
+            App.enter(cached);
+            App.verifyAccess(cached);
+            return;
         }
+
+        const authUser = await DB.currentUser();
+        if (!authUser) return App.showLogin();
+
+        // Confere se o e-mail continua liberado na equipe (se estiver offline, usa o último perfil salvo)
+        const { member, error } = await DB.getMembership(authUser.email).catch(err => ({ error: err }));
+        if (error && cached?.email === authUser.email) {
+            App.enter(cached);
+        } else if (member) {
+            App.enter({ email: member.email, name: member.name || authUser.email.split('@')[0], role: member.role });
+        } else {
+            await DB.signOut();
+            App.showLogin();
+            if (!error) App.toast('Seu acesso foi removido. Fale com o administrador.', 'error');
+        }
+    },
+
+    /** Confere sessão e permissão sem bloquear a tela. Só tira do sistema se tiver certeza. */
+    verifyAccess: async (cached) => {
+        const authUser = await DB.currentUser();
+        if (authUser === undefined) return;                     // sem resposta (offline/lento): segue com o cache
+        if (authUser === null) {                                // sessão realmente expirou
+            localStorage.removeItem('ggp_user');
+            App.showLogin();
+            return App.toast('Sua sessão expirou. Entre novamente.', 'info');
+        }
+        const { member, error } = await DB.getMembership(authUser.email).catch(err => ({ error: err }));
+        if (error) return;                                      // erro de rede: mantém
+        if (!member) {
+            await DB.signOut();
+            App.showLogin();
+            return App.toast('Seu acesso foi removido. Fale com o administrador.', 'error');
+        }
+        const fresh = { email: member.email, name: member.name || authUser.email.split('@')[0], role: member.role };
+        if (JSON.stringify(fresh) !== JSON.stringify(cached)) { DB.save('user', fresh); App.updateProfileUI(fresh); }
+    },
+
+    enter: (user) => {
+        DB.save('user', user);
+        App.updateProfileUI(user);
+        App.showApp();
+        App.sync();
     },
 
     updateProfileUI: (user) => {
         const profileName = document.getElementById('user-profile-name');
         const profileEmail = document.getElementById('user-profile-email');
         const profileInitials = document.getElementById('user-profile-initials');
-        
-        if(profileName) profileName.innerText = user.name || 'Usuário';
-        if(profileEmail) profileEmail.innerText = user.email || '';
-        if(profileInitials && user.name) profileInitials.innerText = user.name.substring(0,2).toUpperCase();
+
+        if (profileName) profileName.innerText = user.name || 'Usuário';
+        if (profileEmail) profileEmail.innerText = user.email || '';
+        if (profileInitials && user.name) profileInitials.innerText = user.name.substring(0, 2).toUpperCase();
     },
 
-    login: () => {
-        const email = document.getElementById('email').value.trim();
+    login: async () => {
+        const email = document.getElementById('email').value.trim().toLowerCase();
         const password = document.getElementById('password').value;
-        
-        let validUsers = DB.get('app_users') || [];
-        
-        // Se estiver vazio (primeiro acesso), cria os usuários padrão
-        if (validUsers.length === 0) {
-            validUsers = [
-                { id: '1', email: 'admin@graficapro.com.br', pass: '123456', name: 'Administrador', role: 'admin' },
-                { id: '2', email: 'natan.lf@gmail.com', pass: '123', name: 'Natan', role: 'user' }
-            ];
-            DB.save('app_users', validUsers);
-        }
+        const btn = document.querySelector('#login-form button[type="submit"]');
 
-        const match = validUsers.find(u => u.email === email && u.pass === password);
+        if (!DB.ready()) return App.toast('Sem conexão com o servidor. Verifique a internet.', 'error');
 
-        if (match) {
-            const user = { email: match.email, name: match.name };
-            DB.save('user', user);
-            App.updateProfileUI(user);
-            App.showApp();
-        } else {
-            App.toast('E-mail ou senha incorretos!', 'error');
+        btn.disabled = true;
+        try {
+            const { data, error } = await DB.signIn(email, password);
+            if (error) {
+                const msg = /confirm/i.test(error.message) ? 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'
+                          : /fetch|network/i.test(error.message) ? 'Sem conexão com o servidor.'
+                          : 'E-mail ou senha incorretos!';
+                return App.toast(msg, 'error');
+            }
+            const { member, error: mErr } = await DB.getMembership(data.user.email);
+            if (mErr) { await DB.signOut(); return App.toast('Erro ao verificar acesso. Rode o script supabase-setup.sql.', 'error'); }
+            if (!member) { await DB.signOut(); return App.toast('Login válido, mas este e-mail não está liberado na equipe.', 'error'); }
+
+            document.getElementById('password').value = '';
+            App.enter({ email: member.email, name: member.name || email.split('@')[0], role: member.role });
+        } finally {
+            btn.disabled = false;
         }
     },
 
-    logout: () => {
-        localStorage.removeItem('ggp_user');
+    logout: async () => {
+        await DB.signOut();
         App.showLogin();
     },
 
     showLogin: () => {
+        document.getElementById('boot-splash')?.remove();
         document.getElementById('login-page').classList.remove('hidden');
         document.getElementById('app-shell').classList.add('hidden');
     },
 
     showApp: () => {
+        document.getElementById('boot-splash')?.remove();
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('app-shell').classList.remove('hidden');
         // Fix mobile margin
@@ -161,10 +262,15 @@ const App = {
         if (window.innerWidth < 768) {
             wrapper.style.marginLeft = '0';
         }
-        App.navigateTo('dashboard');
+        let last = null;
+        try { last = sessionStorage.getItem('ggp__page'); } catch {}
+        const valid = last && document.querySelector(`#sidebar-nav .nav-link[data-target="${CSS.escape(last)}"]`);
+        App.navigateTo(valid ? last : 'dashboard');
     },
 
     navigateTo: (page) => {
+        App.currentPage = page;
+        try { sessionStorage.setItem('ggp__page', page); } catch {}   // volta para a mesma tela ao atualizar
         // Update sidebar active state
         document.querySelectorAll('#sidebar-nav .nav-link').forEach(link => {
             link.classList.toggle('active', link.getAttribute('data-target') === page);
@@ -287,8 +393,9 @@ const App = {
             <div class="toast-icon">
                 <span class="material-symbols-outlined" style="font-size:20px;">${icons[type] || 'info'}</span>
             </div>
-            <div class="toast-message">${message}</div>
+            <div class="toast-message"></div>
         `;
+        toast.querySelector('.toast-message').textContent = message;
 
         container.appendChild(toast);
 

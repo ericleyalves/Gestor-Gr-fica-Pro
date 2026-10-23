@@ -1,6 +1,7 @@
 import DB from '../db.js';
 import App from '../app.js';
 import { fmtBRL } from '../utils.js';
+import { esc } from '../utils.js';
 
 const Reports = {
     render: (container) => {
@@ -151,7 +152,7 @@ const Reports = {
                 ].map(b => `
                 <div class="flex-1 bg-primary/10 rounded-t-sm h-[${b.h}%] transition-all hover:bg-primary/30 relative group/bar cursor-pointer">
                     <div class="absolute inset-x-0 bottom-0 bg-primary h-[${b.fill}%] rounded-t-sm transition-all group-hover/bar:h-[${Math.min(100, b.fill + 5)}%]"></div>
-                    <div class="opacity-0 group-hover/bar:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] px-sm py-xs rounded whitespace-nowrap z-10 transition-opacity">${b.label}</div>
+                    <div class="opacity-0 group-hover/bar:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] px-sm py-xs rounded whitespace-nowrap z-10 transition-opacity">${esc(b.label)}</div>
                 </div>`).join('')}
             </div>
             <div class="flex justify-between text-[10px] text-on-surface-variant font-bold uppercase tracking-wider opacity-60">

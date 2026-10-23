@@ -1,4 +1,6 @@
 import DB from '../db.js';
+import { esc } from '../utils.js';
+import Files from '../files.js';
 
 const Products = {
     render: (container) => {
@@ -72,9 +74,9 @@ const Products = {
 
             <!-- PRODUCT MODAL -->
             <div id="product-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background:rgba(10,10,20,0.5); backdrop-filter:blur(8px);">
-                <div class="quote-modal-inner">
-                    <!-- LEFT: Form -->
-                    <div class="flex flex-col min-w-0" style="flex:0 0 65%; border-right:1px solid var(--border);">
+                <div class="quote-modal-inner" style="max-width:880px;">
+                    <!-- Formulário (ocupa a janela toda) -->
+                    <div class="flex flex-col min-w-0" style="flex:1 1 auto;">
                         <div class="flex justify-between items-center px-6 py-4 border-b" style="border-color:var(--border);">
                             <div class="flex items-center gap-3">
                                 <div class="section-icon"><span class="material-symbols-outlined">inventory_2</span></div>
@@ -88,8 +90,8 @@ const Products = {
                             </button>
                         </div>
 
-                        <div class="flex-1 overflow-y-auto px-6 py-5" style="background:var(--bg-main);">
-                            <form id="form-product" class="space-y-4">
+                        <div class="flex-1 overflow-y-auto px-8 py-6" style="background:var(--bg-main);">
+                            <form id="form-product" class="space-y-5">
                                 <!-- 1. Informações Gerais -->
                                 <div class="section-card">
                                     <div class="section-header">
@@ -107,18 +109,34 @@ const Products = {
                                         </div>
                                         <div>
                                             <label>Categoria</label>
-                                            <select id="p-category">
-                                                <option>Cartões</option>
-                                                <option>Banners</option>
-                                                <option>Adesivos</option>
-                                                <option>Folhetos</option>
-                                                <option>Diversos</option>
-                                            </select>
+                                            <div id="cat-select-wrap" class="flex gap-2">
+                                                <select id="p-category" class="flex-1 min-w-0"></select>
+                                                <button type="button" id="btn-new-category" class="btn-ghost !px-3 flex-shrink-0" title="Criar nova categoria">
+                                                    <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+                                                </button>
+                                            </div>
+                                            <div id="cat-new-wrap" class="hidden gap-2">
+                                                <input type="text" id="p-new-category" placeholder="Nome da nova categoria" autocomplete="off" maxlength="40" class="flex-1 min-w-0">
+                                                <button type="button" id="btn-save-category" class="btn-primary !px-3 flex-shrink-0" title="Adicionar">
+                                                    <span class="material-symbols-outlined" style="font-size:18px;">check</span>
+                                                </button>
+                                                <button type="button" id="btn-cancel-category" class="btn-ghost !px-3 flex-shrink-0" title="Cancelar">
+                                                    <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="col-span-2">
-                                            <label>URL da Imagem (Opcional)</label>
-                                            <input type="text" id="p-image" placeholder="https://exemplo.com/imagem.jpg" autocomplete="off">
-                                            <p class="text-[10px] mt-1" style="color:var(--text-faint);">Dica: Use links de imagens do seu site ou redes sociais.</p>
+                                            <div class="flex items-center justify-between mb-1.5">
+                                                <label class="!mb-0">Fotos do Produto <span class="font-normal" style="color:var(--text-faint);">(a 1ª é a capa)</span></label>
+                                                <button type="button" id="btn-image-link" class="text-xs font-semibold" style="color:var(--primary);">+ Adicionar por link</button>
+                                            </div>
+                                            <div id="p-gallery" class="flex flex-wrap gap-3"></div>
+                                            <input type="file" id="p-image-file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="hidden">
+                                            <div id="p-image-link-row" class="hidden mt-2 flex gap-2">
+                                                <input type="text" id="p-image" placeholder="Cole o link: https://exemplo.com/imagem.jpg" autocomplete="off" class="!py-2 text-xs flex-1">
+                                                <button type="button" id="btn-add-image-link" class="btn-ghost !py-1.5 !px-3 text-xs">Adicionar</button>
+                                            </div>
+                                            <p class="text-[10px] mt-2" style="color:var(--text-faint);">JPG, PNG ou WEBP — pode escolher várias de uma vez ou arrastar. As fotos são reduzidas automaticamente.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -182,6 +200,24 @@ const Products = {
                                         </div>
                                     </div>
                                 </div>
+                            <!-- 5. Arquivos de Corte / Gabaritos -->
+                                <div class="section-card">
+                                    <div class="section-header">
+                                        <div class="section-icon"><span class="material-symbols-outlined">folder_zip</span></div>
+                                        <div class="flex-1">
+                                            <h4 class="section-title">Arquivos de Corte / Gabaritos</h4>
+                                            <p class="text-xs" style="color:var(--text-faint);">CDR, DXF, SVG, PDF, AI, LBRN, ZIP… até 50 MB cada. Ficam disponíveis nos pedidos.</p>
+                                        </div>
+                                        <button type="button" id="btn-add-file" class="btn-ghost !py-1 !px-2 text-xs">
+                                            <span class="material-symbols-outlined !text-sm">upload</span>
+                                            Enviar Arquivo
+                                        </button>
+                                        <input type="file" id="p-files-input" multiple class="hidden">
+                                    </div>
+                                    <div id="p-files-drop" class="mt-4 rounded-xl border-2 border-dashed p-3 transition-all" style="border-color:var(--border);">
+                                        <div id="p-files-list" class="space-y-2"></div>
+                                    </div>
+                                </div>
                             </form>
                         </div>
 
@@ -238,20 +274,21 @@ const Products = {
                 <td class="px-5 py-3.5">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 border" style="border-color:var(--border);">
-                            <img src="${p.image || 'https://via.placeholder.com/100?text=📦'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/100?text=📦'">
+                            <img src="${esc(p.image || 'https://via.placeholder.com/100?text=📦')}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/100?text=📦'">
                         </div>
                         <div>
-                            <p class="text-sm font-bold" style="color:var(--text-main);">${p.name}</p>
+                            <p class="text-sm font-bold" style="color:var(--text-main);">${esc(p.name)}</p>
                             <div class="flex items-center gap-2">
                                 <p class="text-xs font-semibold" style="color:var(--text-faint); text-transform:uppercase">${p.type === 'm2' ? 'Por Metro Quadrado' : 'Unidade'}</p>
                                 ${p.manageStock === false ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">SEM ESTOQUE</span>' : ''}
+                                ${p.files?.length ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style="background:var(--primary-light); color:var(--primary);" title="Arquivos de corte anexados">📎 ${p.files.length}</span>` : ''}
                             </div>
                         </div>
                     </div>
                 </td>
                 <td class="px-5 py-3.5">
-                    <p class="text-xs font-black" style="color:var(--primary);">${p.ref || 'S/ REF'}</p>
-                    <p class="text-xs" style="color:var(--text-faint);">${p.category}</p>
+                    <p class="text-xs font-black" style="color:var(--primary);">${esc(p.ref || 'S/ REF')}</p>
+                    <p class="text-xs" style="color:var(--text-faint);">${esc(p.category)}</p>
                 </td>
                 <td class="px-5 py-3.5 text-right">
                     <span class="badge badge-purple">${margin}%</span>
@@ -262,6 +299,10 @@ const Products = {
                 </td>
                 <td class="px-5 py-3.5 text-center">
                     <div class="flex justify-center gap-1">
+                        ${p.files?.length ? `
+                        <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--primary);" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='transparent'" onclick="window.productFiles('${p.id}')" title="Baixar arquivos de corte">
+                            <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+                        </button>` : ''}
                         <button class="w-8 h-8 flex items-center justify-center rounded-[10px] transition-all" style="color:var(--text-faint);" onmouseover="this.style.background='#F0F9FF';this.style.color='#0EA5E9'" onmouseout="this.style.background='transparent';this.style.color='var(--text-faint)'" onclick="window.duplicateProduct('${p.id}')" title="Duplicar Produto">
                             <span class="material-symbols-outlined" style="font-size:18px;">content_copy</span>
                         </button>
@@ -291,6 +332,225 @@ const Products = {
         let editingId = null;
         let currentVariations = [];
 
+        // ---- Arquivos de corte ----
+        let draftId = null;       // id do produto (novo produto já ganha id para nomear a pasta)
+        let currentFiles = [];    // arquivos que ficarão no produto ao salvar
+        let uploadedNow = [];     // enviados nesta edição → apagados se cancelar
+        let removedNow = [];      // removidos nesta edição → apagados do Storage só ao salvar
+        let uploading = 0;
+
+        const generateId = () => {
+            try { return crypto.randomUUID(); }
+            catch (e) { return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15); }
+        };
+        const toast = (msg, type) => import('../app.js').then(m => m.default.toast(msg, type));
+
+        const filesList = document.getElementById('p-files-list');
+        const filesInput = document.getElementById('p-files-input');
+        const filesDrop = document.getElementById('p-files-drop');
+
+        const renderFiles = () => {
+            filesList.innerHTML = currentFiles.length
+                ? currentFiles.map(f => Files.row(f, 'edit')).join('')
+                : `<p class="text-[11px] text-center py-2 italic" style="color:var(--text-faint);">Nenhum arquivo. Clique em "Enviar Arquivo" ou arraste para cá.</p>`;
+        };
+
+        const uploadFiles = async (fileList) => {
+            const files = [...(fileList || [])];
+            if (!files.length) return;
+            await Promise.all(files.map(async (file) => {
+                const temp = { path: `uploading-${generateId()}`, name: file.name, size: file.size, uploading: true };
+                currentFiles.push(temp);
+                uploading++;
+                renderFiles();
+                try {
+                    const meta = await DB.uploadFile(`products/${draftId}`, file);
+                    const i = currentFiles.indexOf(temp);
+                    if (i !== -1) currentFiles[i] = meta;
+                    uploadedNow.push(meta.path);
+                } catch (e) {
+                    console.error(e);
+                    currentFiles = currentFiles.filter(f => f !== temp);
+                    toast(`Falha ao enviar "${file.name}": ${e.message || 'erro na nuvem'}`, 'error');
+                } finally {
+                    uploading--;
+                    renderFiles();
+                }
+            }));
+        };
+
+        document.getElementById('btn-add-file').onclick = () => filesInput.click();
+        filesInput.onchange = () => { uploadFiles(filesInput.files); filesInput.value = ''; };
+
+        filesDrop.addEventListener('dragover', (e) => { e.preventDefault(); filesDrop.style.borderColor = 'var(--primary)'; });
+        filesDrop.addEventListener('dragleave', () => { filesDrop.style.borderColor = 'var(--border)'; });
+        filesDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            filesDrop.style.borderColor = 'var(--border)';
+            uploadFiles(e.dataTransfer.files);
+        });
+
+        Files.bindDownloads(filesList);
+        filesList.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-file-remove]');
+            if (!btn) return;
+            const path = btn.dataset.fileRemove;
+            currentFiles = currentFiles.filter(f => f.path !== path);
+            removedNow.push(path);
+            renderFiles();
+        });
+
+        /** Apaga do Storage caminhos que nenhum produto usa mais (duplicados compartilham arquivos). */
+        const purgeUnused = (paths, products) => {
+            const inUse = new Set(products.flatMap(p => (p.files || []).map(f => f.path)));
+            DB.removeFiles(paths.filter(path => !inUse.has(path)));
+        };
+
+        // ---- Categorias (lista salva na nuvem em app_settings.product_categories) ----
+        const DEFAULT_CATEGORIES = ['Cartões', 'Banners', 'Adesivos', 'Folhetos', 'Diversos'];
+        const catSelect = document.getElementById('p-category');
+        const catSelectWrap = document.getElementById('cat-select-wrap');
+        const catNewWrap = document.getElementById('cat-new-wrap');
+        const catNewInput = document.getElementById('p-new-category');
+
+        /** Categorias salvas + as já usadas em produtos (nada some se a lista mudar). */
+        const getCategories = () => {
+            const saved = DB.get('product_categories');
+            const used = (DB.get('products') || []).map(p => p.category);
+            const all = [...(Array.isArray(saved) ? saved : DEFAULT_CATEGORIES), ...used]
+                .map(c => String(c || '').trim()).filter(Boolean);
+            const seen = new Set();
+            return all.filter(c => { const k = c.toLowerCase(); return !seen.has(k) && seen.add(k); })
+                      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        };
+
+        const renderCategories = (selected) => {
+            const cats = getCategories();
+            if (selected && !cats.includes(selected)) cats.push(selected);
+            catSelect.innerHTML = cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+            if (selected) catSelect.value = selected;
+        };
+
+        const toggleNewCategory = (show) => {
+            catSelectWrap.classList.toggle('hidden', show);
+            catSelectWrap.classList.toggle('flex', !show);
+            catNewWrap.classList.toggle('hidden', !show);
+            catNewWrap.classList.toggle('flex', show);
+            catNewInput.value = '';
+            if (show) catNewInput.focus();
+        };
+
+        const saveNewCategory = () => {
+            const name = catNewInput.value.trim().replace(/\s+/g, ' ');
+            if (!name) return catNewInput.focus();
+            const existing = getCategories().find(c => c.toLowerCase() === name.toLowerCase());
+            if (!existing) {
+                const saved = Array.isArray(DB.get('product_categories')) ? DB.get('product_categories') : [...DEFAULT_CATEGORIES];
+                DB.save('product_categories', [...saved, name]);
+                toast(`Categoria "${name}" criada`);
+            }
+            toggleNewCategory(false);
+            renderCategories(existing || name);
+        };
+
+        document.getElementById('btn-new-category').onclick = () => toggleNewCategory(true);
+        document.getElementById('btn-cancel-category').onclick = () => toggleNewCategory(false);
+        document.getElementById('btn-save-category').onclick = saveNewCategory;
+        catNewInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveNewCategory(); }   // não envia o formulário
+            if (e.key === 'Escape') { e.preventDefault(); toggleNewCategory(false); }
+        });
+
+        // ---- Galeria de fotos (product.images; product.image = capa = 1ª foto) ----
+        const imgInput = document.getElementById('p-image');
+        const imgFile = document.getElementById('p-image-file');
+        const gallery = document.getElementById('p-gallery');
+        const linkRow = document.getElementById('p-image-link-row');
+        let currentImages = [];    // fotos que ficarão no produto
+        let originalImages = [];   // fotos ao abrir (apagadas do Storage só se removidas e salvar)
+        let uploadedImages = [];   // enviadas nesta edição (descartadas se cancelar)
+        let pendingUploads = 0;
+
+        const imagesOf = (p) => Array.isArray(p?.images) && p.images.length ? p.images : (p?.image ? [p.image] : []);
+
+        const renderGallery = () => {
+            const tile = 'w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 border relative group';
+            gallery.innerHTML = currentImages.map((url, i) => `
+                <div class="${tile}" style="border-color:${i === 0 ? 'var(--primary)' : 'var(--border)'}; ${i === 0 ? 'box-shadow:0 0 0 2px var(--primary-light);' : ''}">
+                    <img src="${esc(url)}" class="w-full h-full object-cover" alt="" onerror="this.style.opacity=.2">
+                    ${i === 0 ? `<span class="absolute top-1 left-1 text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style="background:var(--primary);">CAPA</span>` : ''}
+                    <div class="absolute inset-x-0 bottom-0 flex justify-center gap-1 p-1 opacity-0 group-hover:opacity-100 transition-opacity" style="background:linear-gradient(transparent, rgba(0,0,0,.55));">
+                        ${i > 0 ? `<button type="button" data-img-cover="${i}" class="w-7 h-7 rounded-lg bg-white/90 hover:bg-white flex items-center justify-center" title="Usar como capa">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:var(--primary);">star</span></button>` : ''}
+                        <button type="button" data-img-remove="${i}" class="w-7 h-7 rounded-lg bg-white/90 hover:bg-white flex items-center justify-center" title="Remover foto">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:#ef4444;">delete</span></button>
+                    </div>
+                </div>`).join('')
+                + Array.from({ length: pendingUploads }, () => `
+                <div class="${tile} flex items-center justify-center bg-white" style="border-color:var(--border);">
+                    <span class="material-symbols-outlined animate-spin" style="color:var(--primary);">progress_activity</span>
+                </div>`).join('')
+                + `<button type="button" id="btn-add-photo" class="${tile} border-2 border-dashed flex flex-col items-center justify-center gap-1 bg-white hover:border-primary transition-all" style="border-color:var(--border); color:var(--text-faint);" title="Adicionar fotos">
+                    <span class="material-symbols-outlined" style="font-size:26px;">add_photo_alternate</span>
+                    <span class="text-[10px] font-bold">${currentImages.length ? 'Adicionar' : 'Escolher fotos'}</span>
+                </button>`;
+        };
+
+        const uploadImages = async (fileList) => {
+            const files = [...(fileList || [])].filter(f => f.type.startsWith('image/'));
+            if (!files.length) return;
+            pendingUploads += files.length; uploading += files.length;
+            renderGallery();
+            for (const file of files) {           // em sequência: mantém a ordem escolhida
+                try {
+                    const blob = await Files.resizeImage(file);
+                    const url = await DB.uploadImage(`products/${draftId}`, blob);
+                    uploadedImages.push(url);
+                    currentImages.push(url);
+                } catch (e) {
+                    console.error(e);
+                    toast(`Falha ao enviar "${file.name}": ${e.message || 'erro na nuvem'}`, 'error');
+                } finally {
+                    pendingUploads--; uploading--;
+                    renderGallery();
+                }
+            }
+        };
+
+        /** Apaga fotos do nosso Storage que nenhum produto usa mais (duplicados compartilham fotos). */
+        const purgeImages = (urls, products) => {
+            const inUse = new Set(products.flatMap(p => imagesOf(p)));
+            [...new Set(urls)].filter(u => u && !inUse.has(u)).forEach(u => DB.removeImage(u));
+        };
+
+        gallery.addEventListener('click', (e) => {
+            if (e.target.closest('#btn-add-photo')) return imgFile.click();
+            const cover = e.target.closest('[data-img-cover]');
+            if (cover) { const [img] = currentImages.splice(Number(cover.dataset.imgCover), 1); currentImages.unshift(img); return renderGallery(); }
+            const rm = e.target.closest('[data-img-remove]');
+            if (rm) { currentImages.splice(Number(rm.dataset.imgRemove), 1); renderGallery(); }
+        });
+        imgFile.onchange = () => { uploadImages(imgFile.files); imgFile.value = ''; };
+        gallery.addEventListener('dragover', (e) => e.preventDefault());
+        gallery.addEventListener('drop', (e) => { e.preventDefault(); uploadImages(e.dataTransfer.files); });
+
+        const addLink = () => {
+            const url = imgInput.value.trim();
+            if (!/^https?:\/\//i.test(url)) return toast('Cole um link que comece com http:// ou https://', 'error');
+            if (!currentImages.includes(url)) currentImages.push(url);
+            imgInput.value = '';
+            linkRow.classList.add('hidden');
+            renderGallery();
+        };
+        document.getElementById('btn-image-link').onclick = () => { linkRow.classList.toggle('hidden'); imgInput.focus(); };
+        document.getElementById('btn-add-image-link').onclick = addLink;
+        imgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } });
+
+        window.productFiles = (id) => {
+            const p = (DB.get('products') || []).find(item => item.id === id);
+            if (p) Files.openOrderModal({ id: p.ref || 'Produto', customerName: p.name, items: [{ productId: p.id, name: p.name }] }, 'Arquivos de corte');
+        };
+
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 const term = e.target.value.toLowerCase();
@@ -314,43 +574,40 @@ const Products = {
 
         const renderVariations = () => {
             varContainer.innerHTML = currentVariations.map((v, gIdx) => `
-                <div class="p-4 rounded-xl border bg-slate-50/50" style="border-color:var(--border);">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex-1 mr-4">
-                            <label class="text-[10px] !mb-1 uppercase font-black" style="color:var(--primary);">Nome do Grupo (Ex: Material, Cor, Cobertura, Tamanho)</label>
-                            <input type="text" value="${v.name}" oninput="window.updateVariationGroup(${gIdx}, this.value)" placeholder="Ex: Material" class="!py-1.5 text-sm font-bold">
+                <div class="p-5 rounded-2xl border bg-slate-50/60" style="border-color:var(--border);">
+                    <div class="flex items-end gap-3 mb-4">
+                        <div class="flex-1 min-w-0">
+                            <label class="!mb-1.5">Nome do grupo <span class="font-normal" style="color:var(--text-faint);">(ex.: Tamanho, Material, Cor)</span></label>
+                            <input type="text" value="${esc(v.name)}" oninput="window.updateVariationGroup(${gIdx}, this.value)" placeholder="Ex: Tamanho" class="font-bold">
                         </div>
-                        <div class="flex gap-2 items-center">
-                            <button type="button" onclick="window.addOption(${gIdx})" class="btn-ghost !py-1 !px-2 text-[10px] font-bold h-8">
-                                <span class="material-symbols-outlined !text-xs">add</span> Opção
-                            </button>
-                            <button type="button" onclick="window.removeVariationGroup(${gIdx})" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400">
-                                <span class="material-symbols-outlined !text-sm">delete</span>
-                            </button>
-                        </div>
+                        <button type="button" onclick="window.addOption(${gIdx})" class="btn-ghost !px-3 text-xs font-bold flex-shrink-0" style="height:46px;">
+                            <span class="material-symbols-outlined !text-sm">add</span> Opção
+                        </button>
+                        <button type="button" onclick="window.removeVariationGroup(${gIdx})" class="w-11 flex items-center justify-center rounded-xl hover:bg-red-50 hover:text-red-500 transition-all text-slate-400 flex-shrink-0" style="height:46px;" title="Remover grupo">
+                            <span class="material-symbols-outlined" style="font-size:20px;">delete</span>
+                        </button>
                     </div>
-                    
-                    <div class="space-y-2 pl-4 border-l-2" style="border-color:var(--primary-light);">
+
+                    ${v.options.length ? `
+                    <div class="grid gap-3 px-1 mb-1.5" style="grid-template-columns: minmax(0,1fr) 140px 140px 40px;">
+                        <span class="label-caps">Opção</span>
+                        <span class="label-caps text-right" title="Somado ao custo base">+ Custo R$</span>
+                        <span class="label-caps text-right" title="Somado ao preço base">+ Preço R$</span>
+                        <span></span>
+                    </div>` : ''}
+                    <div class="space-y-2">
                         ${v.options.map((opt, oIdx) => `
-                            <div class="grid grid-cols-[1fr,80px,80px,32px] gap-1.5 items-end">
-                                <div>
-                                    <label class="text-[9px] !mb-0.5 uppercase">Opção (Ex: 1000 un)</label>
-                                    <input type="text" value="${opt.name}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'name', this.value)" placeholder="Ex: 500 un" class="!py-1 text-xs">
-                                </div>
-                                <div>
-                                    <label class="text-[9px] !mb-0.5 uppercase text-right">Custo +</label>
-                                    <input type="number" value="${opt.cost}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'cost', this.value)" placeholder="0.00" step="0.01" class="!py-1 text-xs text-right">
-                                </div>
-                                <div>
-                                    <label class="text-[9px] !mb-0.5 uppercase text-right">Preço +</label>
-                                    <input type="number" value="${opt.price}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'price', this.value)" placeholder="0.00" step="0.01" class="!py-1 text-xs text-right">
-                                </div>
-                                <button type="button" onclick="window.removeOption(${gIdx}, ${oIdx})" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400">
-                                    <span class="material-symbols-outlined !text-xs">close</span>
+                            <div class="grid gap-3 items-center" style="grid-template-columns: minmax(0,1fr) 140px 140px 40px;">
+                                <input type="text" value="${esc(opt.name)}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'name', this.value)" placeholder="Ex: 60x40 cm">
+                                <input type="number" value="${(Number(opt.cost) || 0).toFixed(2)}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'cost', this.value)" placeholder="0,00" step="0.01" min="0" class="text-right" inputmode="decimal">
+                                <input type="number" value="${(Number(opt.price) || 0).toFixed(2)}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'price', this.value)" placeholder="0,00" step="0.01" min="0" class="text-right" inputmode="decimal">
+                                <button type="button" onclick="window.removeOption(${gIdx}, ${oIdx})" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-50 hover:text-red-500 transition-all text-slate-400" title="Remover opção">
+                                    <span class="material-symbols-outlined" style="font-size:18px;">close</span>
                                 </button>
                             </div>
                         `).join('')}
                     </div>
+                    ${v.options.length ? `<p class="text-[11px] mt-3" style="color:var(--text-faint);">Os valores adicionais são somados ao custo e ao preço base do produto quando a opção é escolhida.</p>` : ''}
                 </div>
             `).join('');
 
@@ -391,8 +648,18 @@ const Products = {
 
         const openModal = (id = null) => {
             editingId = id;
+            draftId = id || generateId();
             form.reset();
             currentVariations = [];
+            currentFiles = [];
+            uploadedNow = [];
+            removedNow = [];
+            uploadedImages = [];
+            currentImages = [];
+            originalImages = [];
+            linkRow.classList.add('hidden');
+            toggleNewCategory(false);
+            renderCategories();
             document.getElementById('modal-title').innerText = id ? 'Editar Produto' : 'Novo Produto';
             
             if (id) {
@@ -401,19 +668,23 @@ const Products = {
                 if (p) {
                     document.getElementById('p-name').value = p.name;
                     document.getElementById('p-ref').value = p.ref || '';
-                    document.getElementById('p-image').value = p.image || '';
-                    document.getElementById('p-category').value = p.category;
-                    document.getElementById('p-cost').value = p.cost || 0;
-                    document.getElementById('p-price').value = p.price || 0;
+                    currentImages = [...imagesOf(p)];
+                    originalImages = [...currentImages];
+                    renderCategories(p.category);
+                    document.getElementById('p-cost').value = (Number(p.cost) || 0).toFixed(2);
+                    document.getElementById('p-price').value = (Number(p.price) || 0).toFixed(2);
                     document.getElementById('p-manage-stock').checked = p.manageStock !== false;
                     document.getElementById('p-stock').value = p.stock || 0;
                     document.getElementById('stock-qty-container').style.display = p.manageStock !== false ? 'block' : 'none';
                     currentVariations = JSON.parse(JSON.stringify(p.variations || []));
+                    currentFiles = JSON.parse(JSON.stringify(p.files || []));
                 }
             }
             
             modal.classList.remove('hidden');
             renderVariations();
+            renderFiles();
+            renderGallery();
             updateCalc();
         };
 
@@ -424,11 +695,19 @@ const Products = {
         }
 
         const closeModal = () => modal.classList.add('hidden');
+        const cancelModal = () => {
+            if (uploading) return toast('Aguarde terminar o envio dos arquivos.', 'error');
+            if (uploadedNow.length) DB.removeFiles(uploadedNow);   // enviados e não salvos
+            purgeImages(uploadedImages, DB.get('products') || []);  // fotos enviadas e não salvas
+            uploadedNow = [];
+            uploadedImages = [];
+            closeModal();
+        };
 
         if (btnAdd) btnAdd.onclick = () => openModal();
         if (btnAddEmpty) btnAddEmpty.onclick = () => openModal();
-        if (btnClose) btnClose.onclick = closeModal;
-        if (btnCancel) btnCancel.onclick = closeModal;
+        if (btnClose) btnClose.onclick = cancelModal;
+        if (btnCancel) btnCancel.onclick = cancelModal;
 
         // REMOVED backdrop click close to prevent accidental data loss
         // modal.onclick = (e) => { if (e.target === modal) closeModal(); };
@@ -493,7 +772,10 @@ const Products = {
                         type: 'warning',
                         confirmLabel: 'Excluir Mesmo Assim',
                         onConfirm: () => {
-                            DB.save('products', products.filter(p => p.id !== id));
+                            const rest = products.filter(p => p.id !== id);
+                            DB.save('products', rest);
+                            purgeUnused((prod?.files || []).map(f => f.path), rest);
+                            purgeImages(imagesOf(prod), rest);
                             m.default.toast('Produto removido definitivamente', 'info');
                             Products.render(container);
                         }
@@ -506,7 +788,10 @@ const Products = {
                     message: 'Tem certeza que deseja remover este produto do catálogo definitivamente?',
                     type: 'danger',
                     onConfirm: () => {
-                        DB.save('products', products.filter(p => p.id !== id));
+                        const rest = products.filter(p => p.id !== id);
+                        DB.save('products', rest);
+                        purgeUnused((prod?.files || []).map(f => f.path), rest);
+                            purgeImages(imagesOf(prod), rest);
                         m.default.toast('Produto removido', 'info');
                         Products.render(container);
                     }
@@ -516,21 +801,20 @@ const Products = {
 
         form.onsubmit = (e) => {
             e.preventDefault();
+            if (uploading) return toast('Aguarde terminar o envio dos arquivos.', 'error');
             const cost = parseFloat(document.getElementById('p-cost').value) || 0;
             const price = parseFloat(document.getElementById('p-price').value) || 0;
 
-            const generateId = () => {
-                try { return crypto.randomUUID(); } 
-                catch (e) { return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15); }
-            };
+            
 
             const products = DB.get('products') || [];
             const existing = editingId ? products.find(p => p.id === editingId) : null;
             const data = {
-                id: editingId || generateId(),
+                id: editingId || draftId,
                 name: document.getElementById('p-name').value,
                 ref: document.getElementById('p-ref').value,
-                image: document.getElementById('p-image').value,
+                images: [...currentImages],
+                image: currentImages[0] || '',   // capa (usada no catálogo, orçamento e listas)
                 category: document.getElementById('p-category').value,
                 type: existing?.type || 'un',
                 cost: cost,
@@ -538,7 +822,8 @@ const Products = {
                 status: existing ? existing.status : true,
                 manageStock: document.getElementById('p-manage-stock').checked,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
-                variations: currentVariations.filter(v => v.name.trim() !== '')
+                variations: currentVariations.filter(v => v.name.trim() !== ''),
+                files: currentFiles.filter(f => !f.uploading)
             };
 
             if (editingId) {
@@ -550,6 +835,11 @@ const Products = {
             }
 
             DB.save('products', products);
+            purgeUnused(removedNow, products);
+            purgeImages([...originalImages, ...uploadedImages], products);  // fotos removidas
+            uploadedNow = [];
+            removedNow = [];
+            uploadedImages = [];
             import('../app.js').then(m => m.default.toast('Produto salvo com sucesso!'));
             closeModal();
             Products.render(container);

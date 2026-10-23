@@ -1,4 +1,5 @@
 import DB from '../db.js';
+import { esc } from '../utils.js';
 
 const Dashboard = {
     render: (container) => {
@@ -7,14 +8,20 @@ const Dashboard = {
         const products = DB.get('products')  || [];
         const customers= DB.get('customers') || [];
 
-        // Calculate real KPIs
-        const todaySales = orders
-            .filter(o => o.date === new Date().toISOString().split('T')[0])
-            .reduce((sum, o) => sum + parseFloat(o.value || 0), 0);
+        // KPIs reais — pedidos cancelados não contam como receita (igual Financeiro/Relatórios)
+        const activeOrders = orders.filter(o => o.status !== 'Cancelado');
+        const sumValue = (list) => list.reduce((sum, o) => sum + (parseFloat(o.value) || 0), 0);
 
-        const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.value || 0), 0);
+        const totalRevenue = sumValue(activeOrders);
         const openQuotes   = quotes.filter(q => q.status === 'Aberto').length;
-        const inProduction = orders.filter(o => o.status === 'Produção').length;
+        // "Em produção" = tudo que está no fluxo e ainda não foi concluído (Aguardando Arte, Produção, Acabamento)
+        const isDone = (st) => /Conclu|Pronto|Entregue/i.test(String(st || ''));
+        const inProduction = activeOrders.filter(o => !isDone(o.status)).length;
+
+        const user = DB.get('user') || {};
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+        const firstName = String(user.name || 'Administrador').split(' ')[0];
 
         const fmtBRL = (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -24,7 +31,7 @@ const Dashboard = {
                 <!-- Page Header -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h2 class="page-title">Bom dia, Administrador 👋</h2>
+                        <h2 class="page-title">${greeting}, ${esc(firstName)} 👋</h2>
                         <p class="text-sm mt-1" style="color:var(--text-muted);">Aqui está o resumo da sua gráfica hoje.</p>
                     </div>
                     <button id="btn-dashboard-new-order" class="btn-primary">
@@ -47,7 +54,7 @@ const Dashboard = {
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="section-heading">Faturamento Mensal</h3>
                             <div class="flex gap-2">
-                                <span class="badge badge-green">Crescimento +12%</span>
+                                <span id="revenue-growth" class="badge badge-green hidden"></span>
                             </div>
                         </div>
                         <div class="h-[300px]">
@@ -68,7 +75,7 @@ const Dashboard = {
                         <h3 class="section-heading">Últimos Pedidos em Produção</h3>
                         <button class="text-sm font-semibold" style="color:var(--primary);" onclick="window._app && window._app.navigateTo('producao')">Ver tudo →</button>
                     </div>
-                    ${orders.length === 0
+                    ${activeOrders.length === 0
                         ? `<div class="empty-state">
                                <div class="empty-state-icon"><span class="material-symbols-outlined">shopping_bag</span></div>
                                <h3>Nenhum pedido ainda</h3>
@@ -87,17 +94,17 @@ const Dashboard = {
                                        </tr>
                                    </thead>
                                    <tbody>
-                                       ${orders.slice(0, 6).map(order => `
+                                       ${activeOrders.slice(0, 6).map(order => `
                                            <tr style="border-bottom:1px solid #F8F6FF; transition:background 0.15s;" onmouseover="this.style.background='#FAFBFF'" onmouseout="this.style.background=''">
                                                <td class="px-5 py-3.5">
                                                    <p class="text-sm font-bold" style="color:var(--primary);">${order.id}</p>
                                                    <p class="text-xs" style="color:var(--text-faint);">${order.date}</p>
                                                </td>
-                                               <td class="px-5 py-3.5 text-sm font-medium" style="color:var(--text-sub);">${(DB.get('customers') || []).find(c => c.id === order.customerId)?.name || order.customerName || '—'}</td>
-                                               <td class="px-5 py-3.5 text-sm" style="color:var(--text-muted);">${order.productName || '—'}</td>
+                                               <td class="px-5 py-3.5 text-sm font-medium" style="color:var(--text-sub);">${esc((DB.get('customers') || []).find(c => c.id === order.customerId)?.name || order.customerName || '—')}</td>
+                                               <td class="px-5 py-3.5 text-sm" style="color:var(--text-muted);">${esc(order.productName || '—')}</td>
                                                <td class="px-5 py-3.5 text-right text-sm font-bold" style="color:var(--text-main);">${fmtBRL(parseFloat(order.value || 0))}</td>
                                                <td class="px-5 py-3.5 text-center">
-                                                   <span class="badge badge-purple">${order.status}</span>
+                                                   <span class="badge badge-purple">${esc(order.status)}</span>
                                                </td>
                                            </tr>
                                        `).join('')}
@@ -149,26 +156,50 @@ const Dashboard = {
 
         // Initialize Charts
         setTimeout(() => {
-            Dashboard.initCharts(orders);
+            Dashboard.initCharts(activeOrders);
         }, 100);
     },
 
+    /** orders: só pedidos ativos (sem cancelados). */
     initCharts: (orders) => {
         const ctxRev = document.getElementById('chart-revenue')?.getContext('2d');
         const ctxCat = document.getElementById('chart-categories')?.getContext('2d');
+        const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
         if (ctxRev) {
-            // Mock data for last 6 months (in a real app we would calculate this)
-            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
-            const salesData = [12500, 15000, 11000, 18500, 22000, 25000];
+            // Últimos 6 meses (inclui o atual), somando o valor dos pedidos pela data
+            const now = new Date();
+            const months = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push({
+                    key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+                    label: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()),
+                    total: 0
+                });
+            }
+            const byKey = new Map(months.map(m => [m.key, m]));
+            orders.forEach(o => {
+                const m = byKey.get(String(o.date || '').slice(0, 7));
+                if (m) m.total += parseFloat(o.value) || 0;
+            });
+
+            // Selo: mês atual x mês anterior (só aparece se houver base de comparação)
+            const cur = months[5].total, prev = months[4].total;
+            const badge = document.getElementById('revenue-growth');
+            if (badge && prev > 0) {
+                const pct = Math.round(((cur - prev) / prev) * 100);
+                badge.textContent = `${pct >= 0 ? 'Crescimento +' : 'Queda '}${pct}% vs mês anterior`;
+                badge.className = `badge ${pct >= 0 ? 'badge-green' : 'badge-orange'}`;
+            }
 
             new Chart(ctxRev, {
                 type: 'line',
                 data: {
-                    labels: months,
+                    labels: months.map(m => m.label),
                     datasets: [{
                         label: 'Faturamento (R$)',
-                        data: salesData,
+                        data: months.map(m => Math.round(m.total * 100) / 100),
                         borderColor: '#6C2BFF',
                         backgroundColor: 'rgba(108, 43, 255, 0.1)',
                         fill: true,
@@ -181,9 +212,12 @@ const Dashboard = {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (c) => fmtBRL(c.parsed.y) } }
+                    },
                     scales: {
-                        y: { beginAtZero: true, grid: { display: false } },
+                        y: { beginAtZero: true, grid: { display: false }, ticks: { callback: (v) => fmtBRL(v).replace(',00', '') } },
                         x: { grid: { display: false } }
                     }
                 }
@@ -191,35 +225,42 @@ const Dashboard = {
         }
 
         if (ctxCat) {
-            // Group sales by category
+            // Mix por categoria dos ITENS vendidos, pesado pelo valor (R$)
             const categories = {};
             orders.forEach(o => {
-                const cat = o.category || 'Outros';
-                categories[cat] = (categories[cat] || 0) + 1;
+                const items = Array.isArray(o.items) && o.items.length ? o.items : [{ category: 'Outros', price: o.value }];
+                items.forEach(i => {
+                    const cat = String(i.category || 'Outros').trim() || 'Outros';
+                    categories[cat] = (categories[cat] || 0) + (parseFloat(i.price) || 0);
+                });
             });
+            const entries = Object.entries(categories).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
 
-            const labels = Object.keys(categories).length > 0 ? Object.keys(categories) : ['Cartões', 'Banners', 'Adesivos'];
-            const data = Object.values(categories).length > 0 ? Object.values(categories) : [45, 25, 30];
-
-            new Chart(ctxCat, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: ['#6C2BFF', '#10B981', '#F59E0B', '#3B82F6', '#EF4444'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+            if (!entries.length) {
+                ctxCat.canvas.parentElement.innerHTML =
+                    `<p class="text-sm text-center" style="color:var(--text-faint);">Sem vendas para mostrar ainda.</p>`;
+            } else {
+                new Chart(ctxCat, {
+                    type: 'doughnut',
+                    data: {
+                        labels: entries.map(e => e[0]),
+                        datasets: [{
+                            data: entries.map(e => Math.round(e[1] * 100) / 100),
+                            backgroundColor: ['#6C2BFF', '#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#EC4899', '#14B8A6', '#64748B'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+                            tooltip: { callbacks: { label: (c) => `${c.label}: ${fmtBRL(c.parsed)}` } }
+                        }
                     }
-                }
-            });
+                });
+            }
         }
     },
 

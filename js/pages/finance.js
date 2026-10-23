@@ -1,6 +1,8 @@
 import DB from '../db.js';
 import App from '../app.js';
 import { fmtBRL } from '../utils.js';
+import { esc } from '../utils.js';
+import Payments from '../payments.js';
 
 const Finance = {
     render: (container) => {
@@ -11,8 +13,9 @@ const Finance = {
         const faturamento = activeOrders.reduce((acc, o) => acc + (parseFloat(o.value) || 0), 0);
         const lucro = faturamento * 0.35; // 35% estimated profit margin
 
-        const pendingOrders = activeOrders.filter(o => o.status !== 'Concluído' && !o.status?.includes('Pronto'));
-        const aReceber = pendingOrders.reduce((acc, o) => acc + (parseFloat(o.value) || 0), 0);
+        // A receber = saldo em aberto dos pedidos (total − valores já recebidos)
+        const pendingOrders = activeOrders.filter(o => Payments.balance(o) > 0.009);
+        const aReceber = pendingOrders.reduce((acc, o) => acc + Payments.balance(o), 0);
         const aReceberCount = pendingOrders.length;
         
         container.innerHTML = `
@@ -192,8 +195,8 @@ const Finance = {
                         <tr class="border-b border-outline-variant/10 hover:bg-surface-container-lowest transition-colors group">
                             <td class="p-4">${o.date}</td>
                             <td class="p-4">
-                                <div class="font-medium">${o.id} - ${o.productName}</div>
-                                <div class="text-xs text-on-surface-variant">${customers.find(c => c.id === o.customerId)?.name || o.customerName || 'Cliente'}</div>
+                                <div class="font-medium">${o.id} - ${esc(o.productName)}</div>
+                                <div class="text-xs text-on-surface-variant">${esc(customers.find(c => c.id === o.customerId)?.name || o.customerName || 'Cliente')}</div>
                             </td>
                             <td class="p-4"><span class="px-2 py-1 bg-primary/10 text-primary rounded text-[10px] font-semibold">Venda</span></td>
                             <td class="p-4 text-right text-emerald-600 font-semibold">+ ${fmtBRL(o.value)}</td>

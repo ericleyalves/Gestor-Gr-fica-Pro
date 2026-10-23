@@ -1,4 +1,5 @@
 import DB from '../db.js';
+import { esc, bindCepLookup } from '../utils.js';
 
 const Customers = {
     render: (container) => {
@@ -85,6 +86,16 @@ const Customers = {
                                 <input type="text" id="c-phone" placeholder="(00) 00000-0000">
                             </div>
                         </div>
+                        <div class="grid gap-4" style="grid-template-columns: 140px 1fr;">
+                            <div>
+                                <label>CEP</label>
+                                <input type="text" id="c-cep" placeholder="00000-000" inputmode="numeric" maxlength="9">
+                            </div>
+                            <div>
+                                <label>Endereço</label>
+                                <input type="text" id="c-address" placeholder="Rua, nº - Bairro, Cidade/UF">
+                            </div>
+                        </div>
                         <div class="flex justify-end gap-3 pt-4">
                             <button type="button" id="btn-cancel-customer" class="btn-ghost">Cancelar</button>
                             <button type="submit" class="btn-primary">Salvar Cliente</button>
@@ -115,7 +126,7 @@ const Customers = {
         <div class="section-card group hover:shadow-3 transition-all duration-300">
             <div class="flex justify-between items-start mb-5">
                 <div class="w-12 h-12 rounded-[16px] flex items-center justify-center font-black text-lg" style="background:var(--primary-light); color:var(--primary);">
-                    ${c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    ${esc(c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase())}
                 </div>
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400" onclick="window.editCustomer('${c.id}')">
@@ -126,24 +137,37 @@ const Customers = {
                     </button>
                 </div>
             </div>
-            <h3 class="text-base font-black truncate" style="color:var(--text-main);">${c.name}</h3>
-            <p class="text-[10px] font-bold uppercase tracking-wider mt-1" style="color:var(--text-faint);">${c.document || 'Sem Documento'}</p>
+            <h3 class="text-base font-black truncate" style="color:var(--text-main);">${esc(c.name)}</h3>
+            <p class="text-[10px] font-bold uppercase tracking-wider mt-1" style="color:var(--text-faint);">${esc(c.document || 'Sem Documento')}</p>
             
             <div class="mt-5 space-y-2.5">
                 <div class="flex items-center gap-2.5 text-xs font-semibold" style="color:var(--text-muted);">
                     <span class="material-symbols-outlined" style="font-size:18px; color:var(--text-faint);">mail</span>
-                    <span class="truncate">${c.email || 'Sem e-mail'}</span>
+                    <span class="truncate">${esc(c.email || 'Sem e-mail')}</span>
                 </div>
                 <div class="flex items-center gap-2.5 text-xs font-semibold" style="color:var(--text-muted);">
                     <span class="material-symbols-outlined" style="font-size:18px; color:var(--text-faint);">call</span>
-                    <span>${c.phone || 'Sem telefone'}</span>
+                    <span>${esc(c.phone || 'Sem telefone')}</span>
                 </div>
+                ${c.address ? `
+                <div class="flex items-start gap-2.5 text-xs font-semibold" style="color:var(--text-muted);">
+                    <span class="material-symbols-outlined" style="font-size:18px; color:var(--text-faint);">location_on</span>
+                    <span class="line-clamp-2">${esc(c.address)}</span>
+                </div>` : ''}
             </div>
             
             <div class="mt-6 pt-4 border-t flex justify-between items-center" style="border-color:var(--border);">
                 <div>
                     <p class="text-[10px] font-bold uppercase" style="color:var(--text-faint);">Última Compra</p>
-                    <p class="text-xs font-bold" style="color:var(--text-sub);">Há 2 dias</p>
+                    <p class="text-xs font-bold" style="color:var(--text-sub);">${(() => {
+                        // Pedido mais recente (não cancelado) deste cliente
+                        const last = (DB.get('orders') || [])
+                            .filter(o => o.status !== 'Cancelado' && (String(o.customerId) === String(c.id) || (!o.customerId && o.customerName === c.name)))
+                            .map(o => String(o.date || '')).filter(Boolean).sort().pop();
+                        if (!last) return 'Nenhuma ainda';
+                        const days = Math.round((new Date().setHours(12, 0, 0, 0) - new Date(`${last}T12:00:00`)) / 86400000);
+                        return days <= 0 ? 'Hoje' : days === 1 ? 'Ontem' : `Há ${days} dias`;
+                    })()}</p>
                 </div>
                 <button class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-primary hover:bg-primary-light transition-all">
                     <span class="material-symbols-outlined">arrow_forward</span>
@@ -159,6 +183,7 @@ const Customers = {
         const btnClose = document.getElementById('close-customer-modal');
         const btnCancel = document.getElementById('btn-cancel-customer');
         const form = document.getElementById('form-customer');
+        bindCepLookup(document.getElementById('c-cep'), document.getElementById('c-address'));
         const searchInput = document.getElementById('customer-search');
         
         let editingId = null;
@@ -197,6 +222,8 @@ const Customers = {
                     document.getElementById('c-birth').value = c.birth || '';
                     document.getElementById('c-email').value = c.email || '';
                     document.getElementById('c-phone').value = c.phone || '';
+                    document.getElementById('c-cep').value = c.cep || '';
+                    document.getElementById('c-address').value = c.address || '';
                 }
             }
             modal.classList.remove('hidden');
@@ -216,34 +243,31 @@ const Customers = {
                 const quotes = DB.get('quotes') || [];
                 const orders = DB.get('orders') || [];
                 const customers = DB.get('customers') || [];
-                const cust = customers.find(c => c.id === id);
+                const cust = customers.find(c => String(c.id) === String(id));
                 
-                // Relational check
-                const inUse = quotes.some(q => q.customerId === id) || orders.some(o => o.customerId === id);
-                
-                if (inUse) {
-                    m.default.confirm({
-                        title: 'Ação Bloqueada (Dado em uso)',
-                        message: 'Não é possível excluir este item porque ele já foi utilizado em vendas/orçamentos. Você pode apenas desativá-lo.',
-                        type: 'warning',
-                        confirmLabel: 'Desativar Cliente',
-                        onConfirm: () => {
-                            if (cust) cust.status = false;
-                            DB.save('customers', customers);
-                            m.default.toast('Cliente desativado com sucesso.', 'info');
-                            Customers.render(container);
-                        }
-                    });
-                    return;
-                }
+                // Pedidos e orçamentos guardam uma cópia do nome/telefone: excluir não apaga o histórico
+                const same = (x) => String(x.customerId) === String(id);
+                const nOrders = orders.filter(same).length;
+                const nQuotes = quotes.filter(same).length;
+                const used = nOrders + nQuotes;
 
                 m.default.confirm({
-                    title: 'Excluir Cliente?',
-                    message: 'Tem certeza que deseja remover este cliente definitivamente da base?',
+                    title: `Excluir ${cust?.name ? `"${cust.name}"` : 'cliente'}?`,
+                    message: used
+                        ? `Este cliente aparece em ${nOrders} pedido(s) e ${nQuotes} orçamento(s). Eles continuam no histórico com o nome dele; só o cadastro será removido.`
+                        : 'O cadastro será removido definitivamente da base.',
                     type: 'danger',
+                    confirmLabel: 'Excluir Cliente',
                     onConfirm: () => {
-                        DB.save('customers', customers.filter(c => c.id !== id));
-                        m.default.toast('Cliente removido');
+                        // Garante que o histórico tenha o nome/telefone antes de apagar o cadastro
+                        if (cust && used) {
+                            const fill = (list) => list.map(x => same(x)
+                                ? { ...x, customerName: x.customerName || cust.name, phone: x.phone || cust.phone || '' } : x);
+                            DB.save('orders', fill(orders));
+                            DB.save('quotes', fill(quotes));
+                        }
+                        DB.save('customers', customers.filter(c => String(c.id) !== String(id)));
+                        m.default.toast('Cliente excluído');
                         Customers.render(container);
                     }
                 });
@@ -259,7 +283,9 @@ const Customers = {
                 document: document.getElementById('c-doc').value,
                 birth: document.getElementById('c-birth').value,
                 email: document.getElementById('c-email').value,
-                phone: document.getElementById('c-phone').value
+                phone: document.getElementById('c-phone').value,
+                cep: document.getElementById('c-cep').value,
+                address: document.getElementById('c-address').value.trim()
             };
 
             if (editingId) {
