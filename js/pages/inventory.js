@@ -75,7 +75,7 @@ const Inventory = {
                     <tr class="border-t" style="border-color:#F1F0F7;">
                         <td class="px-5 py-3">
                             <p class="font-bold" style="color:var(--text-main);">${esc(m.name)}</p>
-                            <p class="text-xs" style="color:var(--text-faint);">${esc(m.category || '')}${n ? ` · usado em ${n} produto(s)` : ''}</p>
+                            <p class="text-xs" style="color:var(--text-faint);">${esc(m.category || '')}${m.width && m.height ? ` · ${num(m.width)}×${num(m.height)} cm` : ''}${n ? ` · usado em ${n} produto(s)` : ''}</p>
                         </td>
                         <td class="px-5 py-3" style="min-width:190px;">
                             <p class="font-black" style="color:${Number(m.stock) < 0 ? '#DC2626' : isLow ? '#DC2626' : 'var(--text-main)'};">${num(m.stock)} <span class="text-xs font-semibold" style="color:var(--text-faint);">${esc(m.unit)}</span>
@@ -137,6 +137,12 @@ const Inventory = {
                         <div><label>Mínimo</label><input id="im-min" type="number" step="0.001" min="0" value="${Number(m.minQty) || 0}"></div>
                         <div><label>Custo / unid. (R$)</label><input id="im-cost" type="number" step="0.01" min="0" value="${m.cost ? Number(m.cost).toFixed(2) : ''}"></div>
                     </div>
+                    <div id="im-dims" class="grid grid-cols-3 gap-3">
+                        <div><label>Largura chapa (cm)</label><input id="im-w" type="number" step="any" min="0" value="${m.width || ''}" placeholder="Ex: 275"></div>
+                        <div><label>Altura chapa (cm)</label><input id="im-h" type="number" step="any" min="0" value="${m.height || ''}" placeholder="Ex: 185"></div>
+                        <div><label>Espessura (mm)</label><input id="im-t" type="number" step="any" min="0" value="${m.thickness || ''}" placeholder="Ex: 3"></div>
+                    </div>
+                    <p class="text-[11px] -mt-2" style="color:var(--text-faint);">Medidas usadas pela Calculadora laser (só para chapas/folhas).</p>
                     <div class="grid grid-cols-2 gap-3">
                         <div><label>Fornecedor</label><input id="im-sup" value="${esc(m.supplier || '')}" placeholder="Opcional"></div>
                         <div><label>Local</label><input id="im-loc" value="${esc(m.location || '')}" placeholder="Ex: Prateleira 2"></div>
@@ -170,6 +176,9 @@ const Inventory = {
                 minQty: Number(el.querySelector('#im-min').value) || 0,
                 cost: Number(el.querySelector('#im-cost').value) || 0,
                 supplier: el.querySelector('#im-sup').value.trim(),
+                width: Number(el.querySelector('#im-w').value) || 0,
+                height: Number(el.querySelector('#im-h').value) || 0,
+                thickness: Number(el.querySelector('#im-t').value) || 0,
                 location: el.querySelector('#im-loc').value.trim()
             };
             if (!existing) {
