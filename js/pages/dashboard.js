@@ -18,6 +18,38 @@ const Dashboard = {
         const isDone = (st) => /Conclu|Pronto|Entregue/i.test(String(st || ''));
         const inProduction = activeOrders.filter(o => !isDone(o.status)).length;
 
+        // Entregas: pedidos ativos não concluídos, por data prevista
+        const pad = (n) => String(n).padStart(2, '0');
+        const dkey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const now = new Date();
+        const todayKey = dkey(now);
+        const weekKey = dkey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7));
+        const pending = activeOrders.filter(o => !isDone(o.status));
+        const late = pending.filter(o => o.dueDate && o.dueDate < todayKey).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        const dueToday = pending.filter(o => o.dueDate === todayKey);
+        const soon = pending.filter(o => o.dueDate && o.dueDate > todayKey && o.dueDate <= weekKey).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        const noDate = pending.filter(o => !o.dueDate).length;
+        const custName = (o) => customers.find(c => String(c.id) === String(o.customerId))?.name || o.customerName || 'Cliente';
+        const dueRow = (o, tone) => {
+            const [, mm, dd] = o.dueDate.split('-');
+            const wd = new Date(`${o.dueDate}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+            const colors = { late: ['#FEF2F2', '#DC2626'], today: ['#FFFBEB', '#B45309'], soon: ['#F1F5F9', '#475569'] }[tone];
+            return `
+            <div class="flex items-center gap-3 py-2.5 border-b last:border-0" style="border-color:#F1F0F7;">
+                <div class="w-14 text-center rounded-lg py-1 flex-shrink-0" style="background:${colors[0]}; color:${colors[1]};">
+                    <div class="text-[10px] font-bold uppercase">${tone === 'today' ? 'hoje' : wd}</div>
+                    <div class="text-sm font-black leading-none">${dd}/${mm}</div>
+                </div>
+                <div class="flex-1 min-w-0 cursor-pointer" data-goto-production>
+                    <p class="text-sm font-semibold truncate" style="color:var(--text-main);">${esc(o.productName || 'Pedido')}</p>
+                    <p class="text-xs truncate" style="color:var(--text-muted);">${esc(custName(o))} · ${esc(o.id)} · ${esc(o.status || '')}</p>
+                </div>
+                <button type="button" data-sheet="${esc(o.id)}" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-violet-50 flex-shrink-0" style="color:var(--text-faint);" title="Ficha de produção">
+                    <span class="material-symbols-outlined" style="font-size:18px;">print</span>
+                </button>
+            </div>`;
+        };
+
         const user = DB.get('user') || {};
         const hour = new Date().getHours();
         const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
@@ -46,6 +78,29 @@ const Dashboard = {
                     ${Dashboard.kpi('Orçamentos Abertos', openQuotes, 'description', '#D97706', '#FFFBEB', openQuotes === 0 ? 'Nenhum pendente' : 'Aguardando resposta')}
                     ${Dashboard.kpi('Em Produção', inProduction, 'precision_manufacturing', '#6C2BFF', '#F0EBFF', inProduction === 0 ? 'Fila vazia' : 'pedidos ativos')}
                     ${Dashboard.kpi('Clientes', customers.length, 'groups', '#2563EB', '#EFF6FF', `${products.length} produtos cadastrados`)}
+                </div>
+
+                <!-- Entregas -->
+                <div class="section-card">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <h3 class="section-heading flex items-center gap-2"><span class="material-symbols-outlined" style="color:var(--primary);">local_shipping</span> Entregas</h3>
+                        <div class="flex flex-wrap gap-2 text-xs font-bold">
+                            <span class="px-2.5 py-1 rounded-full" style="background:#FEF2F2;color:#DC2626;">${late.length} atrasada(s)</span>
+                            <span class="px-2.5 py-1 rounded-full" style="background:#FFFBEB;color:#B45309;">${dueToday.length} hoje</span>
+                            <span class="px-2.5 py-1 rounded-full" style="background:#F1F5F9;color:#475569;">${soon.length} nos próximos 7 dias</span>
+                            ${noDate ? `<span class="px-2.5 py-1 rounded-full" style="background:#F8F7FC;color:var(--text-faint);">${noDate} sem prazo</span>` : ''}
+                        </div>
+                    </div>
+                    ${late.length + dueToday.length + soon.length === 0
+                        ? `<p class="text-sm py-4 text-center" style="color:var(--text-faint);">Nenhuma entrega pendente para os próximos dias. 🎉</p>`
+                        : `<div class="grid grid-cols-1 lg:grid-cols-3 gap-x-6">
+                            ${[['Atrasadas', late, 'late'], ['Hoje', dueToday, 'today'], ['Próximos 7 dias', soon, 'soon']].map(([title, list, tone]) => `
+                                <div>
+                                    <p class="label-caps mb-1">${title}</p>
+                                    ${list.length ? list.slice(0, 6).map(o => dueRow(o, tone)).join('') + (list.length > 6 ? `<p class="text-xs pt-2" style="color:var(--text-faint);">+ ${list.length - 6} outro(s)</p>` : '')
+                                                 : `<p class="text-xs py-3" style="color:var(--text-faint);">Nada aqui.</p>`}
+                                </div>`).join('')}
+                          </div>`}
                 </div>
 
                 <!-- Charts Row -->
@@ -148,6 +203,11 @@ const Dashboard = {
         `;
 
         // Events
+        container.querySelectorAll('[data-goto-production]').forEach(el => el.addEventListener('click', () => import('../app.js').then(m => m.default.navigateTo('producao'))));
+        container.querySelectorAll('[data-sheet]').forEach(b => b.addEventListener('click', () => {
+            const o = (DB.get('orders') || []).find(x => x.id === b.dataset.sheet);
+            if (o) import('../pdf.js').then(m => m.default.productionSheet(o));
+        }));
         const btnNew = document.getElementById('btn-dashboard-new-order');
         if (btnNew) btnNew.onclick = () => import('../app.js').then(m => m.default.navigateTo('orcamentos'));
 

@@ -97,12 +97,15 @@ const Sales = {
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex justify-center gap-1">
-                                                <button onclick="window.printOrder('${order.id}')" class="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all text-slate-400" title="PDF do Pedido">
+                                                <button onclick="window.printOrder('${order.id}')" class="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all text-slate-400" title="PDF do Pedido (para o cliente)">
                                                     <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
                                                 </button>
                                                 ${isCanceled(order) ? '' : `<button onclick="window.orderPayments('${order.id}')" class="p-2 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-all text-slate-400" title="Registrar pagamento">
                                                     <span class="material-symbols-outlined text-[18px]">payments</span>
                                                 </button>`}
+                                                <button onclick="window.printSheet('${order.id}')" class="p-2 hover:bg-slate-100 rounded-lg transition-all text-slate-400" title="Ficha de produção (sem valores)">
+                                                    <span class="material-symbols-outlined text-[18px]">print</span>
+                                                </button>
                                                 <button onclick="window.viewOrder('${order.id}')" class="p-2 hover:bg-slate-100 rounded-lg transition-all text-slate-400" title="Ver Detalhes">
                                                     <span class="material-symbols-outlined text-[18px]">visibility</span>
                                                 </button>
@@ -209,7 +212,12 @@ const Sales = {
                     });
                 });
             };
-        window.orderPayments = (id) => Payments.openModal(id, () => Sales.render(container));
+        window.printSheet = (id) => {
+                const o = (DB.get('orders') || []).find(x => x.id === id);
+                if (o) QuotePDF.productionSheet(o);
+            };
+
+            window.orderPayments = (id) => Payments.openModal(id, () => Sales.render(container));
 
             window.restoreOrder = (id) => {
                 const orders = DB.get('orders') || [];

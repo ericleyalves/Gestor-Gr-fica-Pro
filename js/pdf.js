@@ -294,6 +294,12 @@ const QuotePDF = {
 </footer>
 </body></html>`;
 
+        QuotePDF.print(html);
+    },
+
+
+    /** Imprime um HTML num iframe oculto (o usuário escolhe "Salvar como PDF" ou a impressora). */
+    print: (html) => {
         document.getElementById('ggp-print-frame')?.remove();
         const frame = document.createElement('iframe');
         frame.id = 'ggp-print-frame';
@@ -318,6 +324,123 @@ const QuotePDF = {
         const fonts = doc.fonts ? doc.fonts.ready : null;
         Promise.all([...imgs, fonts]).then(() => setTimeout(print, 150));
         setTimeout(print, 3500);
+    },
+
+    /**
+     * Ficha de produção (uso interno, SEM valores): cliente, prazo, itens com foto,
+     * opções, observações, arquivos e checklist para a bancada.
+     */
+    productionSheet: (order) => {
+        const shop = DB.get('shop_profile') || {};
+        const brand = validColor(shop.brandColor);
+        const products = DB.get('products') || [];
+        const customer = (DB.get('customers') || []).find(c => String(c.id) === String(order.customerId));
+        const fmtD = (iso) => { const [y, m, d] = String(iso || '').split('-'); return d ? `${d}/${m}/${y}` : '—'; };
+        const items = Array.isArray(order.items) && order.items.length ? order.items : [{ name: order.productName, quantity: 1 }];
+        const prodOf = (i) => products.find(p => String(p.id) === String(i.productId)) || products.find(p => p.name === i.name);
+        const files = [
+            ...(order.files || []).map(f => ({ name: f.name, from: 'Cliente' })),
+            ...items.flatMap(i => (prodOf(i)?.files || []).map(f => ({ name: f.name, from: prodOf(i).name })))
+        ];
+        const today = new Date(); const t = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const late = order.dueDate && order.dueDate < t;
+        const bal = Payments.balance(order);
+        const detail = (i) => [i.optionsText, i.material, i.colors, i.finish].filter(v => v && v !== '-').map(esc).join(' · ');
+
+        const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Ficha-${esc(order.id)}</title>
+<style>
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #17151f; font-size: 12px; margin: 0;
+           -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    table { font-size: inherit; }
+    .top { display: flex; justify-content: space-between; align-items: stretch; gap: 6mm; border-bottom: 3px solid ${brand}; padding-bottom: 4mm; }
+    .op { font-size: 11px; letter-spacing: .12em; font-weight: 800; color: ${brand}; }
+    .num { font-size: 26px; font-weight: 900; letter-spacing: -.01em; }
+    .muted { color: #6b6880; font-size: 11px; }
+    .due { text-align: center; border: 2px solid ${late ? '#DC2626' : '#17151f'}; border-radius: 3mm; padding: 2mm 5mm; min-width: 42mm; }
+    .due b { display: block; font-size: 20px; color: ${late ? '#DC2626' : '#17151f'}; }
+    .grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 4mm; margin: 5mm 0; }
+    .box { border: 1px solid #dcd9e6; border-radius: 3mm; padding: 3mm 4mm; }
+    .lbl { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #6b6880; margin-bottom: 1mm; }
+    .big { font-size: 15px; font-weight: 800; }
+    table.items { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+    table.items th { text-align: left; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #6b6880; border-bottom: 2px solid #17151f; padding: 2mm; }
+    table.items td { border-bottom: 1px solid #dcd9e6; padding: 3mm 2mm; vertical-align: top; }
+    tr { page-break-inside: avoid; }
+    .thumb { width: 18mm; height: 18mm; border-radius: 2mm; object-fit: cover; border: 1px solid #dcd9e6; }
+    .qty { font-size: 20px; font-weight: 900; text-align: center; width: 20mm; }
+    .chk { width: 5mm; height: 5mm; border: 1.5px solid #17151f; border-radius: 1mm; display: inline-block; vertical-align: middle; margin-right: 2mm; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-top: 5mm; }
+    .steps div { border: 1px dashed #b9b5c9; border-radius: 3mm; padding: 3mm; font-weight: 700; }
+    .notes { min-height: 22mm; white-space: pre-wrap; }
+    .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 12mm; }
+    .sign div { border-top: 1px solid #17151f; padding-top: 1.5mm; text-align: center; font-size: 10px; color: #6b6880; }
+    .pay { display: inline-block; padding: 1mm 3mm; border-radius: 99px; font-weight: 800; font-size: 10px;
+           background: ${bal > 0.009 ? '#FFFBEB' : '#ECFDF5'}; color: ${bal > 0.009 ? '#B45309' : '#059669'}; }
+</style></head><body>
+    <div class="top">
+        <div>
+            <div class="op">FICHA DE PRODUÇÃO · ${esc(shop.name || '')}</div>
+            <div class="num">${esc(order.id)}</div>
+            <div class="muted">Pedido em ${fmtD(order.date)} · Status: <b>${esc(order.status || '')}</b></div>
+        </div>
+        <div class="due">
+            <div class="lbl">${late ? 'Atrasado — era para' : 'Entregar até'}</div>
+            <b>${fmtD(order.dueDate)}</b>
+            <div class="muted">${order.deadlineDays ? `${order.deadlineDays} dia(s) úteis` : ''}</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="box">
+            <div class="lbl">Cliente</div>
+            <div class="big">${esc(customer?.name || order.customerName || '—')}</div>
+            <div class="muted">${esc(order.phone || customer?.phone || '')}${customer?.address ? ` · ${esc(customer.address)}` : ''}</div>
+        </div>
+        <div class="box">
+            <div class="lbl">Pagamento</div>
+            <span class="pay">${bal > 0.009 ? `FALTA RECEBER ${fmtBRL(bal)}` : 'PAGO'}</span>
+            <div class="muted" style="margin-top:1.5mm;">Conferir antes de entregar.</div>
+        </div>
+    </div>
+
+    <table class="items">
+        <thead><tr><th style="width:8mm"></th><th style="width:22mm">Foto</th><th>Produto / detalhes</th><th style="text-align:center">Qtd</th></tr></thead>
+        <tbody>
+            ${items.map(i => { const p = prodOf(i); const img = p?.image; return `
+            <tr>
+                <td><span class="chk"></span></td>
+                <td>${img ? `<img class="thumb" src="${esc(img)}" onerror="this.remove()">` : ''}</td>
+                <td><div style="font-weight:700;font-size:13px;">${esc(i.name || '')}</div>${detail(i) ? `<div class="muted">${detail(i)}</div>` : ''}</td>
+                <td class="qty">${Number(i.quantity) || 1}</td>
+            </tr>`; }).join('')}
+        </tbody>
+    </table>
+
+    <div class="grid">
+        <div class="box">
+            <div class="lbl">Observações</div>
+            <div class="notes">${esc(order.notes || '')}</div>
+        </div>
+        <div class="box">
+            <div class="lbl">Arquivos (${files.length})</div>
+            ${files.length ? files.map(f => `<div><span class="chk"></span>${esc(f.name)} <span class="muted">· ${esc(f.from)}</span></div>`).join('') : '<div class="muted">Nenhum arquivo anexado.</div>'}
+        </div>
+    </div>
+
+    <div class="lbl" style="margin-top:4mm;">Etapas</div>
+    <div class="steps">
+        <div><span class="chk"></span>Arte aprovada</div>
+        <div><span class="chk"></span>Corte / impressão</div>
+        <div><span class="chk"></span>Acabamento</div>
+        <div><span class="chk"></span>Embalado</div>
+    </div>
+
+    <div class="sign"><div>Produzido por</div><div>Conferido por / data</div></div>
+</body></html>`;
+        QuotePDF.print(html);
     },
 
     /**

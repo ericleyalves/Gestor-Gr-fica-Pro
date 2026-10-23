@@ -126,6 +126,11 @@ const Kanban = {
                                         <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
                                         <span class="text-[10px] font-black">PDF</span>
                                     </button>
+                                    <button type="button" draggable="false" class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-violet-50 transition-all" style="color: var(--text-muted);"
+                                            onclick="event.stopPropagation(); window.printOrderSheet('${order.id}')" title="Ficha de produção (sem valores)">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">print</span>
+                                        <span class="text-[10px] font-black">FICHA</span>
+                                    </button>
                                     ${(() => {
                                         const n = Files.countForOrder(order, products);
                                         return `<button type="button" class="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg transition-all hover:bg-violet-50 whitespace-nowrap" style="color: ${n ? 'var(--primary)' : 'var(--text-faint)'};"
@@ -207,6 +212,11 @@ const Kanban = {
                     // Re-render
                     Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || '');
                 }
+            };
+
+            window.printOrderSheet = (orderId) => {
+                const order = (DB.get('orders') || []).find(o => String(o.id) === String(orderId));
+                if (order) QuotePDF.productionSheet(order);
             };
 
             window.printOrderPdf = (orderId) => {
