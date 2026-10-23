@@ -3,6 +3,7 @@ import { fmtBRL, docNo } from '../utils.js';
 import { esc } from '../utils.js';
 import QuotePDF from '../pdf.js';
 import Payments from '../payments.js';
+import OrderDetails from '../order-details.js';
 
 const isCanceled = (o) => o.status === 'Cancelado';
 const isDone = (o) => /Conclu|Pronto|Entregue/i.test(String(o.status || ''));
@@ -142,45 +143,7 @@ const Sales = {
             if (btn) btn.onclick = () => import('../app.js').then(m => m.default.navigateTo('orcamentos'));
 
             // Handlers Globais
-            window.viewOrder = (id) => {
-                const orders = DB.get('orders') || [];
-                const order = orders.find(o => o.id === id);
-                if (!order) return;
-
-                import('../app.js').then(m => {
-                    const optionsHtml = (order.options || []).map(opt => `<span class="badge badge-purple m-1">${esc(opt)}</span>`).join('');
-                    m.default.confirm({
-                        title: `Detalhes do Pedido Nº ${docNo(order)}`,
-                        message: `
-                            <div class="text-left space-y-4">
-                                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                    <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Cliente</p>
-                                    <p class="text-sm font-bold text-slate-800">${esc(order.customerName)}</p>
-                                </div>
-                                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                    <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Produto e Configuração</p>
-                                    <p class="text-sm font-bold text-slate-800 mb-2">${esc(order.productName)}</p>
-                                    <div class="flex flex-wrap -m-1">
-                                        ${optionsHtml || '<p class="text-xs italic text-slate-400">Sem variações</p>'}
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                        <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Valor Total</p>
-                                        <p class="text-lg font-black text-primary">${fmtBRL(order.value)}</p>
-                                    </div>
-                                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                        <p class="text-[10px] uppercase font-black text-slate-400 mb-1">Status Atual</p>
-                                        <p class="text-sm font-bold text-indigo-600">${esc(order.status)}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `,
-                        type: 'info',
-                        confirmLabel: 'Fechar'
-                    });
-                });
-            };
+            window.viewOrder = (id) => OrderDetails.open(id, () => Sales.render(container));
 
             window.printOrder = (id) => {
                 const orders = DB.get('orders') || [];

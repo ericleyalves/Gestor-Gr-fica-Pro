@@ -4,6 +4,7 @@ import { esc } from '../utils.js';
 import Files from '../files.js';
 import QuotePDF from '../pdf.js';
 import Payments from '../payments.js';
+import OrderDetails from '../order-details.js';
 
 const COLUMNS = [
     { id: 'aguardando', title: 'Aguardando Arte', color: '#f59e0b', bg: '#FFFBEB' },
@@ -237,10 +238,8 @@ const Kanban = {
                 });
             };
 
-            window.openOrderDetails = (orderId) => {
-                // Future implementation: Detailed order modal
-                console.log('Opening details for:', orderId);
-            };
+            window.openOrderDetails = (orderId) => OrderDetails.open(orderId,
+                () => Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || ''));
 
             // Handle drag end visually
             document.addEventListener('dragend', (e) => {

@@ -14,6 +14,7 @@ const Quotes = {
         Quotes.discountMode = 'pct';   // 'pct' | 'value' | 'total' — qual campo de desconto foi digitado por último
         Quotes.discountInput = 0;
         Quotes.editingQuoteId = null;   // id do rascunho aberto (salvar de novo atualiza em vez de duplicar)
+        Quotes.editingOrderId = null;   // id do pedido sendo editado (vindo de "Editar pedido")
         c.innerHTML = `
 <div class="w-full max-w-[1440px] mx-auto flex flex-col xl:flex-row gap-8 pb-24 md:pb-10 animate-fadeIn">
     <!-- Left Column (70%) -->
@@ -313,6 +314,12 @@ const Quotes = {
         `;
         
         Quotes.bindEvents(c);
+        // Veio de "Editar pedido"? Carrega o pedido na tela
+        if (Quotes.pendingOrderEdit) {
+            const id = Quotes.pendingOrderEdit;
+            Quotes.pendingOrderEdit = null;
+            Quotes.loadDraft(c, id, 'orders');
+        }
         Quotes.updateSummary();
     },
 
@@ -489,14 +496,22 @@ const Quotes = {
     setTitle: (container) => {
         const t = container.querySelector('#quote-title');
         const q = Quotes.editingQuoteId && (DB.get('quotes') || []).find(x => x.id === Quotes.editingQuoteId);
-        if (t) t.textContent = q ? `Editando orçamento Nº ${docNo(q)}` : 'Novo Orçamento';
+        const o = Quotes.editingOrderId && (DB.get('orders') || []).find(x => x.id === Quotes.editingOrderId);
+        if (t) t.textContent = o ? `Editando pedido Nº ${docNo(o)}` : q ? `Editando orçamento Nº ${docNo(q)}` : 'Novo Orçamento';
+        const gen = container.querySelector('#btn-generate');
+        if (gen) gen.innerHTML = o
+            ? `<span class="material-symbols-outlined">save</span> Salvar alterações do pedido`
+            : `<span class="material-symbols-outlined">receipt_long</span> Gerar Pedido`;
+        container.querySelector('#btn-save')?.classList.toggle('hidden', !!o);
+        container.querySelector('#btn-drafts')?.classList.toggle('hidden', !!o);
         const n = container.querySelector('#drafts-count');
         if (n) n.textContent = Quotes.drafts().length;
     },
 
     /** Carrega um rascunho salvo na tela para continuar editando. */
-    loadDraft: (container, id) => {
-        const q = (DB.get('quotes') || []).find(x => x.id === id);
+    /** Carrega um orçamento salvo (key 'quotes') ou um pedido (key 'orders') para editar. */
+    loadDraft: (container, id, key = 'quotes') => {
+        const q = (DB.get(key) || []).find(x => x.id === id);
         if (!q) return;
         const set = (sel, v) => { const el = container.querySelector(sel); if (el) el.value = v ?? ''; };
         Quotes.currentItems = JSON.parse(JSON.stringify(q.items || []));
@@ -513,10 +528,11 @@ const Quotes = {
         Quotes.discountMode = 'value';
         Quotes.discountInput = Number(q.discount) || 0;
         set('#input-discount-value', q.discount ? Number(q.discount).toFixed(2) : '');
-        Quotes.editingQuoteId = q.id;
+        if (key === 'orders') { Quotes.editingOrderId = q.id; Quotes.editingQuoteId = null; }
+        else { Quotes.editingQuoteId = q.id; Quotes.editingOrderId = null; }
         Quotes.refreshItems(container);
         Quotes.setTitle(container);
-        App.toast(`Orçamento Nº ${docNo(q)} aberto`, 'success');
+        App.toast(key === 'orders' ? `Editando o pedido Nº ${docNo(q)}` : `Orçamento Nº ${docNo(q)} aberto`, 'success');
     },
 
     /** Janela com os rascunhos salvos. */
@@ -1097,12 +1113,48 @@ const Quotes = {
             }
         };
 
+        /** Salva as alterações no pedido existente (mantém nº, status, pagamentos, arquivos e data). */
+        const saveOrderEdit = () => {
+            const orders = DB.get('orders') || [];
+            const i = orders.findIndex(o => o.id === Quotes.editingOrderId);
+            if (i === -1) return App.toast('Pedido não encontrado', 'error');
+            const o = orders[i];
+            const customerInput = container.querySelector('#input-customer');
+            const tt = Quotes.computeTotals();
+            const days = Quotes.deadlineDays();
+            const changes = [];
+            if (Math.abs((Number(o.value) || 0) - tt.total) > 0.009) changes.push(`valor ${fmtBRL(o.value)} → ${fmtBRL(tt.total)}`);
+            if (days !== Number(o.deadlineDays)) changes.push(`prazo ${o.deadlineDays || '—'} → ${days} dia(s)`);
+            orders[i] = {
+                ...o,
+                customerId: customerInput.dataset.customerId || null,
+                customerName: customerInput.value.trim(),
+                phone: container.querySelector('#input-whatsapp')?.value.trim() || '',
+                productName: Quotes.currentItems.map(x => x.name).join(', '),
+                options: Quotes.currentItems.map(x => x.optionsText).filter(Boolean),
+                items: Quotes.currentItems,
+                value: tt.total, subtotal: tt.subtotal, discount: tt.discount,
+                discountPct: Math.round(tt.discountPct * 100) / 100,
+                freight: tt.freight, urgency: tt.urgency, art: tt.art,
+                notes: document.getElementById('input-notes')?.value || '',
+                deadlineDays: days,
+                dueDate: days !== Number(o.deadlineDays) || !o.dueDate
+                    ? isoDate(addBusinessDays(new Date(`${o.date}T12:00:00`), days)) : o.dueDate,
+                history: [...(o.history || []), { at: new Date().toISOString(), text: `Pedido editado${changes.length ? ` (${changes.join('; ')})` : ''}` }]
+            };
+            DB.save('orders', orders);
+            Quotes.editingOrderId = null;
+            App.toast(`Pedido Nº ${docNo(orders[i])} atualizado`, 'success');
+            App.navigateTo('producao');
+        };
+
         container.querySelector('#btn-drafts')?.addEventListener('click', () => Quotes.openDrafts(container));
         Quotes.setTitle(container);
 
         container.querySelector('#btn-generate')?.addEventListener('click', () => {
             if (!container.querySelector('#input-customer')?.value.trim()) return App.toast('Informe o cliente primeiro', 'error');
             if (!Quotes.currentItems.length) return App.toast('Adicione pelo menos um item', 'error');
+            if (Quotes.editingOrderId) return saveOrderEdit();
             // Pergunta o prazo antes de mandar para a produção
             Quotes.askDeadline(container, (days, payment) => {
                 const entry = Payments.entry(payment);
