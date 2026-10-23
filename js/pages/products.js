@@ -1,6 +1,7 @@
 import DB from '../db.js';
 import { esc } from '../utils.js';
 import Files from '../files.js';
+import LaserCalc from '../laser-calc.js';
 
 const Products = {
     render: (container) => {
@@ -15,10 +16,13 @@ const Products = {
                         <h2 class="page-title">Catálogo de Produtos 📦</h2>
                         <p class="text-sm mt-1" style="color:var(--text-muted);">Gerencie seus insumos, produtos finais e precificação inteligente.</p>
                     </div>
+                    <div class="flex gap-2">
+                    <button id="btn-laser-tool" class="btn-ghost"><span class="material-symbols-outlined" style="font-size:18px;">calculate</span> Calculadora laser</button>
                     <button id="btn-add-product" class="btn-primary">
                         <span class="material-symbols-outlined" style="font-size:18px;">add</span>
                         Novo Produto
                     </button>
+                    </div>
                 </div>
 
                 <!-- KPI Grid -->
@@ -163,7 +167,10 @@ const Products = {
                                 <div class="section-card">
                                     <div class="section-header">
                                         <div class="section-icon"><span class="material-symbols-outlined">payments</span></div>
-                                        <h4 class="section-title">Precificação Base</h4>
+                                        <h4 class="section-title flex-1">Precificação Base</h4>
+                                        <button type="button" id="btn-laser-calc" class="btn-ghost !py-1 !px-2 text-xs">
+                                            <span class="material-symbols-outlined !text-sm">calculate</span> Calcular preço (laser)
+                                        </button>
                                     </div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -476,6 +483,28 @@ const Products = {
             if (e.key === 'Escape') { e.preventDefault(); toggleNewCategory(false); }
         });
 
+        // ---- Calculadora de preço (laser) ----
+        let currentCalc = null;   // parâmetros usados (product.calc), para reabrir com os mesmos valores
+        const fmtMoney = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('btn-laser-tool').onclick = () => LaserCalc.open();
+        document.getElementById('btn-laser-calc').onclick = () => LaserCalc.open({
+            initial: currentCalc,
+            onApply: ({ unitCost, price, calc, materialUse }) => {
+                document.getElementById('p-cost').value = unitCost.toFixed(2);
+                document.getElementById('p-price').value = price.toFixed(2);
+                currentCalc = calc;
+                // Liga o consumo da chapa ao Estoque (fração de chapa por peça)
+                if (calc.materialId && materialUse > 0) {
+                    const i = currentMaterials.findIndex(u => u.materialId === calc.materialId);
+                    if (i === -1) currentMaterials.push({ materialId: calc.materialId, qty: materialUse });
+                    else currentMaterials[i].qty = materialUse;
+                    renderMaterials();
+                }
+                updateCalc();
+                toast(`Custo ${fmtMoney(unitCost)} · preço ${fmtMoney(price)} aplicados`);
+            }
+        });
+
         // ---- Materiais usados (product.materials = [{ materialId, qty }]) ----
         let currentMaterials = [];
         const matBox = document.getElementById('p-materials');
@@ -490,7 +519,7 @@ const Products = {
                 return `
                 <div class="grid gap-3 items-center" style="grid-template-columns: minmax(0,1fr) 130px 40px;">
                     <select data-mat-sel="${i}">${mats.map(x => `<option value="${esc(x.id)}" ${x.id === u.materialId ? 'selected' : ''}>${esc(x.name)} (${esc(x.unit)})</option>`).join('')}</select>
-                    <div class="relative"><input type="number" data-mat-qty="${i}" value="${Number(u.qty) || ''}" step="0.001" min="0" placeholder="0" class="pr-12 text-right" inputmode="decimal">
+                    <div class="relative"><input type="number" data-mat-qty="${i}" value="${Number(u.qty) || ''}" step="any" min="0" placeholder="0" class="pr-12 text-right" inputmode="decimal">
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);">${esc(m?.unit || '')}</span></div>
                     <button type="button" data-mat-rm="${i}" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-50 hover:text-red-500 text-slate-400" title="Remover"><span class="material-symbols-outlined" style="font-size:18px;">close</span></button>
                 </div>`;
@@ -709,6 +738,7 @@ const Products = {
             uploadedNow = [];
             removedNow = [];
             currentMaterials = [];
+            currentCalc = null;
             uploadedImages = [];
             currentImages = [];
             originalImages = [];
@@ -734,6 +764,7 @@ const Products = {
                     currentVariations = JSON.parse(JSON.stringify(p.variations || []));
                     currentFiles = JSON.parse(JSON.stringify(p.files || []));
                     currentMaterials = JSON.parse(JSON.stringify(p.materials || []));
+                    currentCalc = p.calc || null;
                 }
             }
             
@@ -881,7 +912,8 @@ const Products = {
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 variations: currentVariations.filter(v => v.name.trim() !== ''),
                 files: currentFiles.filter(f => !f.uploading),
-                materials: currentMaterials.filter(u => u.materialId && Number(u.qty) > 0)
+                materials: currentMaterials.filter(u => u.materialId && Number(u.qty) > 0),
+                calc: currentCalc
             };
 
             if (editingId) {
