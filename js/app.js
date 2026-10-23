@@ -17,10 +17,7 @@ const App = {
             }
         });
 
-        // Status da sincronização (aviso só quando falhar)
-        window.addEventListener('db_status', (e) => {
-            if (!e.detail.ok) App.toast(`Sem conexão com a nuvem. ${e.detail.pending} alteração(ões) aguardando envio.`, 'error');
-        });
+        App.bindSyncStatus();
     },
 
     /**
@@ -42,6 +39,69 @@ const App = {
             pending = true;
             requestAnimationFrame(() => { pending = false; document.querySelectorAll(SEL).forEach(fmt); });
         }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    },
+
+    /**
+     * Indicador de sincronização no topo + faixa de aviso quando a nuvem não responde.
+     * Estados: ok (tudo salvo na nuvem), sending (enviando), error (falhou), offline (sem internet).
+     */
+    syncState: { ok: true, lastError: 0 },
+    bindSyncStatus: () => {
+        window.addEventListener('db_status', (e) => {
+            const wasOk = App.syncState.ok;
+            App.syncState.ok = e.detail.ok;
+            if (!e.detail.ok) App.syncState.lastError = Date.now();
+            if (wasOk && !e.detail.ok) App.toast('A nuvem não respondeu. Suas alterações ficam guardadas aqui e serão enviadas depois.', 'error');
+            App.renderSyncStatus();
+        });
+        window.addEventListener('online', () => { App.renderSyncStatus(); DB.flush(); });
+        window.addEventListener('offline', App.renderSyncStatus);
+        setInterval(App.renderSyncStatus, 3000);   // pega alterações novas na fila
+        document.getElementById('sync-status')?.addEventListener('click', async () => {
+            App.renderSyncStatus('sending');
+            const ok = await DB.flush();
+            if (ok) { await App.sync(); App.toast('Tudo sincronizado com a nuvem ✓'); }
+            App.renderSyncStatus();
+        });
+    },
+
+    renderSyncStatus: (forced) => {
+        const pill = document.getElementById('sync-status');
+        if (!pill) return;
+        const n = DB.pendingCount();
+        // Pendências paradas há mais de 30 s (ou sem conexão com o Supabase) também contam como erro
+        if (!n) App.syncState.pendingSince = 0;
+        else if (!App.syncState.pendingSince) App.syncState.pendingSince = Date.now();
+        const stuck = n && (!DB.ready() || Date.now() - App.syncState.pendingSince > 30000);
+        const state = forced || (!navigator.onLine ? 'offline' : (n && (!App.syncState.ok || stuck)) ? 'error' : n ? 'sending' : 'ok');
+        const look = {
+            ok:      ['cloud_done', 'Salvo na nuvem', '#ECFDF5', '#059669'],
+            sending: ['cloud_sync', `Enviando${n ? ` ${n}` : ''}…`, '#EFF6FF', '#2563EB'],
+            error:   ['cloud_off', `Não enviado · ${n}`, '#FEF2F2', '#DC2626'],
+            offline: ['wifi_off', `Sem internet${n ? ` · ${n}` : ''}`, '#FFFBEB', '#B45309']
+        }[state];
+        pill.classList.remove('hidden'); pill.classList.add('flex');
+        pill.style.background = look[2]; pill.style.color = look[3];
+        pill.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">${look[0]}</span><span class="hidden sm:inline">${look[1]}</span>`;
+        pill.title = state === 'ok' ? 'Todas as alterações estão salvas na nuvem'
+            : `${n} alteração(ões) guardada(s) neste computador aguardando envio. Clique para tentar agora.`;
+
+        // Faixa de aviso (só para erro/offline com pendências)
+        let bar = document.getElementById('sync-banner');
+        const show = (state === 'error' || state === 'offline') && n > 0;
+        if (!show) { bar?.remove(); return; }
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'sync-banner';
+            bar.className = 'flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-xs font-semibold text-center';
+            document.getElementById('main-content')?.before(bar);
+        }
+        bar.style.cssText = `background:${look[2]}; color:${look[3]}; border-bottom:1px solid ${look[3]}33;`;
+        bar.innerHTML = state === 'offline'
+            ? `<span>📴 Sem internet. ${n} alteração(ões) estão guardadas neste computador e serão enviadas quando a conexão voltar. Não limpe os dados do navegador.</span>`
+            : `<span>⚠️ A nuvem não está respondendo. ${n} alteração(ões) guardadas neste computador. Se continuar, o projeto do Supabase pode estar <b>pausado</b> — abra supabase.com e clique em <b>Resume project</b>.</span>
+               <button type="button" id="sync-retry" class="underline font-black">Tentar agora</button>`;
+        bar.querySelector('#sync-retry')?.addEventListener('click', () => document.getElementById('sync-status')?.click());
     },
 
     /** Sincroniza em segundo plano e redesenha a tela atual se algo mudou. */

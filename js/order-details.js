@@ -4,12 +4,13 @@
  * status, prazo, cliente, itens, valores, pagamento, arquivos, histórico e ações.
  */
 import DB from './db.js';
-import { esc, fmtBRL, docNo } from './utils.js';
+import { esc, fmtBRL, docNo, isoDate } from './utils.js';
 import Payments from './payments.js';
 import Files from './files.js';
 import QuotePDF from './pdf.js';
 
-export const STATUSES = ['Aguardando Arte', 'Produção', 'Finalizado', 'Concluído'];
+export const STATUSES = ['Aguardando Arte', 'Produção', 'Finalizado', 'Concluído', 'Entregue'];
+export const DELIVERY_METHODS = ['Retirada na loja', 'Entrega própria', 'Motoboy', 'Correios', 'Transportadora', 'Uber/99 Entrega'];
 const fmtD = (iso) => { const [y, m, d] = String(iso || '').split('-'); return d ? `${d}/${m}/${y}` : '—'; };
 const app = () => import('./app.js').then(m => m.default);
 
@@ -78,8 +79,11 @@ const OrderDetails = {
                         </div>
                         <div class="bg-white rounded-xl border p-3" style="border-color:var(--border);">
                             <p class="label-caps mb-1">Entrega</p>
+                            ${o.deliveredAt ? `
+                            <p class="font-bold" style="color:#059669;">✓ Entregue ${fmtD(o.deliveredAt)}</p>
+                            <p class="text-xs truncate" style="color:var(--text-faint);">${esc([o.deliveryMethod, o.deliveredTo && `para ${o.deliveredTo}`].filter(Boolean).join(' · '))}</p>` : `
                             <p class="font-bold" style="color:${late ? '#DC2626' : 'var(--text-main)'};">${o.dueDate ? fmtD(o.dueDate) : 'Sem prazo'}</p>
-                            <p class="text-xs" style="color:var(--text-faint);">${o.deadlineDays ? `${o.deadlineDays} dia(s) úteis` : ''}</p>
+                            <p class="text-xs" style="color:var(--text-faint);">${o.deadlineDays ? `${o.deadlineDays} dia(s) úteis` : ''}</p>`}
                         </div>
                         <div class="bg-white rounded-xl border p-3 min-w-0" style="border-color:var(--border);">
                             <p class="label-caps mb-1">Cliente</p>
@@ -122,6 +126,7 @@ const OrderDetails = {
 
                 <div class="px-6 py-4 border-t flex flex-wrap gap-2" style="border-color:var(--border);">
                     ${canceled ? '' : `<button type="button" data-act="edit" class="btn-primary !py-2 !px-4 text-xs"><span class="material-symbols-outlined" style="font-size:17px;">edit</span> Editar pedido</button>`}
+                    ${!canceled && o.status !== 'Entregue' ? `<button type="button" data-act="deliver" class="btn-primary !py-2 !px-4 text-xs" style="background:#059669;"><span class="material-symbols-outlined" style="font-size:17px;">local_shipping</span> Marcar entregue</button>` : ''}
                     ${action('pay', 'payments', bal > 0 ? 'Registrar pagamento' : 'Pagamentos')}
                     ${action('files', 'folder_open', `Arquivos${nFiles ? ` (${nFiles})` : ''}`)}
                     ${action('sheet', 'print', 'Ficha')}
@@ -138,6 +143,7 @@ const OrderDetails = {
         el.addEventListener('change', (e) => {
             if (!e.target.matches('[data-status]')) return;
             const from = get().status, to = e.target.value;
+            if (to === 'Entregue') { e.target.value = from; return OrderDetails.deliver(orderId, () => { onChange?.(); render(); }); }
             if (from !== to) { update({ status: to }, `Status: ${from} → ${to}`); app().then(a => a.toast(`Pedido Nº ${docNo(get())}: ${to}`)); }
         });
 
@@ -151,7 +157,8 @@ const OrderDetails = {
                 Quotes.pendingOrderEdit = o.id;
                 close();
                 (await app()).navigateTo('orcamentos');
-            } else if (act === 'pay') Payments.openModal(o.id, () => { onChange?.(); render(); });
+            } else if (act === 'deliver') OrderDetails.deliver(o.id, () => { onChange?.(); render(); });
+            else if (act === 'pay') Payments.openModal(o.id, () => { onChange?.(); render(); });
             else if (act === 'files') Files.openOrderModal(o, 'Arquivos do pedido', { orderKey: 'orders', onChange: () => { onChange?.(); render(); } });
             else if (act === 'sheet') QuotePDF.productionSheet(o);
             else if (act === 'pdf') QuotePDF.fromOrder(o);
@@ -166,6 +173,70 @@ const OrderDetails = {
         });
 
         render();
+        document.body.appendChild(el);
+    },
+
+    /** Janela "Marcar como entregue": data, forma, quem recebeu e, se faltar, o recebimento do saldo. */
+    deliver: (orderId, onChange) => {
+        document.getElementById('ggp-deliver-modal')?.remove();
+        const o = (DB.get('orders') || []).find(x => String(x.id) === String(orderId));
+        if (!o) return;
+        const bal = Payments.balance(o);
+        const fs = bal > 0.009 ? Payments.fieldset(Number(o.value) || 0, Payments.paid(o), 'dv') : null;
+        const el = document.createElement('div');
+        el.id = 'ggp-deliver-modal';
+        el.className = 'fixed inset-0 z-[130] flex items-center justify-center p-4';
+        el.style.cssText = 'background:rgba(10,10,20,0.5); backdrop-filter:blur(8px);';
+        el.innerHTML = `
+            <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl max-h-[94vh] overflow-y-auto">
+                <div class="px-6 pt-6 pb-2 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:#ECFDF5; color:#059669;"><span class="material-symbols-outlined">local_shipping</span></div>
+                    <div>
+                        <h3 class="text-lg font-black" style="color:var(--text-main);">Entregar pedido Nº ${esc(docNo(o))}</h3>
+                        <p class="text-xs" style="color:var(--text-faint);">${esc(o.customerName || '')}</p>
+                    </div>
+                </div>
+                <div class="px-6 py-4 space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label>Data da entrega</label><input type="date" id="dv-date" value="${isoDate(new Date())}"></div>
+                        <div><label>Como</label><select id="dv-method">${DELIVERY_METHODS.map(m => `<option>${m}</option>`).join('')}</select></div>
+                    </div>
+                    <div><label>Recebido por <span class="font-normal" style="color:var(--text-faint);">(opcional)</span></label><input id="dv-to" placeholder="Nome de quem retirou/recebeu"></div>
+                    ${fs ? `
+                    <div class="pt-4 border-t" style="border-color:var(--border);">
+                        <p class="text-sm font-black" style="color:#B45309;">Falta receber ${fmtBRL(bal)}</p>
+                        <p class="text-xs mb-3" style="color:var(--text-faint);">Recebeu agora na entrega?</p>
+                        ${fs.html}
+                    </div>` : `<p class="text-sm font-bold" style="color:#059669;">✓ Pedido já está pago</p>`}
+                </div>
+                <div class="px-6 py-4 border-t flex justify-end gap-2" style="border-color:var(--border);">
+                    <button type="button" data-close class="btn-ghost">Cancelar</button>
+                    <button type="button" id="dv-ok" class="btn-primary" style="background:#059669;"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Confirmar entrega</button>
+                </div>
+            </div>`;
+        const read = fs ? fs.bind(el) : null;
+        const close = () => el.remove();
+        el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-close]')) close(); });
+        el.querySelector('#dv-ok').addEventListener('click', async () => {
+            const list = DB.get('orders') || [];
+            const i = list.findIndex(x => String(x.id) === String(orderId));
+            if (i === -1) return close();
+            const cur = list[i];
+            const date = el.querySelector('#dv-date').value || isoDate(new Date());
+            const method = el.querySelector('#dv-method').value;
+            const to = el.querySelector('#dv-to').value.trim();
+            const pay = read ? Payments.entry(read(), new Date(`${date}T12:00:00`)) : null;
+            const base = Array.isArray(cur.payments) ? cur.payments : [];
+            list[i] = {
+                ...cur, status: 'Entregue', deliveredAt: date, deliveryMethod: method, deliveredTo: to,
+                ...(pay ? { payments: [...base, pay] } : {}),
+                history: [...(cur.history || []), { at: new Date().toISOString(), text: `Entregue (${method}${to ? ` para ${to}` : ''})${pay ? ` · recebido ${fmtBRL(pay.amount)} (${pay.method})` : ''}` }]
+            };
+            DB.save('orders', list);
+            close();
+            onChange?.();
+            (await app()).toast(`Pedido Nº ${docNo(list[i])} entregue ✓`);
+        });
         document.body.appendChild(el);
     }
 };

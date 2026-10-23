@@ -20,7 +20,7 @@ const Kanban = {
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 class="page-title">Fluxo de Produção 🛠️</h2>
-                        <p class="text-sm mt-1" style="color:var(--text-muted);">Gerencie o status de produção de cada pedido arrastando os cards.</p>
+                        <p class="text-sm mt-1" style="color:var(--text-muted);">Arraste os cards para mudar o status. Ao entregar, o pedido sai do quadro e fica em Vendas → Concluídos.</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="search-input-wrap" style="width: 240px;">
@@ -49,7 +49,7 @@ const Kanban = {
         const products = DB.get('products') || [];
         const filterStr = String(filter || '').toLowerCase();
         // Pedidos cancelados não voltam para a fila de produção
-        const filteredOrders = orders.filter(o => o.status !== 'Cancelado').filter(o =>
+        const filteredOrders = orders.filter(o => o.status !== 'Cancelado' && o.status !== 'Entregue').filter(o =>
             String(o.id || '').toLowerCase().includes(filterStr) ||
             String(o.productName || '').toLowerCase().includes(filterStr) ||
             String(o.customerName || '').toLowerCase().includes(filterStr)
@@ -127,6 +127,12 @@ const Kanban = {
                                         <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
                                         <span class="text-[10px] font-black">PDF</span>
                                     </button>
+                                    ${col.id === 'concluido' ? `
+                                    <button type="button" draggable="false" class="flex items-center gap-1 px-2 py-1 rounded-lg transition-all" style="background:#ECFDF5; color:#059669;"
+                                            onclick="event.stopPropagation(); window.deliverOrder('${order.id}')" title="Marcar como entregue">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">local_shipping</span>
+                                        <span class="text-[10px] font-black">ENTREGAR</span>
+                                    </button>` : ''}
                                     <button type="button" draggable="false" class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-violet-50 transition-all" style="color: var(--text-muted);"
                                             onclick="event.stopPropagation(); window.printOrderSheet('${order.id}')" title="Ficha de produção (sem valores)">
                                         <span class="material-symbols-outlined" style="font-size:16px;">print</span>
@@ -237,6 +243,9 @@ const Kanban = {
                     onChange: () => Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || '')
                 });
             };
+
+            window.deliverOrder = (orderId) => OrderDetails.deliver(orderId,
+                () => Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || ''));
 
             window.openOrderDetails = (orderId) => OrderDetails.open(orderId,
                 () => Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || ''));
