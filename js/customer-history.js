@@ -7,6 +7,7 @@ import DB from './db.js';
 import { esc, fmtBRL, docNo } from './utils.js';
 import Payments from './payments.js';
 import OrderDetails from './order-details.js';
+import Approval from './approval.js';
 
 const fmtD = (iso) => { const [y, m, d] = String(iso || '').split('-'); return d ? `${d}/${m}/${y}` : '—'; };
 const app = () => import('./app.js').then(m => m.default);
@@ -89,7 +90,7 @@ const CustomerHistory = {
                             <div class="px-4 py-2.5 border-b last:border-0 flex items-center gap-3 text-sm" style="border-color:#F1F0F7;">
                                 <b style="color:var(--primary);">Nº ${esc(docNo(q))}</b><span class="text-xs" style="color:var(--text-faint);">${fmtD(q.date)}</span>
                                 <span class="flex-1 truncate" style="color:var(--text-muted);">${esc(q.productName || '')}</span>
-                                <b>${fmtBRL(q.value)}</b>
+                                ${Approval.badge(q)}<b>${fmtBRL(q.value)}</b>
                                 <button type="button" data-open-quote="${esc(q.id)}" class="text-xs font-bold px-2 py-1 rounded-lg hover:bg-violet-50" style="color:var(--primary);">Abrir</button>
                             </div>`).join('')}
                     </div>` : ''}

@@ -9,7 +9,7 @@ const Settings = {
         const DEFAULT_PROFILE = {
             name: '', cnpj: '', phone: '', email: '', instagram: '', address: '',
             terms: 'Validade da proposta: 15 dias.\nInício da produção mediante aprovação final da arte e pagamento de 50% de sinal.\nVariação de cor de até 10% é considerada normal no processo gráfico.',
-            paymentConditions: 'Pix, Cartão de Crédito (até 3x)',
+            paymentConditions: 'Pix ou cartão (taxas do cartão por conta do cliente)',
             pixKey: '', validityDays: '15', defaultDeadline: '5',
             logo: '', brandColor: '#6C2BFF', brandColor2: ''
         };
@@ -147,6 +147,11 @@ const Settings = {
                                                 <div>
                                                     <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Validade do Orçamento (dias)</label>
                                                     <input type="number" name="validityDays" value="${esc(profile.validityDays)}" min="1" class="w-full">
+                                                </div>
+                                                <div class="md:col-span-2">
+                                                    <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Página de aprovação do orçamento (link para o cliente)</label>
+                                                    <input type="url" name="approvalUrl" value="${esc(profile.approvalUrl || '')}" placeholder="https://ericleyalves.github.io/Gestor-Gr-fica-Pro/aprovar.html" class="w-full">
+                                                    <p class="text-[11px] mt-1 text-slate-400">Deixe em branco para usar o endereço padrão.</p>
                                                 </div>
                                             </div>
                                         </div>

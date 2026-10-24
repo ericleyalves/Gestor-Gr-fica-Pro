@@ -119,6 +119,8 @@ const App = {
         try {
             const changed = (await DB.syncFromCloud()) | App.ensureNumbers();
             if (changed) App.loadPage(App.currentPage);
+            // Respostas dos clientes nos links de aprovação (confere a cada 2 min)
+            import('./approval.js').then(m => m.default.watch(() => { if (App.currentPage !== 'orcamentos') App.loadPage(App.currentPage); }));
         } catch (e) { console.error('Falha na sincronização:', e); }
     },
 

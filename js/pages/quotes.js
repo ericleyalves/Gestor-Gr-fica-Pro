@@ -3,6 +3,7 @@ import App from '../app.js';
 import { fmtBRL, addBusinessDays, isoDate, fmtShortDate, bindCepLookup, docNo, nextNumber } from '../utils.js';
 import { esc } from '../utils.js';
 import QuotePDF from '../pdf.js';
+import Approval from '../approval.js';
 import Payments from '../payments.js';
 
 const Quotes = {
@@ -456,7 +457,7 @@ const Quotes = {
     },
 
     /** Janela com a mensagem do orçamento + botão Copiar. */
-    showMessage: (text) => {
+    showMessage: (text, { onLink } = {}) => {
         document.getElementById('ggp-msg-modal')?.remove();
         const el = document.createElement('div');
         el.id = 'ggp-msg-modal';
@@ -478,6 +479,8 @@ const Quotes = {
                 </div>
                 <div class="flex justify-end gap-2 px-6 py-4 border-t" style="border-color:var(--border);">
                     <button type="button" data-close class="btn-ghost">Fechar</button>
+                    ${onLink ? `<button type="button" id="ggp-msg-link" class="btn-ghost" title="Salva o orçamento e gera um link para o cliente aprovar">
+                        <span class="material-symbols-outlined" style="font-size:18px;">link</span> Enviar link de aprovação</button>` : ''}
                     <button type="button" id="ggp-msg-copy" class="btn-primary" style="background:#25D366;">
                         <span class="material-symbols-outlined" style="font-size:18px;">content_copy</span>
                         Copiar mensagem
@@ -492,6 +495,7 @@ const Quotes = {
         document.addEventListener('keydown', onKey);
         el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-close]')) close(); });
 
+        el.querySelector('#ggp-msg-link')?.addEventListener('click', () => { close(); onLink(); });
         el.querySelector('#ggp-msg-copy').addEventListener('click', async () => {
             const btn = el.querySelector('#ggp-msg-copy');
             try {
@@ -509,7 +513,7 @@ const Quotes = {
     },
 
     drafts: () => (DB.get('quotes') || []).filter(q => q.status === 'Aberto')
-        .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id))),
+        .sort((a, b) => (b.approval?.status === 'Aprovado') - (a.approval?.status === 'Aprovado') || String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id))),
 
     /** Título da tela + contador de rascunhos. */
     setTitle: (container) => {
@@ -584,7 +588,8 @@ const Quotes = {
                                     <span class="text-xs font-black" style="color:var(--primary);">Nº ${esc(docNo(q))}</span>
                                     <span class="text-[11px]" style="color:var(--text-faint);">${d ? `${d}/${m}/${y}` : ''}</span>
                                 </div>
-                                <p class="text-sm font-bold truncate" style="color:var(--text-main);">${esc(q.customerName || 'Sem cliente')}</p>
+                                <p class="text-sm font-bold truncate" style="color:var(--text-main);">${esc(q.customerName || 'Sem cliente')} ${Approval.badge(q)}</p>
+                                ${q.approval?.clientNote ? `<p class="text-xs italic truncate" style="color:#B45309;">"${esc(q.approval.clientNote)}"</p>` : ''}
                                 <p class="text-xs truncate" style="color:var(--text-muted);">${n} ${n === 1 ? 'item' : 'itens'} · ${esc(q.productName || '')}</p>
                             </div>
                             <div class="text-right flex-shrink-0">
@@ -593,6 +598,9 @@ const Quotes = {
                             <div class="flex gap-1 flex-shrink-0">
                                 <button type="button" data-act="open" class="btn-primary !py-2 !px-3 text-xs" title="Continuar editando">
                                     <span class="material-symbols-outlined !text-sm">edit</span> Abrir
+                                </button>
+                                <button type="button" data-act="link" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-green-50 text-slate-500" title="Link para o cliente aprovar">
+                                    <span class="material-symbols-outlined" style="font-size:18px;">link</span>
                                 </button>
                                 <button type="button" data-act="pdf" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-violet-50 text-slate-500" title="PDF do orçamento">
                                     <span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>
@@ -623,6 +631,7 @@ const Quotes = {
             if (!q) return;
             if (btn.dataset.act === 'open') { close(); Quotes.loadDraft(container, id); }
             else if (btn.dataset.act === 'pdf') { QuotePDF.fromOrder(q, 'orcamento'); }
+            else if (btn.dataset.act === 'link') { close(); Approval.share(id); }
             else if (btn.dataset.act === 'delete') {
                 App.confirm({
                     title: 'Excluir orçamento?',
@@ -1117,6 +1126,8 @@ const Quotes = {
                 else quotes.push(newOrder);
                 DB.save('quotes', quotes);
                 Quotes.editingQuoteId = newOrder.id;
+                // Já mandou o link e o cliente ainda não respondeu? Atualiza o que ele vê
+                if (idx !== -1 && quotes[idx].approval?.status === 'Aberto') Approval.share(newOrder.id, { silent: true });
                 Quotes.setTitle(container);
                 App.toast(idx !== -1 ? 'Orçamento atualizado' : 'Orçamento salvo! Fica em "Orçamentos salvos" no topo desta tela.', 'success');
             } else {
@@ -1230,7 +1241,10 @@ const Quotes = {
             if (notes) lines.push('', `Obs: ${notes}`);
 
             // Mostra a mensagem pronta para copiar e colar na conversa (não envia nada)
-            Quotes.showMessage(lines.join('\n'));
+            Quotes.showMessage(lines.join('\n'), { onLink: () => {
+                generateOrder('Aberto');
+                if (Quotes.editingQuoteId) Approval.share(Quotes.editingQuoteId);
+            } });
         });
         
         container.querySelector('#btn-pdf')?.addEventListener('click', () => {

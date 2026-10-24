@@ -44,7 +44,8 @@ const QuotePDF = {
         } catch (e) { console.warn('PDF: não foi possível ler as cores da logo', e); }
     },
 
-    open: async (q) => {
+    /** Monta o HTML do orçamento/pedido (usado no PDF e no link de aprovação). */
+    html: async (q) => {
         await QuotePDF.ensureBrandColors();
         const shop = DB.get('shop_profile') || {};
         const brand = validColor(shop.brandColor);
@@ -294,8 +295,10 @@ const QuotePDF = {
 </footer>
 </body></html>`;
 
-        QuotePDF.print(html);
+        return html;
     },
+
+    open: async (q) => QuotePDF.print(await QuotePDF.html(q)),
 
 
     /** Imprime um HTML num iframe oculto (o usuário escolhe "Salvar como PDF" ou a impressora). */
@@ -447,7 +450,8 @@ const QuotePDF = {
      * PDF de um pedido/orçamento já salvo. Recalcula o que pedidos antigos não guardavam
      * (subtotal = soma dos itens; o que sobrar entre subtotal − desconto e o total vira "adicionais").
      */
-    fromOrder: (order, kind = 'pedido') => {
+    /** Converte um pedido/orçamento salvo no formato do documento. */
+    docFromOrder: (order, kind = 'pedido') => {
         const items = Array.isArray(order.items) && order.items.length
             ? order.items
             : [{ name: order.productName || 'Item', quantity: 1, price: parseFloat(order.value) || 0 }];
@@ -461,7 +465,7 @@ const QuotePDF = {
         const days = Number(order.deadlineDays) || 0;
         const deadline = order.dueDate ? `até ${fmtD(order.dueDate)}${days ? ` (${days} ${days === 1 ? 'dia útil' : 'dias úteis'})` : ''}`
                        : days ? `${days} ${days === 1 ? 'dia útil' : 'dias úteis'}` : undefined;
-        QuotePDF.open({
+        return {
             kind,
             deadline,
             number: docNo(order),
@@ -476,8 +480,11 @@ const QuotePDF = {
                       discountPct: order.discountPct ?? (subtotal > 0 ? discount / subtotal * 100 : 0) },
             notes: order.notes,
             paid: kind === 'pedido' ? Payments.paid(order) : null
-        });
-    }
+        };
+    },
+
+    fromOrder: (order, kind = 'pedido') => QuotePDF.open(QuotePDF.docFromOrder(order, kind)),
+    htmlFromOrder: (order, kind = 'pedido') => QuotePDF.html(QuotePDF.docFromOrder(order, kind))
 };
 
 export default QuotePDF;
