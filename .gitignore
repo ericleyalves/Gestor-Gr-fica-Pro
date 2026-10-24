@@ -5,3 +5,9 @@ dist/
 build/
 .env
 *.log
+
+# Arquivos locais (não versionar)
+iniciar-log.txt
+output/
+tmp/
+.claude/
