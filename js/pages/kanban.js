@@ -11,7 +11,7 @@ const COLUMNS = [
     { id: 'aguardando', title: 'Aguardando Arte', color: '#f59e0b', bg: '#FFFBEB' },
     { id: 'producao',   title: 'Em Produção',     color: '#6C2BFF', bg: '#F0EBFF' },
     { id: 'acabamento', title: 'Finalizado',      color: '#64748b', bg: '#F1F5F9' },
-    { id: 'concluido',  title: 'Pronto / Enviado', color: '#10b981', bg: '#ECFDF5' }
+    { id: 'concluido',  title: 'Pronto p/ entrega', color: '#10b981', bg: '#ECFDF5' }
 ];
 
 const Kanban = {
