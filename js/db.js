@@ -310,7 +310,7 @@ const DB = {
     },
 
     resetPassword: (email) =>
-        client.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: location.origin }),
+        client.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: location.origin + location.pathname }),
 
     changePassword: (password) => client.auth.updateUser({ password }),
 
