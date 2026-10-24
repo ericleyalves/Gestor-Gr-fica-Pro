@@ -320,6 +320,25 @@ const Quotes = {
             Quotes.pendingOrderEdit = null;
             Quotes.loadDraft(c, id, 'orders');
         }
+        // Veio da ficha do cliente: abrir orçamento salvo ou começar um novo já com o cliente
+        if (Quotes.pendingQuoteOpen) {
+            const id = Quotes.pendingQuoteOpen;
+            Quotes.pendingQuoteOpen = null;
+            Quotes.loadDraft(c, id, 'quotes');
+        } else if (Quotes.pendingPrefill) {
+            const { customer, items } = Quotes.pendingPrefill;
+            Quotes.pendingPrefill = null;
+            const cust = c.querySelector('#input-customer');
+            if (cust) { cust.value = customer.name || ''; cust.dataset.customerId = customer.id; }
+            const wa = c.querySelector('#input-whatsapp');
+            if (wa) wa.value = customer.phone || '';
+            if (items?.length) {
+                const base = Date.now();
+                Quotes.currentItems = JSON.parse(JSON.stringify(items)).map((it, i) => ({ ...it, id: base + i }));
+                Quotes.refreshItems(c);
+                App.toast('Itens do pedido copiados — confira os preços', 'success');
+            }
+        }
         Quotes.updateSummary();
     },
 

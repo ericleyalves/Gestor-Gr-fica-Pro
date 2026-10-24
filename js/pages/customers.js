@@ -123,16 +123,16 @@ const Customers = {
     `,
 
     renderCard: (c) => `
-        <div class="section-card group hover:shadow-3 transition-all duration-300">
+        <div class="section-card group hover:shadow-3 transition-all duration-300 cursor-pointer" onclick="window.openCustomerHistory('${c.id}')" title="Ver histórico do cliente">
             <div class="flex justify-between items-start mb-5">
                 <div class="w-12 h-12 rounded-[16px] flex items-center justify-center font-black text-lg" style="background:var(--primary-light); color:var(--primary);">
                     ${esc(c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase())}
                 </div>
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400" onclick="window.editCustomer('${c.id}')">
+                    <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400" onclick="event.stopPropagation(); window.editCustomer('${c.id}')">
                         <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
                     </button>
-                    <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 text-slate-300" onclick="window.deleteCustomer('${c.id}')">
+                    <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 text-slate-300" onclick="event.stopPropagation(); window.deleteCustomer('${c.id}')">
                         <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
                     </button>
                 </div>
@@ -237,6 +237,7 @@ const Customers = {
         if (btnCancel) btnCancel.onclick = closeModal;
 
         window.editCustomer = (id) => openModal(id);
+        window.openCustomerHistory = (id) => import('../customer-history.js').then(m => m.default.open(id));
         
         window.deleteCustomer = (id) => {
             import('../app.js').then(m => {
