@@ -6,6 +6,7 @@ import QuotePDF from '../pdf.js';
 import Payments from '../payments.js';
 import OrderDetails from '../order-details.js';
 import Stock from '../stock.js';
+import ReadyNotice from '../ready-notice.js';
 
 const COLUMNS = [
     { id: 'aguardando', title: 'Aguardando Arte', color: '#f59e0b', bg: '#FFFBEB' },
@@ -129,6 +130,11 @@ const Kanban = {
                                         <span class="text-[10px] font-black">PDF</span>
                                     </button>
                                     ${col.id === 'concluido' ? `
+                                    <button type="button" draggable="false" class="flex items-center gap-1 px-2 py-1 rounded-lg transition-all" style="${order.readyNoticeAt ? 'color:#059669;' : 'background:#DCF8C6; color:#075E54;'}"
+                                            onclick="event.stopPropagation(); window.notifyReady('${order.id}')" title="${order.readyNoticeAt ? 'Cliente já avisado — clique para avisar de novo' : 'Avisar o cliente no WhatsApp que ficou pronto'}">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">${order.readyNoticeAt ? 'mark_chat_read' : 'chat'}</span>
+                                        <span class="text-[10px] font-black">${order.readyNoticeAt ? 'AVISADO' : 'AVISAR'}</span>
+                                    </button>
                                     <button type="button" draggable="false" class="flex items-center gap-1 px-2 py-1 rounded-lg transition-all" style="background:#ECFDF5; color:#059669;"
                                             onclick="event.stopPropagation(); window.deliverOrder('${order.id}')" title="Marcar como entregue">
                                         <span class="material-symbols-outlined" style="font-size:16px;">local_shipping</span>
@@ -219,9 +225,16 @@ const Kanban = {
                     import('../app.js').then(m => m.default.toast(`Pedido Nº ${docNo(orders[orderIdx])} movido para ${newStatus}`));
                     
                     // Re-render
-                    Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || '');
+                    const rerender = () => Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || '');
+                    rerender();
+
+                    // Ficou pronto? Oferece avisar o cliente no WhatsApp
+                    if (columnId === 'concluido' && !orders[orderIdx].readyNoticeAt) ReadyNotice.open(orderId, { auto: true, onDone: rerender });
                 }
             };
+
+            window.notifyReady = (orderId) => ReadyNotice.open(orderId,
+                { onDone: () => Kanban.renderBoard(document.getElementById('kanban-search')?.value.toLowerCase() || '') });
 
             window.printOrderSheet = (orderId) => {
                 const order = (DB.get('orders') || []).find(o => String(o.id) === String(orderId));
