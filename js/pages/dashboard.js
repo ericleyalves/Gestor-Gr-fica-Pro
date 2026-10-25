@@ -1,5 +1,6 @@
 import DB from '../db.js';
 import { esc, docNo } from '../utils.js';
+import Today from '../today.js';
 
 const Dashboard = {
     render: (container) => {
@@ -89,6 +90,9 @@ const Dashboard = {
                     <span class="text-xs font-black">Ver estoque →</span>
                 </button>` : '';
                 })()}
+
+                <!-- Hoje: ações do dia (avisar, cobrar, receber, recompra) -->
+                ${Today.html()}
 
                 <!-- Entregas -->
                 <div class="section-card">
@@ -213,6 +217,7 @@ const Dashboard = {
         `;
 
         // Events
+        Today.bind(container, () => Dashboard.render(container));
         container.querySelector('#dash-low-stock')?.addEventListener('click', () => import('../app.js').then(m => m.default.navigateTo('estoque')));
         container.querySelectorAll('[data-goto-production]').forEach(el => el.addEventListener('click', () => import('../app.js').then(m => m.default.navigateTo('producao'))));
         container.querySelectorAll('[data-sheet]').forEach(b => b.addEventListener('click', () => {

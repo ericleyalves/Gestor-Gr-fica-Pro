@@ -3,6 +3,7 @@ import { esc } from '../utils.js';
 import Files from '../files.js';
 import LaserCalc from '../laser-calc.js';
 import Catalog from '../catalog.js';
+import PriceTiers from '../price-tiers.js';
 
 const Products = {
     render: (container) => {
@@ -183,6 +184,17 @@ const Products = {
                                             <label>Valor da Venda (Preço Final R$)</label>
                                             <input type="number" id="p-price" placeholder="0.00" step="0.01" class="w-full">
                                         </div>
+                                    </div>
+                                    <!-- Preço por quantidade (lojista) -->
+                                    <div class="mt-5 pt-4 border-t border-dashed" style="border-color:var(--border);">
+                                        <div class="flex items-center justify-between gap-2 mb-2">
+                                            <div>
+                                                <p class="text-sm font-bold" style="color:var(--text-main);">Preço por quantidade <span class="font-normal text-xs" style="color:var(--text-faint);">(lojista / atacado)</span></p>
+                                                <p class="text-[11px]" style="color:var(--text-faint);">No orçamento, o preço unitário muda sozinho pela quantidade. Variações somam por cima.</p>
+                                            </div>
+                                            <button type="button" id="btn-add-tier" class="btn-ghost !py-1 !px-2 text-xs flex-shrink-0"><span class="material-symbols-outlined !text-sm">add</span> Faixa</button>
+                                        </div>
+                                        <div id="tiers-container" class="space-y-2"></div>
                                     </div>
                                 </div>
                                 
@@ -487,6 +499,31 @@ const Products = {
 
         // ---- Calculadora de preço (laser) ----
         let currentCalc = null;   // parâmetros usados (product.calc), para reabrir com os mesmos valores
+        let currentTiers = [];    // faixas de preço por quantidade (product.priceTiers)
+        const tiersBox = document.getElementById('tiers-container');
+        const renderTiers = () => { if (tiersBox) tiersBox.innerHTML = PriceTiers.editorHtml(currentTiers); };
+        const readTiers = () => {
+            if (!tiersBox) return;
+            currentTiers = [...tiersBox.querySelectorAll('[data-tier]')].map(r => ({
+                minQty: parseInt(r.querySelector('.tier-qty').value) || 0,
+                price: parseFloat(r.querySelector('.tier-price').value) || 0
+            }));
+        };
+        tiersBox?.addEventListener('input', readTiers);
+        tiersBox?.addEventListener('click', (e) => {
+            const del = e.target.closest('.tier-del');
+            if (!del) return;
+            readTiers();
+            currentTiers.splice(Number(del.closest('[data-tier]').dataset.tier), 1);
+            renderTiers();
+        });
+        document.getElementById('btn-add-tier')?.addEventListener('click', () => {
+            readTiers();
+            const last = currentTiers[currentTiers.length - 1];
+            currentTiers.push({ minQty: last ? (last.minQty || 0) * 2 || 100 : 50, price: '' });
+            renderTiers();
+            tiersBox.querySelector('[data-tier]:last-child .tier-price')?.focus();
+        });
         const fmtMoney = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         document.getElementById('btn-laser-tool').onclick = () => LaserCalc.open();
         document.getElementById('btn-catalog').onclick = () => Catalog.open();
@@ -742,6 +779,7 @@ const Products = {
             removedNow = [];
             currentMaterials = [];
             currentCalc = null;
+            currentTiers = [];
             uploadedImages = [];
             currentImages = [];
             originalImages = [];
@@ -768,8 +806,10 @@ const Products = {
                     currentFiles = JSON.parse(JSON.stringify(p.files || []));
                     currentMaterials = JSON.parse(JSON.stringify(p.materials || []));
                     currentCalc = p.calc || null;
+                    currentTiers = JSON.parse(JSON.stringify(p.priceTiers || []));
                 }
             }
+            renderTiers();
             
             modal.classList.remove('hidden');
             renderVariations();
@@ -916,7 +956,8 @@ const Products = {
                 variations: currentVariations.filter(v => v.name.trim() !== ''),
                 files: currentFiles.filter(f => !f.uploading),
                 materials: currentMaterials.filter(u => u.materialId && Number(u.qty) > 0),
-                calc: currentCalc
+                calc: currentCalc,
+                priceTiers: PriceTiers.of({ priceTiers: (readTiers(), currentTiers) })
             };
 
             if (editingId) {
