@@ -13,8 +13,11 @@ import { orderOf, phoneOf, firstName, shortProduct, fmtWhen, stampOrder } from '
 
 const app = () => import('./app.js').then(m => m.default);
 
+/** Link de avaliação da Gráfica Arteflix (usado se o campo das Configurações estiver vazio). */
+export const DEFAULT_REVIEW_LINK = 'https://g.page/r/CTE2y9jOOEIuEBM/review';
+
 const ReviewRequest = {
-    link: () => String((DB.get('shop_profile') || {}).googleReview || '').trim(),
+    link: () => String((DB.get('shop_profile') || {}).googleReview || '').trim() || DEFAULT_REVIEW_LINK,
 
     message: (o) => {
         const shop = DB.get('shop_profile') || {};
