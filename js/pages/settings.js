@@ -122,7 +122,7 @@ const Settings = {
                                     </div>
                                     <div class="col-span-1 md:col-span-2">
                                         <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Link de avaliação no Google</label>
-                                        <input type="url" name="googleReview" value="${esc(profile.googleReview)}" placeholder="https://g.page/r/..." class="w-full">
+                                        <input type="url" name="googleReview" value="${esc(profile.googleReview || 'https://g.page/r/CTE2y9jOOEIuEBM/review')}" placeholder="https://g.page/r/..." class="w-full">
                                         <p class="text-[11px] text-slate-400 mt-1">No Google Meu Negócio: <b>Pedir avaliações</b> → copiar link. Usado na mensagem enviada depois de cada entrega.</p>
                                     </div>
 
