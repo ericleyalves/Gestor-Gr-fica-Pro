@@ -2,6 +2,7 @@ import DB from '../db.js';
 import { esc } from '../utils.js';
 import Files from '../files.js';
 import LaserCalc from '../laser-calc.js';
+import Catalog from '../catalog.js';
 
 const Products = {
     render: (container) => {
@@ -17,6 +18,7 @@ const Products = {
                         <p class="text-sm mt-1" style="color:var(--text-muted);">Gerencie seus insumos, produtos finais e precificação inteligente.</p>
                     </div>
                     <div class="flex gap-2">
+                    <button id="btn-catalog" class="btn-ghost" title="Vitrine pública para mandar no WhatsApp"><span class="material-symbols-outlined" style="font-size:18px;">storefront</span> Catálogo online</button>
                     <button id="btn-laser-tool" class="btn-ghost"><span class="material-symbols-outlined" style="font-size:18px;">calculate</span> Calculadora laser</button>
                     <button id="btn-add-product" class="btn-primary">
                         <span class="material-symbols-outlined" style="font-size:18px;">add</span>
@@ -487,6 +489,7 @@ const Products = {
         let currentCalc = null;   // parâmetros usados (product.calc), para reabrir com os mesmos valores
         const fmtMoney = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         document.getElementById('btn-laser-tool').onclick = () => LaserCalc.open();
+        document.getElementById('btn-catalog').onclick = () => Catalog.open();
         document.getElementById('btn-laser-calc').onclick = () => LaserCalc.open({
             initial: currentCalc,
             onApply: ({ unitCost, price, calc, materialUse }) => {
