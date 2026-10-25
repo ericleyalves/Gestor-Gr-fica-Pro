@@ -1,12 +1,17 @@
 /**
  * reports.js — Relatórios com dados reais
  * Vendas por mês, produtos e clientes que mais vendem, categorias, formas de
- * pagamento, conversão de orçamentos, lucro bruto e pontualidade das entregas.
+ * pagamento, conversão de orçamentos, lucro bruto, pontualidade das entregas
+ * e "Anúncios e origem dos clientes" (custo por venda e retorno de cada anúncio).
  */
 import DB from '../db.js';
 import App from '../app.js';
 import { fmtBRL, esc, isoDate, docNo } from '../utils.js';
 import Payments from '../payments.js';
+import LeadSources, { NO_SOURCE } from '../lead-sources.js';
+
+const AD_CATEGORY = 'Marketing/Anúncios';
+const AD_GENERAL = 'Anúncios em geral (sem separar)';
 
 const PERIODS = [
     { id: 'mes', label: 'Este mês' }, { id: 'mes-passado', label: 'Mês passado' },
@@ -89,6 +94,8 @@ const Reports = {
             const k = p.method || 'Não informado'; byMethod[k] = (byMethod[k] || 0) + (Number(p.amount) || 0);
         }));
 
+        const ads = Reports.adsBySource(quotes, orders, inRange);
+
         const fmtD = (iso) => { const [y, m, d] = String(iso || '').split('-'); return d ? `${d}/${m}/${y}` : '—'; };
         const periodLabel = PERIODS.find(p => p.id === Reports.period).label.toLowerCase();
         const kpi = (label, value, sub, color = 'var(--text-main)') => `
@@ -149,6 +156,8 @@ const Reports = {
             </table></div>` : empty)}
     </div>
 
+    ${card('Anúncios e origem dos clientes <span class="text-xs font-normal" style="color:var(--text-faint);">(de onde vieram os orçamentos e as vendas)</span>', Reports.adsHtml(ads, kpi, empty))}
+
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         ${card('Vendas por categoria', Object.keys(byCat).length ? '<div class="h-[260px]"><canvas id="rep-cats"></canvas></div>' : empty)}
         ${card('Recebimentos por forma de pagamento', Object.keys(byMethod).length ? '<div class="h-[260px]"><canvas id="rep-methods"></canvas></div>' : empty)}
@@ -158,6 +167,77 @@ const Reports = {
         Reports.drawCharts(allOrders, byCat, byMethod);
         container.querySelector('#rep-period').addEventListener('change', (e) => { Reports.period = e.target.value; Reports.render(container); });
         container.querySelector('#rep-export').addEventListener('click', () => Reports.exportCsv(orders, custName));
+    },
+
+    /**
+     * Agrupa orçamentos, pedidos e gasto com anúncio por origem (campo leadSource).
+     * Contatos = orçamentos do período + pedidos feitos sem orçamento.
+     * Gasto   = despesas pagas de "Marketing/Anúncios" no período, pelo anúncio escolhido.
+     */
+    adsBySource: (quotes, orders, inRange) => {
+        const key = (x) => String(x?.leadSource || '').trim() || NO_SOURCE;
+        const map = new Map();
+        const row = (k) => {
+            if (!map.has(k)) map.set(k, { name: k, contacts: 0, sales: 0, revenue: 0, spend: 0, isAd: LeadSources.isAd(k) || k === AD_GENERAL });
+            return map.get(k);
+        };
+        const fromQuote = new Set(quotes.map(q => q.orderId).filter(Boolean));
+        quotes.forEach(q => { row(key(q)).contacts++; });
+        orders.forEach(o => {
+            const r = row(key(o));
+            r.sales++; r.revenue += Number(o.value) || 0;
+            if (!fromQuote.has(o.id)) r.contacts++;
+        });
+        (DB.get('transactions') || [])
+            .filter(t => t.type === 'out' && t.paid && t.category === AD_CATEGORY && inRange(String(t.date || '')))
+            .forEach(t => { row(String(t.leadSource || '').trim() || AD_GENERAL).spend += Number(t.amount) || 0; });
+
+        const rows = [...map.values()].map(r => ({ ...r, revenue: round(r.revenue), spend: round(r.spend) }));
+        const order = (r) => (r.name === NO_SOURCE ? 2 : r.isAd ? 0 : 1);
+        rows.sort((a, b) => order(a) - order(b) || b.revenue - a.revenue || b.contacts - a.contacts);
+
+        const adRows = rows.filter(r => r.isAd);
+        const spend = round(adRows.reduce((n, r) => n + r.spend, 0));
+        const revenue = round(adRows.reduce((n, r) => n + r.revenue, 0));
+        const sales = adRows.reduce((n, r) => n + r.sales, 0);
+        const tagged = rows.filter(r => r.name !== NO_SOURCE).reduce((n, r) => n + r.contacts + r.sales, 0);
+        return { rows, spend, revenue, sales, tagged };
+    },
+
+    adsHtml: (ads, kpi, empty) => {
+        if (!ads.rows.length) return empty;
+        const roas = (rev, sp) => (sp > 0 ? `${(rev / sp).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}x` : '—');
+        const cps = (sp, n) => (sp > 0 && n > 0 ? fmtBRL(sp / n) : '—');
+        const close = (r) => (r.contacts > 0 ? pct(Math.min(100, r.sales / r.contacts * 100)) : '—');
+        const good = ads.spend > 0 && ads.revenue / ads.spend >= 3;
+        return `
+            ${!ads.tagged ? `<p class="text-sm mb-4 p-3 rounded-xl" style="background:#FEF3C7; color:#92400E;">
+                Ainda não há orçamentos com <b>Origem do cliente</b>. Escolha a origem ao montar cada orçamento,
+                e lance o gasto dos anúncios em Financeiro → Nova despesa → <b>Marketing/Anúncios</b>.</p>` : ''}
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                ${kpi('Gasto com anúncios', fmtBRL(ads.spend), 'despesas de Marketing/Anúncios pagas')}
+                ${kpi('Vendas de anúncios', fmtBRL(ads.revenue), `${ads.sales} pedido(s) vindos de anúncio`, 'var(--primary)')}
+                ${kpi('Retorno (ROAS)', roas(ads.revenue, ads.spend), 'faturamento ÷ gasto', ads.spend ? (good ? '#059669' : '#B45309') : 'var(--text-main)')}
+                ${kpi('Custo por venda', cps(ads.spend, ads.sales), 'gasto ÷ pedidos de anúncio')}
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm">
+                <thead><tr class="text-[11px] uppercase tracking-wider text-left" style="color:var(--text-faint);">
+                    <th class="pb-2">Origem</th><th class="pb-2 text-right">Contatos</th><th class="pb-2 text-right">Vendas</th>
+                    <th class="pb-2 text-right">Fechamento</th><th class="pb-2 text-right">Faturamento</th><th class="pb-2 text-right">Gasto</th>
+                    <th class="pb-2 text-right">Custo/venda</th><th class="pb-2 text-right">Retorno</th></tr></thead>
+                <tbody>${ads.rows.map(r => `
+                    <tr class="border-t" style="border-color:#F1F0F7;">
+                        <td class="py-2 font-semibold">${r.isAd ? '<span class="material-symbols-outlined align-middle mr-1" style="font-size:16px; color:var(--primary);">campaign</span>' : ''}${esc(r.name)}</td>
+                        <td class="py-2 text-right">${r.contacts || '—'}</td>
+                        <td class="py-2 text-right">${r.sales || '—'}</td>
+                        <td class="py-2 text-right">${close(r)}</td>
+                        <td class="py-2 text-right font-bold">${r.revenue ? fmtBRL(r.revenue) : '—'}</td>
+                        <td class="py-2 text-right">${r.spend ? fmtBRL(r.spend) : '—'}</td>
+                        <td class="py-2 text-right">${r.isAd ? cps(r.spend, r.sales) : '—'}</td>
+                        <td class="py-2 text-right font-bold" style="color:${r.spend && r.revenue / r.spend >= 3 ? '#059669' : 'var(--text-main)'};">${r.isAd ? roas(r.revenue, r.spend) : '—'}</td>
+                    </tr>`).join('')}</tbody>
+            </table></div>
+            <p class="text-xs mt-3" style="color:var(--text-faint);">Retorno = faturamento ÷ gasto (3x ou mais fica verde). Gasto lançado sem escolher o anúncio aparece em "${esc(AD_GENERAL)}".</p>`;
     },
 
     drawCharts: (allOrders, byCat, byMethod) => {
@@ -209,8 +289,8 @@ const Reports = {
         const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
         const money = (v) => (Number(v) || 0).toFixed(2).replace('.', ',');
         const fmtD = (iso) => { const [y, m, d] = String(iso || '').split('-'); return d ? `${d}/${m}/${y}` : ''; };
-        const lines = [['Nº', 'Data', 'Cliente', 'Produtos', 'Status', 'Valor', 'Recebido', 'Falta', 'Entrega prevista', 'Entregue em'].map(cell).join(';')]
-            .concat(orders.map(o => [docNo(o), fmtD(o.date), custName(o), o.productName, o.status, money(o.value),
+        const lines = [['Nº', 'Data', 'Cliente', 'Origem', 'Produtos', 'Status', 'Valor', 'Recebido', 'Falta', 'Entrega prevista', 'Entregue em'].map(cell).join(';')]
+            .concat(orders.map(o => [docNo(o), fmtD(o.date), custName(o), o.leadSource || NO_SOURCE, o.productName, o.status, money(o.value),
                 money(Payments.paid(o)), money(Payments.balance(o)), fmtD(o.dueDate), fmtD(o.deliveredAt)].map(cell).join(';')));
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }));

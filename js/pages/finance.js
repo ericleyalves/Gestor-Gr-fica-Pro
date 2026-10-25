@@ -10,6 +10,9 @@ import DB from '../db.js';
 import App from '../app.js';
 import { fmtBRL, esc, isoDate, docNo } from '../utils.js';
 import Payments, { METHODS } from '../payments.js';
+import LeadSources from '../lead-sources.js';
+
+const AD_CATEGORY = 'Marketing/Anúncios';
 
 const OUT_CATEGORIES = ['Material (MDF/Acrílico)', 'Insumos (tinta, cola, embalagem)', 'Energia', 'Aluguel', 'Internet/Telefone',
     'Frete/Correios', 'Marketing/Anúncios', 'Taxas (cartão/marketplace)', 'Manutenção/Equipamentos', 'Impostos (DAS/MEI)',
@@ -298,6 +301,10 @@ const Finance = {
                         </div>
                     </div>
                     ${isOut ? `
+                    <div id="ft-src-wrap" class="${t.category === AD_CATEGORY ? '' : 'hidden'}">
+                        <label>Qual anúncio? <span class="font-normal" style="color:var(--text-faint);">— entra no relatório de anúncios</span></label>
+                        <select id="ft-src">${LeadSources.options(t.leadSource || '', { emptyLabel: 'Anúncios em geral (sem separar)' })}</select>
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div id="ft-date-wrap"><label>Pago em</label><input id="ft-date" type="date" value="${esc(t.date || isoDate(new Date()))}"></div>
                         <div id="ft-due-wrap"><label>Vencimento</label><input id="ft-due" type="date" value="${esc(t.dueDate || t.date || isoDate(new Date()))}"></div>
@@ -319,6 +326,11 @@ const Finance = {
         paidSel?.addEventListener('change', syncPaid);
         syncPaid();
 
+        // Despesa de anúncio: mostra o campo "Qual anúncio?"
+        const catSel = el.querySelector('#ft-cat'), srcWrap = el.querySelector('#ft-src-wrap');
+        catSel?.addEventListener('change', () => srcWrap?.classList.toggle('hidden', catSel.value !== AD_CATEGORY));
+        LeadSources.bind(el.querySelector('#ft-src'), { emptyLabel: 'Anúncios em geral (sem separar)' });
+
         const close = () => el.remove();
         el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-close]')) close(); });
         el.querySelector('form').addEventListener('submit', (e) => {
@@ -332,6 +344,7 @@ const Finance = {
                 description: el.querySelector('#ft-desc').value.trim(),
                 amount,
                 category: el.querySelector('#ft-cat').value,
+                leadSource: isOut && el.querySelector('#ft-cat').value === AD_CATEGORY ? LeadSources.valueOf(el.querySelector('#ft-src')) : '',
                 method: el.querySelector('#ft-method').value,
                 paid,
                 date: isOut ? (paid ? el.querySelector('#ft-date').value : '') : (el.querySelector('#ft-date-in').value || isoDate(new Date())),

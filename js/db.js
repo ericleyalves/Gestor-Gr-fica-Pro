@@ -18,7 +18,7 @@ const SUPABASE_URL = 'https://lcfzdammuehwnclywuhp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_g20FE0UERlssSI48Pswv2A_qPghVpQC';
 
 const TABLES = ['customers', 'products', 'quotes', 'orders', 'transactions', 'materials'];   // transactions = despesas/entradas avulsas (supabase-financeiro.sql)
-const SETTINGS = ['shop_profile', 'product_categories'];          // salvos na tabela app_settings (id = chave)
+const SETTINGS = ['shop_profile', 'product_categories', 'lead_sources'];   // salvos na tabela app_settings (id = chave); lead_sources = origens dos clientes
 const PENDING_KEY = 'ggp__pending';
 const MIGRATION_FLAG = 'ggp__cloud_v2';
 const FILES_BUCKET = 'product-files';     // Storage: arquivos de corte/gabaritos (supabase-arquivos.sql)
