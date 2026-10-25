@@ -7,6 +7,7 @@ import Approval from '../approval.js';
 import Payments from '../payments.js';
 import LeadSources from '../lead-sources.js';
 import FollowUp, { STALE_DAYS } from '../followup.js';
+import PriceTiers from '../price-tiers.js';
 
 const Quotes = {
     currentItems: [],
@@ -704,7 +705,10 @@ const Quotes = {
         });
         item.optionsText = parts.join(' · ');
         item.unitCost = Math.round(((parseFloat(p.cost) || 0) + addCost) * 100) / 100;
-        item.unitPrice = Math.round(((parseFloat(p.price) || 0) + addPrice) * 100) / 100;
+        // Preço base pela quantidade (tabela de lojista), a não ser que o valor tenha sido digitado à mão
+        const base = PriceTiers.basePrice(p, item.quantity);
+        item.tierMinQty = PriceTiers.tierFor(p, item.quantity)?.minQty || null;
+        if (!item.manualPrice) item.unitPrice = Math.round((base + addPrice) * 100) / 100;
         item.price = Math.round(item.unitPrice * (Number(item.quantity) || 1) * 100) / 100;
     },
 
@@ -719,18 +723,41 @@ const Quotes = {
     updateItem: (container, id, { quantity, unitPrice }) => {
         const item = Quotes.currentItems.find(i => i.id === id);
         if (!item) return;
-        const unit = unitPrice != null ? Math.max(0, unitPrice) : Quotes.unitPrice(item);
         const qty = quantity != null ? Math.max(1, Math.round(quantity)) : (Number(item.quantity) || 1);
-        item.unitPrice = Math.round(unit * 100) / 100;
         item.quantity = qty;
-        item.price = Math.round(item.unitPrice * qty * 100) / 100;
+        if (unitPrice != null) {                       // digitou o valor: vale o dele
+            item.manualPrice = true;
+            item.unitPrice = Math.round(Math.max(0, unitPrice) * 100) / 100;
+            item.price = Math.round(item.unitPrice * qty * 100) / 100;
+        } else if (!item.manualPrice && PriceTiers.of(Quotes.productOf(item)).length) {
+            Quotes.applyVariations(item);              // mudou a quantidade: recalcula pela faixa
+        } else {
+            item.unitPrice = Math.round(Quotes.unitPrice(item) * 100) / 100;
+            item.price = Math.round(item.unitPrice * qty * 100) / 100;
+        }
 
         const card = container.querySelector(`.quote-item-card[data-id="${id}"]`);
         if (card) {
             card.querySelector('.item-total').textContent = fmtBRL(item.price);
             card.querySelector('.item-unit').textContent = qty > 1 ? `${fmtBRL(item.unitPrice)} / un` : '';
+            const tierEl = card.querySelector('.item-tier');
+            if (tierEl) tierEl.innerHTML = Quotes.tierHint(item);
+            const unitInput = card.querySelector('.input-unit');
+            if (unitInput && document.activeElement !== unitInput) unitInput.value = item.unitPrice.toFixed(2);
         }
         Quotes.updateSummary();
+    },
+
+    /** Dica da tabela de lojista no card do item. */
+    tierHint: (item) => {
+        const p = Quotes.productOf(item);
+        if (!PriceTiers.of(p).length) return '';
+        if (item.manualPrice) return `<span style="color:#B45309;">Preço digitado à mão · tabela: ${esc(PriceTiers.summary(p))}</span>`;
+        const next = PriceTiers.nextTier(p, item.quantity);
+        const cur = item.tierMinQty ? `<b style="color:#059669;">Preço de lojista (${item.tierMinQty}+ un)</b>` : '';
+        const add = (Number(item.unitPrice) || 0) - PriceTiers.basePrice(p, item.quantity);   // variações escolhidas
+        const nxt = next ? `a partir de ${next.minQty} un: ${fmtBRL(next.price + add)} / un` : '';
+        return [cur, nxt].filter(Boolean).join(' · ');
     },
 
     renderItems: () => {
@@ -771,6 +798,7 @@ const Quotes = {
                             <div class="text-right flex-shrink-0">
                                 <div class="item-total text-2xl font-black text-primary leading-none">${fmtBRL(item.price)}</div>
                                 <div class="item-unit text-xs mt-1" style="color:var(--text-faint);">${item.quantity > 1 ? `${fmtBRL(Quotes.unitPrice(item))} / un` : ''}</div>
+                                <div class="item-tier text-[11px] mt-0.5" style="color:var(--text-faint);">${Quotes.tierHint(item)}</div>
                             </div>
                         </div>
 

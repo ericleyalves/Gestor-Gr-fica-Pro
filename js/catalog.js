@@ -12,6 +12,7 @@ import DB from './db.js';
 import App from './app.js';
 import { esc, fmtBRL } from './utils.js';
 import WaMessage from './wa-message.js';
+import PriceTiers from './price-tiers.js';
 
 const TABLE = 'public_catalog';
 const ROW_ID = 'main';
@@ -45,6 +46,8 @@ const Catalog = {
             category: String(p.category || '').trim() || 'Outros',
             images: imagesOf(p).slice(0, 6),
             price: showPrices ? fromPrice(p) : null,
+            // Tabela de lojista: preço da faixa + a variação mais barata (mesma conta do "a partir de")
+            tiers: showPrices ? PriceTiers.of(p).map(t => ({ minQty: t.minQty, price: Math.round((t.price + fromPrice(p) - (parseFloat(p.price) || 0)) * 100) / 100 })) : [],
             options: (p.variations || []).filter(g => String(g.name || '').trim())
                 .map(g => ({ name: g.name, values: (g.options || []).map(o => String(o.name || '').trim()).filter(Boolean) }))
         })).filter(p => p.name);

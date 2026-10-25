@@ -58,6 +58,9 @@
   label { display: block; font-size: 12px; font-weight: 800; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; }
   select, textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; }
   textarea { min-height: 70px; resize: vertical; }
+  .tiers { margin-top: 12px; background: #F3F0FF; border-radius: 12px; padding: 10px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+  .tiers > b { font-size: 12px; text-transform: uppercase; color: var(--muted); }
+  .tiers span b { color: var(--brand); }
   .go { width: 100%; margin-top: 16px; background: var(--wa); color: #fff; border: 0; border-radius: 14px; padding: 15px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
 </style>
 </head>
@@ -128,6 +131,7 @@
           <span class="cat">${esc(p.category)}</span>
           <span class="name">${esc(p.name)}</span>
           ${C.showPrices && p.price > 0 ? `<span class="price">a partir de <b>${brl(p.price)}</b></span>` : '<span class="price">Sob orçamento</span>'}
+          ${C.showPrices && p.tiers?.length ? `<span class="price" style="font-size:11px;">atacado: ${p.tiers[p.tiers.length - 1].minQty}+ un ${brl(p.tiers[p.tiers.length - 1].price)}</span>` : ''}
           ${waNumber() ? `<button class="ask" data-ask="${esc(p.id)}">Pedir orçamento</button>` : ''}
         </div>
       </article>`).join('');
@@ -149,6 +153,7 @@
           <span class="cat">${esc(p.category)}</span>
           <h2>${esc(p.name)}</h2>
           ${C.showPrices && p.price > 0 ? `<div class="price">a partir de <b>${brl(p.price)}</b></div>` : ''}
+          ${C.showPrices && p.tiers?.length ? `<div class="tiers"><b>Preço para lojista / quantidade</b>${p.tiers.map(t => `<span>${t.minQty}+ un <b>${brl(t.price)}</b> / un</span>`).join('')}</div>` : ''}
           ${(p.options || []).map((g, i) => `
             <label for="op${i}">${esc(g.name)}</label>
             <select id="op${i}" data-opt="${esc(g.name)}"><option value="">Escolher…</option>${g.values.map(v => `<option>${esc(v)}</option>`).join('')}</select>`).join('')}
