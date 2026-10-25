@@ -10,6 +10,7 @@ import Files from './files.js';
 import QuotePDF from './pdf.js';
 import Stock from './stock.js';
 import ReadyNotice from './ready-notice.js';
+import ReviewRequest from './review-request.js';
 
 export const STATUSES = ['Aguardando Arte', 'Produção', 'Finalizado', 'Concluído', 'Entregue'];
 export const DELIVERY_METHODS = ['Retirada na loja', 'Entrega própria', 'Motoboy', 'Correios', 'Transportadora', 'Uber/99 Entrega'];
@@ -131,6 +132,7 @@ const OrderDetails = {
                     ${canceled ? '' : `<button type="button" data-act="edit" class="btn-primary !py-2 !px-4 text-xs"><span class="material-symbols-outlined" style="font-size:17px;">edit</span> Editar pedido</button>`}
                     ${!canceled && o.status !== 'Entregue' ? `<button type="button" data-act="deliver" class="btn-primary !py-2 !px-4 text-xs" style="background:#059669;"><span class="material-symbols-outlined" style="font-size:17px;">local_shipping</span> Marcar entregue</button>` : ''}
                     ${!canceled && o.status !== 'Entregue' && /Conclu|Pronto/.test(o.status || '') ? action('notify', o.readyNoticeAt ? 'mark_chat_read' : 'chat', o.readyNoticeAt ? 'Avisar de novo' : 'Avisar que ficou pronto') : ''}
+                    ${o.status === 'Entregue' ? action('review', 'star', o.reviewRequestedAt ? 'Pedir avaliação de novo' : 'Pedir avaliação no Google') : ''}
                     ${action('pay', 'payments', bal > 0 ? 'Registrar pagamento' : 'Pagamentos')}
                     ${action('files', 'folder_open', `Arquivos${nFiles ? ` (${nFiles})` : ''}`)}
                     ${action('sheet', 'print', 'Ficha')}
@@ -170,6 +172,7 @@ const OrderDetails = {
             else if (act === 'files') Files.openOrderModal(o, 'Arquivos do pedido', { orderKey: 'orders', onChange: () => { onChange?.(); render(); } });
             else if (act === 'sheet') QuotePDF.productionSheet(o);
             else if (act === 'notify') ReadyNotice.open(o.id, { onDone: () => { onChange?.(); render(); } });
+            else if (act === 'review') ReviewRequest.open(o.id, { onDone: () => { onChange?.(); render(); } });
             else if (act === 'pdf') QuotePDF.fromOrder(o);
             else if (act === 'cancel') {
                 (await app()).confirm({
@@ -246,6 +249,7 @@ const OrderDetails = {
             close();
             onChange?.();
             (await app()).toast(`Pedido Nº ${docNo(list[i])} entregue ✓`);
+            ReviewRequest.afterDelivery(orderId, onChange);   // pede avaliação no Google (se o link estiver cadastrado)
         });
         document.body.appendChild(el);
     }

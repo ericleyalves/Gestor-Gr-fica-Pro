@@ -7,7 +7,7 @@ const Settings = {
 
     render: (container) => {
         const DEFAULT_PROFILE = {
-            name: '', cnpj: '', phone: '', email: '', instagram: '', address: '',
+            name: '', cnpj: '', phone: '', email: '', instagram: '', address: '', googleReview: '',
             terms: 'Validade da proposta: 15 dias.\nInício da produção mediante aprovação final da arte e pagamento de 50% de sinal.\nVariação de cor de até 10% é considerada normal no processo gráfico.',
             paymentConditions: 'Pix ou cartão (taxas do cartão por conta do cliente)',
             pixKey: '', validityDays: '15', defaultDeadline: '5',
@@ -119,6 +119,11 @@ const Settings = {
                                     <div class="col-span-1 md:col-span-2">
                                         <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Endereço Completo</label>
                                         <input type="text" name="address" value="${esc(profile.address)}" class="w-full">
+                                    </div>
+                                    <div class="col-span-1 md:col-span-2">
+                                        <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Link de avaliação no Google</label>
+                                        <input type="url" name="googleReview" value="${esc(profile.googleReview)}" placeholder="https://g.page/r/..." class="w-full">
+                                        <p class="text-[11px] text-slate-400 mt-1">No Google Meu Negócio: <b>Pedir avaliações</b> → copiar link. Usado na mensagem enviada depois de cada entrega.</p>
                                     </div>
 
                                     <div class="col-span-1 md:col-span-2 pt-6 mt-6 border-t border-dashed border-slate-200">
