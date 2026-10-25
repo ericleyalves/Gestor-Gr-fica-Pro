@@ -1,10 +1,17 @@
 import DB from '../db.js';
-import { esc, bindCepLookup } from '../utils.js';
+import { esc, bindCepLookup, fmtBRL } from '../utils.js';
+import Repurchase from '../repurchase.js';
 
 const Customers = {
     render: (container) => {
         const customers = DB.get('customers') || [];
-        
+        // Números reais: quem comprou no mês, ticket médio dos pedidos e quantos estão para recompra
+        const orders = (DB.get('orders') || []).filter(o => o.status !== 'Cancelado');
+        const month = new Date().toISOString().slice(0, 7);
+        const buyersMonth = new Set(orders.filter(o => String(o.date || '').startsWith(month)).map(o => o.customerId || o.customerName)).size;
+        const ticket = orders.length ? orders.reduce((n, o) => n + (Number(o.value) || 0), 0) / orders.length : 0;
+        const toRebuy = Repurchase.count();
+
         container.innerHTML = `
             <div class="max-w-[1400px] mx-auto flex flex-col gap-6 page-enter">
                 
@@ -14,18 +21,24 @@ const Customers = {
                         <h2 class="page-title">Base de Clientes 👥</h2>
                         <p class="text-sm mt-1" style="color:var(--text-muted);">Gerencie informações de contato e o histórico comercial da sua gráfica.</p>
                     </div>
+                    <div class="flex gap-2">
+                    <button id="btn-repurchase" class="btn-ghost" title="Clientes que não compram há ${Repurchase.days}+ dias">
+                        <span class="material-symbols-outlined" style="font-size:18px;">replay</span>
+                        Recompra ${toRebuy ? `<span class="px-1.5 py-0.5 rounded-md text-[11px] font-black" style="background:#FEF3C7; color:#B45309;">${toRebuy}</span>` : ''}
+                    </button>
                     <button id="btn-add-customer" class="btn-primary">
                         <span class="material-symbols-outlined" style="font-size:18px;">person_add</span>
                         Novo Cliente
                     </button>
+                    </div>
                 </div>
 
                 <!-- KPI Row -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     ${Customers.kpi('Total de Clientes', customers.length, 'groups', '#6C2BFF', '#F0EBFF')}
-                    ${Customers.kpi('Novos (Mês)', 4, 'new_releases', '#10B981', '#ECFDF5')}
-                    ${Customers.kpi('Ativos', customers.length, 'check_circle', '#2563EB', '#EFF6FF')}
-                    ${Customers.kpi('Ticket Médio', 'R$ 450', 'payments', '#D97706', '#FFFBEB')}
+                    ${Customers.kpi('Compraram no mês', buyersMonth, 'shopping_bag', '#10B981', '#ECFDF5')}
+                    ${Customers.kpi(`Para recompra (${Repurchase.days}+ dias)`, toRebuy, 'replay', '#D97706', '#FFFBEB')}
+                    ${Customers.kpi('Ticket Médio', fmtBRL(ticket), 'payments', '#2563EB', '#EFF6FF')}
                 </div>
 
                 <!-- Search & Layout -->
@@ -185,6 +198,7 @@ const Customers = {
         const form = document.getElementById('form-customer');
         bindCepLookup(document.getElementById('c-cep'), document.getElementById('c-address'));
         const searchInput = document.getElementById('customer-search');
+        document.getElementById('btn-repurchase')?.addEventListener('click', () => Repurchase.open(() => Customers.render(container)));
         
         let editingId = null;
 
