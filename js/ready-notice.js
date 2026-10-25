@@ -9,6 +9,7 @@ import DB from './db.js';
 import { fmtBRL, docNo } from './utils.js';
 import Payments from './payments.js';
 import WaMessage, { waPhone } from './wa-message.js';
+import Pix from './pix.js';
 
 /** Funções compartilhadas pelos avisos ligados a um pedido. */
 export const orderOf = (orderId) => (DB.get('orders') || []).find(o => String(o.id) === String(orderId));
@@ -43,7 +44,7 @@ const ReadyNotice = {
         if (shop.address) lines.push('', `📍 Pode retirar aqui: ${shop.address}`);
         if (bal > 0.009) {
             lines.push('', `💰 Falta pagar: ${fmtBRL(bal)}`);
-            if (shop.pixKey) lines.push(`Pix: ${shop.pixKey}`);
+            lines.push(...Pix.messageLines(bal, `PED${docNo(o)}`));
         }
         lines.push('', 'Se preferir que a gente entregue, é só me avisar. Obrigado pela preferência! 😊');
         if (shop.name) lines.push(`— ${shop.name}`);

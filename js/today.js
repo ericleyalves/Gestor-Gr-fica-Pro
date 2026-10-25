@@ -15,6 +15,7 @@ import FollowUp from './followup.js';
 import ReadyNotice, { phoneOf, firstName } from './ready-notice.js';
 import Repurchase from './repurchase.js';
 import WaMessage from './wa-message.js';
+import Pix from './pix.js';
 
 const MAX = 5;
 const isReady = (o) => /Conclu|Pronto/.test(String(o.status || ''));
@@ -39,7 +40,7 @@ const Today = {
         return [
             `Oi${first ? `, ${first}` : ''}! Tudo bem? 😊`,
             `Passando para lembrar do saldo do pedido Nº ${docNo(o)}: ${fmtBRL(Payments.balance(o))}.`,
-            shop.pixKey ? `\nPix: ${shop.pixKey}` : '',
+            Pix.messageLines(Payments.balance(o), `PED${docNo(o)}`).length ? `\n${Pix.messageLines(Payments.balance(o), `PED${docNo(o)}`).join('\n')}` : '',
             '\nQualquer dúvida, é só me chamar. Obrigado!',
             shop.name ? `— ${shop.name}` : ''
         ].filter(Boolean).join('\n');

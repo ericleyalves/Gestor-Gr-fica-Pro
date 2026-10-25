@@ -11,6 +11,7 @@ import QuotePDF from './pdf.js';
 import Stock from './stock.js';
 import ReadyNotice from './ready-notice.js';
 import ReviewRequest from './review-request.js';
+import Pix from './pix.js';
 
 export const STATUSES = ['Aguardando Arte', 'Produção', 'Finalizado', 'Concluído', 'Entregue'];
 export const DELIVERY_METHODS = ['Retirada na loja', 'Entrega própria', 'Motoboy', 'Correios', 'Transportadora', 'Uber/99 Entrega'];
@@ -133,6 +134,7 @@ const OrderDetails = {
                     ${!canceled && o.status !== 'Entregue' ? `<button type="button" data-act="deliver" class="btn-primary !py-2 !px-4 text-xs" style="background:#059669;"><span class="material-symbols-outlined" style="font-size:17px;">local_shipping</span> Marcar entregue</button>` : ''}
                     ${!canceled && o.status !== 'Entregue' && /Conclu|Pronto/.test(o.status || '') ? action('notify', o.readyNoticeAt ? 'mark_chat_read' : 'chat', o.readyNoticeAt ? 'Avisar de novo' : 'Avisar que ficou pronto') : ''}
                     ${o.status === 'Entregue' ? action('review', 'star', o.reviewRequestedAt ? 'Pedir avaliação de novo' : 'Pedir avaliação no Google') : ''}
+                    ${bal > 0.009 && !canceled && Pix.ready() ? action('pix', 'qr_code_2', `Copiar Pix do saldo (${fmtBRL(bal)})`) : ''}
                     ${action('pay', 'payments', bal > 0 ? 'Registrar pagamento' : 'Pagamentos')}
                     ${action('files', 'folder_open', `Arquivos${nFiles ? ` (${nFiles})` : ''}`)}
                     ${action('sheet', 'print', 'Ficha')}
@@ -172,6 +174,11 @@ const OrderDetails = {
             else if (act === 'files') Files.openOrderModal(o, 'Arquivos do pedido', { orderKey: 'orders', onChange: () => { onChange?.(); render(); } });
             else if (act === 'sheet') QuotePDF.productionSheet(o);
             else if (act === 'notify') ReadyNotice.open(o.id, { onDone: () => { onChange?.(); render(); } });
+            else if (act === 'pix') {
+                const code = Pix.forAmount(Payments.balance(o), `PED${docNo(o)}`);
+                try { await navigator.clipboard.writeText(code); } catch { window.prompt('Copie o código Pix:', code); }
+                (await app()).toast('Pix copia e cola copiado! Cole na conversa do cliente.', 'success');
+            }
             else if (act === 'review') ReviewRequest.open(o.id, { onDone: () => { onChange?.(); render(); } });
             else if (act === 'pdf') QuotePDF.fromOrder(o);
             else if (act === 'cancel') {

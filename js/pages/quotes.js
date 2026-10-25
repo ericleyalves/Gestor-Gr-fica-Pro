@@ -8,6 +8,7 @@ import Payments from '../payments.js';
 import LeadSources from '../lead-sources.js';
 import FollowUp, { STALE_DAYS } from '../followup.js';
 import PriceTiers from '../price-tiers.js';
+import Pix from '../pix.js';
 
 const Quotes = {
     currentItems: [],
@@ -1297,6 +1298,13 @@ const Quotes = {
             if (discount > 0) lines.push(`*Desconto (${Quotes.fmtPct(Quotes.computeTotals().discountPct)}):* - ${fmtBRL(discount)}`);
             lines.push(`*TOTAL:* ${fmtBRL(total)}`);
             lines.push('', `_Prazo de produção: ${Quotes.deadlineText()}_`);
+            // Sinal por Pix copia e cola (Configurações → Sinal para confirmar)
+            const pct = Number((DB.get('shop_profile') || {}).depositPct ?? 50);
+            if (pct > 0 && Pix.ready() && total > 0) {
+                const sinal = Math.round(total * Math.min(100, pct)) / 100;
+                const no = docNo((DB.get('quotes') || []).find(x => x.id === Quotes.editingQuoteId)) || '';
+                lines.push('', `*Para confirmar:* sinal de ${pct}% = ${fmtBRL(sinal)}`, ...Pix.messageLines(sinal, `ORC${no}`, 'Pix copia e cola do sinal'));
+            }
             if (notes) lines.push('', `Obs: ${notes}`);
 
             // Mostra a mensagem pronta para copiar e colar na conversa (não envia nada)
