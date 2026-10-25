@@ -18,7 +18,8 @@ export const waPhone = (phone) => {
 
 /**
  * @param {object} o
- * @param {string} o.title, o.subtitle, o.icon (Material Symbols), o.message, o.phone
+ * @param {string} o.title, o.subtitle, o.icon (Material Symbols), o.message
+ * @param {string|null} o.phone  telefone do cliente; null = sem destinatário (o WhatsApp pergunta para quem enviar)
  * @param {string} [o.hint]      linha de ajuda sob o texto
  * @param {string} [o.warning]   aviso amarelo no topo (ex.: falta configurar algo)
  * @param {boolean} [o.auto]     abriu sozinha → botão "Agora não"
@@ -26,7 +27,8 @@ export const waPhone = (phone) => {
  */
 const WaMessage = {
     open: ({ title, subtitle = '', icon = 'chat', message, phone, hint = '', warning = '', auto = false, onSent }) => {
-        const num = waPhone(phone);
+        const anyone = phone === null;          // escolher o contato no WhatsApp
+        const num = anyone ? '' : waPhone(phone);
         document.getElementById('ggp-wa-modal')?.remove();
         const el = document.createElement('div');
         el.id = 'ggp-wa-modal';
@@ -47,14 +49,14 @@ const WaMessage = {
                 </div>
                 <div class="p-5 space-y-3 overflow-y-auto">
                     ${warning ? `<p class="text-xs p-3 rounded-xl" style="background:#FEF3C7; color:#92400E;">${warning}</p>` : ''}
-                    ${num ? '' : `<p class="text-xs p-3 rounded-xl" style="background:#FEF3C7; color:#92400E;">Este pedido não tem WhatsApp válido. Copie a mensagem e envie por onde preferir, ou cadastre o telefone do cliente.</p>`}
+                    ${num || anyone ? '' : `<p class="text-xs p-3 rounded-xl" style="background:#FEF3C7; color:#92400E;">Este pedido não tem WhatsApp válido. Copie a mensagem e envie por onde preferir, ou cadastre o telefone do cliente.</p>`}
                     <textarea id="wa-msg" spellcheck="false" class="w-full resize-none" style="min-height:220px; background:#DCF8C6; border:0; border-radius:12px; padding:14px 16px; font-size:14px; line-height:1.5; color:#111;"></textarea>
                     ${hint ? `<p class="text-[11px]" style="color:var(--text-faint);">${hint}</p>` : ''}
                 </div>
                 <div class="flex flex-wrap justify-end gap-2 px-6 py-4 border-t" style="border-color:var(--border);">
                     <button type="button" data-close class="btn-ghost">${auto ? 'Agora não' : 'Fechar'}</button>
                     <button type="button" id="wa-copy" class="btn-ghost"><span class="material-symbols-outlined" style="font-size:18px;">content_copy</span> Copiar</button>
-                    ${num ? `<a id="wa-open" target="_blank" rel="noopener" class="btn-primary" style="background:#25D366;">
+                    ${num || anyone ? `<a id="wa-open" target="_blank" rel="noopener" class="btn-primary" style="background:#25D366;">
                         <span class="material-symbols-outlined" style="font-size:18px;">chat</span> Abrir WhatsApp</a>` : ''}
                 </div>
             </div>`;
@@ -62,7 +64,7 @@ const WaMessage = {
         const ta = el.querySelector('#wa-msg');
         ta.value = message;
         const wa = el.querySelector('#wa-open');
-        const upd = () => { if (wa) wa.href = `https://wa.me/${num}?text=${encodeURIComponent(ta.value)}`; };
+        const upd = () => { if (wa) wa.href = `https://wa.me/${num}?text=${encodeURIComponent(ta.value)}`; };   // sem número: wa.me/?text= deixa escolher o contato
         upd(); ta.addEventListener('input', upd);
 
         const close = () => { el.remove(); document.removeEventListener('keydown', onKey); };
