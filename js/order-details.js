@@ -9,6 +9,7 @@ import Payments from './payments.js';
 import Files from './files.js';
 import QuotePDF from './pdf.js';
 import Stock from './stock.js';
+import ReadyNotice from './ready-notice.js';
 
 export const STATUSES = ['Aguardando Arte', 'Produção', 'Finalizado', 'Concluído', 'Entregue'];
 export const DELIVERY_METHODS = ['Retirada na loja', 'Entrega própria', 'Motoboy', 'Correios', 'Transportadora', 'Uber/99 Entrega'];
@@ -129,6 +130,7 @@ const OrderDetails = {
                 <div class="px-6 py-4 border-t flex flex-wrap gap-2" style="border-color:var(--border);">
                     ${canceled ? '' : `<button type="button" data-act="edit" class="btn-primary !py-2 !px-4 text-xs"><span class="material-symbols-outlined" style="font-size:17px;">edit</span> Editar pedido</button>`}
                     ${!canceled && o.status !== 'Entregue' ? `<button type="button" data-act="deliver" class="btn-primary !py-2 !px-4 text-xs" style="background:#059669;"><span class="material-symbols-outlined" style="font-size:17px;">local_shipping</span> Marcar entregue</button>` : ''}
+                    ${!canceled && o.status !== 'Entregue' && /Conclu|Pronto/.test(o.status || '') ? action('notify', o.readyNoticeAt ? 'mark_chat_read' : 'chat', o.readyNoticeAt ? 'Avisar de novo' : 'Avisar que ficou pronto') : ''}
                     ${action('pay', 'payments', bal > 0 ? 'Registrar pagamento' : 'Pagamentos')}
                     ${action('files', 'folder_open', `Arquivos${nFiles ? ` (${nFiles})` : ''}`)}
                     ${action('sheet', 'print', 'Ficha')}
@@ -146,7 +148,11 @@ const OrderDetails = {
             if (!e.target.matches('[data-status]')) return;
             const from = get().status, to = e.target.value;
             if (to === 'Entregue') { e.target.value = from; return OrderDetails.deliver(orderId, () => { onChange?.(); render(); }); }
-            if (from !== to) { update({ status: to }, `Status: ${from} → ${to}`); app().then(a => a.toast(`Pedido Nº ${docNo(get())}: ${to}`)); }
+            if (from !== to) {
+                update({ status: to }, `Status: ${from} → ${to}`); app().then(a => a.toast(`Pedido Nº ${docNo(get())}: ${to}`));
+                // Ficou pronto? Oferece avisar o cliente no WhatsApp
+                if (/Conclu|Pronto/.test(to) && !get()?.readyNoticeAt) ReadyNotice.open(orderId, { auto: true, onDone: () => { onChange?.(); render(); } });
+            }
         });
 
         el.addEventListener('click', async (e) => {
@@ -163,6 +169,7 @@ const OrderDetails = {
             else if (act === 'pay') Payments.openModal(o.id, () => { onChange?.(); render(); });
             else if (act === 'files') Files.openOrderModal(o, 'Arquivos do pedido', { orderKey: 'orders', onChange: () => { onChange?.(); render(); } });
             else if (act === 'sheet') QuotePDF.productionSheet(o);
+            else if (act === 'notify') ReadyNotice.open(o.id, { onDone: () => { onChange?.(); render(); } });
             else if (act === 'pdf') QuotePDF.fromOrder(o);
             else if (act === 'cancel') {
                 (await app()).confirm({
