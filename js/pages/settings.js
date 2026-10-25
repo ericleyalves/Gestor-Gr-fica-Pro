@@ -10,7 +10,7 @@ const Settings = {
             name: '', cnpj: '', phone: '', email: '', instagram: '', address: '', googleReview: '',
             terms: 'Validade da proposta: 15 dias.\nInício da produção mediante aprovação final da arte e pagamento de 50% de sinal.\nVariação de cor de até 10% é considerada normal no processo gráfico.',
             paymentConditions: 'Pix ou cartão (taxas do cartão por conta do cliente)',
-            pixKey: '', validityDays: '15', defaultDeadline: '5',
+            pixKey: '', pixKeyType: '', pixName: '', pixCity: '', depositPct: '50', validityDays: '15', defaultDeadline: '5',
             logo: '', brandColor: '#6C2BFF', brandColor2: ''
         };
         const profile = { ...DEFAULT_PROFILE, ...(DB.get('shop_profile') || {}) };
@@ -148,6 +148,26 @@ const Settings = {
                                                 <div>
                                                     <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Chave Pix (aparece no PDF)</label>
                                                     <input type="text" name="pixKey" value="${esc(profile.pixKey)}" placeholder="CNPJ, e-mail, telefone ou aleatória" class="w-full">
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Tipo da chave Pix</label>
+                                                    <select name="pixKeyType" class="w-full">
+                                                        ${[['', 'Detectar automaticamente'], ['phone', 'Celular'], ['cnpj', 'CNPJ'], ['cpf', 'CPF'], ['email', 'E-mail'], ['evp', 'Aleatória']].map(([v, l]) => `<option value="${v}" ${profile.pixKeyType === v ? 'selected' : ''}>${l}</option>`).join('')}
+                                                    </select>
+                                                    <p class="text-[11px] text-slate-400 mt-1">Usado no Pix copia e cola das mensagens. Celular e CPF têm 11 dígitos: escolha o tipo certo.</p>
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Nome do recebedor (Pix)</label>
+                                                    <input type="text" name="pixName" value="${esc(profile.pixName)}" placeholder="Igual ao do banco (até 25 letras)" maxlength="25" class="w-full">
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Cidade (Pix)</label>
+                                                    <input type="text" name="pixCity" value="${esc(profile.pixCity)}" placeholder="Maceió" maxlength="15" class="w-full">
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Sinal para confirmar (%)</label>
+                                                    <input type="number" name="depositPct" value="${esc(profile.depositPct)}" min="0" max="100" step="1" class="w-full">
+                                                    <p class="text-[11px] text-slate-400 mt-1">Vai como Pix copia e cola na mensagem do orçamento. 0 = não mandar.</p>
                                                 </div>
                                                 <div>
                                                     <label class="text-xs font-black text-slate-400 uppercase mb-1 block">Validade do Orçamento (dias)</label>
