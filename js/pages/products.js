@@ -304,7 +304,21 @@ const Products = {
 
     renderRow: (p) => {
         const fmt = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        const margin = p.cost > 0 ? (((p.price / p.cost) - 1) * 100).toFixed(0) : 0;
+        // Produto vendido por variação (ex.: banner por tamanho, preço base 0): mostra "a partir de" da opção mais barata
+        const varMin = (p.variations || []).reduce((n, g) => {
+            const prices = (g.options || []).filter(o => String(o.name || '').trim()).map(o => parseFloat(o.price) || 0);
+            return n + (prices.length ? Math.min(...prices) : 0);
+        }, 0);
+        const varMinCost = (p.variations || []).reduce((n, g) => {
+            const opts = (g.options || []).filter(o => String(o.name || '').trim());
+            if (!opts.length) return n;
+            const cheapest = opts.reduce((a, o) => ((parseFloat(o.price) || 0) < (parseFloat(a.price) || 0) ? o : a), opts[0]);
+            return n + (parseFloat(cheapest.cost) || 0);
+        }, 0);
+        const showPrice = (parseFloat(p.price) || 0) + varMin;
+        const showCost = (parseFloat(p.cost) || 0) + varMinCost;
+        const fromVar = varMin > 0;
+        const margin = showCost > 0 ? (((showPrice / showCost) - 1) * 100).toFixed(0) : 0;
         return `
             <tr style="border-bottom:1px solid #F8F6FF; transition:background 0.15s;" onmouseover="this.style.background='#FAFBFF'" onmouseout="this.style.background=''">
                 <td class="px-5 py-3.5">
@@ -313,7 +327,7 @@ const Products = {
                             <img src="${esc(p.image || 'https://via.placeholder.com/100?text=📦')}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/100?text=📦'">
                         </div>
                         <div>
-                            <p class="text-sm font-bold" style="color:var(--text-main);">${esc(p.name)}</p>
+                            <p class="text-sm font-bold cursor-pointer hover:underline" style="color:var(--text-main);" onclick="window.editProduct('${p.id}')" title="Ver / editar produto">${esc(p.name)}</p>
                             <div class="flex items-center gap-2">
                                 <p class="text-xs font-semibold" style="color:var(--text-faint); text-transform:uppercase">${p.type === 'm2' ? 'Por Metro Quadrado' : 'Unidade'}</p>
                                 ${p.manageStock === false ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">SEM ESTOQUE</span>' : ''}
@@ -329,7 +343,9 @@ const Products = {
                 <td class="px-5 py-3.5 text-right">
                     <span class="badge badge-purple">${margin}%</span>
                 </td>
-                <td class="px-5 py-3.5 text-right text-sm font-bold" style="color:var(--text-main);">${fmt(p.price)}</td>
+                <td class="px-5 py-3.5 text-right text-sm font-bold" style="color:${showPrice > 0 ? 'var(--text-main)' : '#B45309'};" ${showPrice > 0 ? '' : 'title="Sem preço cadastrado — clique no lápis para preencher"'}>
+                    ${fromVar ? '<span class="block text-[10px] font-semibold" style="color:var(--text-faint);">a partir de</span>' : ''}${showPrice > 0 ? fmt(showPrice) : 'Sem preço'}
+                </td>
                 <td class="px-5 py-3.5 text-center">
                     <span class="badge ${p.status ? 'badge-green' : 'badge-orange'}">${p.status ? 'Ativo' : 'Inativo'}</span>
                 </td>
