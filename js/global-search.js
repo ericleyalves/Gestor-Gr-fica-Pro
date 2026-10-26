@@ -74,7 +74,8 @@ const GlobalSearch = {
         const box = document.createElement('div');
         box.id = 'global-search-results';
         box.className = 'hidden absolute left-0 top-full mt-2 w-[420px] max-w-[90vw] bg-white rounded-xl shadow-2xl border overflow-y-auto z-[90]';
-        box.style.cssText = 'border-color:var(--border); max-height:70vh;';
+        box.style.cssText = 'border-color:var(--border); max-height:70vh; z-index:200;';
+        input.setAttribute('autocomplete', 'off');   // sem a lista de sugestões do navegador por cima
         wrap.appendChild(box);
         let active = -1, timer = null;
 
@@ -94,7 +95,7 @@ const GlobalSearch = {
                 <div class="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-wider" style="color:var(--text-faint);">${esc(g.label)} · ${g.total}</div>
                 ${g.items.map(it => `
                 <button type="button" data-kind="${it.kind}" data-id="${esc(it.id)}" class="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-slate-50">
-                    <span class="material-symbols-outlined flex-shrink-0" style="font-size:18px; color:var(--primary);">${it.icon}</span>
+                    <span class="material-symbols-outlined flex-shrink-0" style="font-size:18px; color:var(--primary); position:static; transform:none; left:auto; top:auto;">${it.icon}</span>
                     <span class="min-w-0">
                         <span class="block text-sm font-semibold truncate" style="color:var(--text-main);">${esc(it.title)}</span>
                         <span class="block text-xs truncate" style="color:var(--text-muted);">${esc(it.sub)}</span>
