@@ -291,7 +291,7 @@ const Quotes = {
 
 <!-- CUSTOM ITEM MODAL -->
 <div id="quote-custom-item-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background:rgba(10,10,20,0.5); backdrop-filter:blur(8px);">
-    <div class="bg-surface-container-lowest rounded-xl shadow-[0px_10px_30px_rgba(109,40,255,0.08)] border border-outline-variant/30 w-full max-w-[440px] overflow-hidden">
+    <div class="bg-surface-container-lowest rounded-xl shadow-[0px_10px_30px_rgba(109,40,255,0.08)] border border-outline-variant/30 w-full max-w-[520px] overflow-hidden">
         <div class="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center">
             <h3 class="text-headline-md font-headline-md text-on-surface" id="custom-item-modal-title">Item Avulso</h3>
             <button id="close-custom-item-modal" class="w-8 h-8 flex items-center justify-center rounded-full text-outline hover:bg-surface-variant hover:text-primary transition-colors">
@@ -303,17 +303,22 @@ const Quotes = {
                 <label class="block text-label-md font-label-md text-on-surface-variant mb-1">Descrição</label>
                 <input type="text" id="ci-name" required class="w-full px-4 py-2 border border-outline-variant/50 rounded-lg focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary-container/20 text-body-md font-body-md text-on-surface bg-surface-container-lowest" placeholder="Ex: Criação de Logo">
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-3">
                 <div>
                     <label class="block text-label-md font-label-md text-on-surface-variant mb-1">Quantidade</label>
                     <input type="number" id="ci-qty" required min="1" value="1" class="w-full px-4 py-2 border border-outline-variant/50 rounded-lg focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary-container/20 text-body-md font-body-md text-on-surface bg-surface-container-lowest">
+                </div>
+                <div>
+                    <label class="block text-label-md font-label-md text-on-surface-variant mb-1">Custo Unit. (R$)</label>
+                    <input type="number" id="ci-cost" step="0.01" min="0" class="w-full px-4 py-2 border border-outline-variant/50 rounded-lg focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary-container/20 text-body-md font-body-md text-on-surface bg-surface-container-lowest" placeholder="Opcional" title="Quanto custa para você produzir/comprar 1 unidade (entra no lucro dos relatórios)">
                 </div>
                 <div>
                     <label class="block text-label-md font-label-md text-on-surface-variant mb-1">Valor Unitário (R$)</label>
                     <input type="number" id="ci-price" required step="0.01" min="0" class="w-full px-4 py-2 border border-outline-variant/50 rounded-lg focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary-container/20 text-body-md font-body-md text-on-surface bg-surface-container-lowest" placeholder="0.00">
                 </div>
             </div>
-            <div class="flex justify-end gap-3 pt-4">
+            <p id="ci-profit" class="text-xs font-semibold" style="color:var(--text-muted); min-height:1em;"></p>
+            <div class="flex justify-end gap-3 pt-2">
                 <button type="button" id="btn-cancel-custom-item" class="px-4 py-2 bg-transparent border border-outline-variant text-on-surface-variant hover:bg-surface-variant rounded-lg font-label-md font-semibold transition-colors">Cancelar</button>
                 <button type="submit" class="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-on-primary rounded-lg font-label-md font-semibold hover:opacity-90 transition-opacity">Adicionar Item</button>
             </div>
@@ -1085,7 +1090,24 @@ const Quotes = {
             formCustomItem.reset();
             container.querySelector('#custom-item-modal-title').innerText = service ? 'Novo Serviço' : 'Item Avulso';
             customItemModal.classList.remove('hidden');
+            updateProfit();
+            setTimeout(() => document.getElementById('ci-name')?.focus(), 50);
         };
+
+        // Lucro do item avulso: (valor − custo) × quantidade
+        const updateProfit = () => {
+            const el = document.getElementById('ci-profit');
+            if (!el) return;
+            const qty = parseInt(document.getElementById('ci-qty').value) || 1;
+            const price = parseFloat(document.getElementById('ci-price').value) || 0;
+            const costRaw = document.getElementById('ci-cost').value;
+            if (costRaw === '' || !price) { el.textContent = ''; return; }
+            const cost = parseFloat(costRaw) || 0;
+            const profit = (price - cost) * qty;
+            el.textContent = `Lucro: ${fmtBRL(profit)} (${price > 0 ? Math.round((price - cost) / price * 100) : 0}% do valor)`;
+            el.style.color = profit < 0 ? '#DC2626' : '#059669';
+        };
+        ['ci-qty', 'ci-price', 'ci-cost'].forEach(id => container.querySelector(`#${id}`)?.addEventListener('input', updateProfit));
 
         const closeCustomItemModal = () => customItemModal.classList.add('hidden');
 
@@ -1099,8 +1121,10 @@ const Quotes = {
             const name = document.getElementById('ci-name').value;
             const qty = parseInt(document.getElementById('ci-qty').value) || 1;
             const price = parseFloat(document.getElementById('ci-price').value) || 0;
+            const costRaw = document.getElementById('ci-cost').value;
             
             Quotes.currentItems.push({
+                ...(costRaw !== '' ? { unitCost: Math.round((parseFloat(costRaw) || 0) * 100) / 100 } : {}),
                 id: Date.now(),
                 name: name,
                 category: isService ? 'Serviço' : 'Avulso',
