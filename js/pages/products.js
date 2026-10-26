@@ -722,13 +722,19 @@ const Products = {
                         <button type="button" onclick="window.addOption(${gIdx})" class="btn-ghost !px-3 text-xs font-bold flex-shrink-0" style="height:46px;">
                             <span class="material-symbols-outlined !text-sm">add</span> Opção
                         </button>
+                        ${currentVariations.length > 1 ? `
+                        <div class="flex flex-col flex-shrink-0" style="height:46px;">
+                            <button type="button" onclick="window.moveVariationGroup(${gIdx}, -1)" class="flex-1 w-8 flex items-center justify-center rounded-lg hover:bg-violet-50 text-slate-400 hover:text-primary disabled:opacity-30" ${gIdx === 0 ? 'disabled' : ''} title="Subir grupo"><span class="material-symbols-outlined" style="font-size:18px;">keyboard_arrow_up</span></button>
+                            <button type="button" onclick="window.moveVariationGroup(${gIdx}, 1)" class="flex-1 w-8 flex items-center justify-center rounded-lg hover:bg-violet-50 text-slate-400 hover:text-primary disabled:opacity-30" ${gIdx === currentVariations.length - 1 ? 'disabled' : ''} title="Descer grupo"><span class="material-symbols-outlined" style="font-size:18px;">keyboard_arrow_down</span></button>
+                        </div>` : ''}
                         <button type="button" onclick="window.removeVariationGroup(${gIdx})" class="w-11 flex items-center justify-center rounded-xl hover:bg-red-50 hover:text-red-500 transition-all text-slate-400 flex-shrink-0" style="height:46px;" title="Remover grupo">
                             <span class="material-symbols-outlined" style="font-size:20px;">delete</span>
                         </button>
                     </div>
 
                     ${v.options.length ? `
-                    <div class="grid gap-3 px-1 mb-1.5" style="grid-template-columns: minmax(0,1fr) 140px 140px 40px;">
+                    <div class="grid gap-3 px-1 mb-1.5" style="grid-template-columns: 24px minmax(0,1fr) 140px 140px 104px;">
+                        <span></span>
                         <span class="label-caps">Opção</span>
                         <span class="label-caps text-right" title="Somado ao custo base">+ Custo R$</span>
                         <span class="label-caps text-right" title="Somado ao preço base">+ Preço R$</span>
@@ -736,13 +742,18 @@ const Products = {
                     </div>` : ''}
                     <div class="space-y-2">
                         ${v.options.map((opt, oIdx) => `
-                            <div class="grid gap-3 items-center" style="grid-template-columns: minmax(0,1fr) 140px 140px 40px;">
+                            <div class="var-opt grid gap-3 items-center rounded-xl" data-g="${gIdx}" data-o="${oIdx}" style="grid-template-columns: 24px minmax(0,1fr) 140px 140px 104px;">
+                                <span class="var-handle material-symbols-outlined text-slate-300 hover:text-primary cursor-grab select-none text-center" style="font-size:20px;" title="Arraste para mudar a ordem">drag_indicator</span>
                                 <input type="text" value="${esc(opt.name)}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'name', this.value)" placeholder="Ex: 60x40 cm">
                                 <input type="number" value="${(Number(opt.cost) || 0).toFixed(2)}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'cost', this.value)" placeholder="0,00" step="0.01" min="0" class="text-right" inputmode="decimal">
                                 <input type="number" value="${(Number(opt.price) || 0).toFixed(2)}" oninput="window.updateOption(${gIdx}, ${oIdx}, 'price', this.value)" placeholder="0,00" step="0.01" min="0" class="text-right" inputmode="decimal">
-                                <button type="button" onclick="window.removeOption(${gIdx}, ${oIdx})" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-50 hover:text-red-500 transition-all text-slate-400" title="Remover opção">
-                                    <span class="material-symbols-outlined" style="font-size:18px;">close</span>
-                                </button>
+                                <div class="flex items-center">
+                                    <button type="button" onclick="window.moveOption(${gIdx}, ${oIdx}, -1)" class="w-8 h-10 flex items-center justify-center rounded-lg hover:bg-violet-50 hover:text-primary text-slate-400 disabled:opacity-30" ${oIdx === 0 ? 'disabled' : ''} title="Subir"><span class="material-symbols-outlined" style="font-size:18px;">arrow_upward</span></button>
+                                    <button type="button" onclick="window.moveOption(${gIdx}, ${oIdx}, 1)" class="w-8 h-10 flex items-center justify-center rounded-lg hover:bg-violet-50 hover:text-primary text-slate-400 disabled:opacity-30" ${oIdx === v.options.length - 1 ? 'disabled' : ''} title="Descer"><span class="material-symbols-outlined" style="font-size:18px;">arrow_downward</span></button>
+                                    <button type="button" onclick="window.removeOption(${gIdx}, ${oIdx})" class="w-8 h-10 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-slate-400" title="Remover opção">
+                                        <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+                                    </button>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -772,6 +783,34 @@ const Products = {
             currentVariations[gIdx].options.splice(oIdx, 1);
             renderVariations();
         };
+
+        /** Muda a ordem (a ordem aparece igual no orçamento e no catálogo; a 1ª opção é a padrão). */
+        const move = (arr, from, to) => { if (to < 0 || to >= arr.length || from === to) return false; arr.splice(to, 0, arr.splice(from, 1)[0]); return true; };
+        window.moveOption = (gIdx, oIdx, dir) => { if (move(currentVariations[gIdx].options, oIdx, oIdx + dir)) renderVariations(); };
+        window.moveVariationGroup = (gIdx, dir) => { if (move(currentVariations, gIdx, gIdx + dir)) renderVariations(); };
+
+        // Arrastar pela alça (⋮⋮) dentro do mesmo grupo
+        let dragFrom = null;
+        varContainer.addEventListener('mousedown', (e) => { const row = e.target.closest('.var-handle')?.closest('.var-opt'); if (row) row.draggable = true; });
+        varContainer.addEventListener('dragstart', (e) => {
+            const row = e.target.closest?.('.var-opt'); if (!row) return;
+            dragFrom = { g: Number(row.dataset.g), o: Number(row.dataset.o) };
+            e.dataTransfer.effectAllowed = 'move'; row.style.opacity = '.4';
+        });
+        varContainer.addEventListener('dragover', (e) => {
+            const row = e.target.closest('.var-opt');
+            if (dragFrom && row && Number(row.dataset.g) === dragFrom.g) { e.preventDefault(); row.style.boxShadow = '0 -2px 0 var(--primary)'; }
+        });
+        varContainer.addEventListener('dragleave', (e) => { const row = e.target.closest('.var-opt'); if (row) row.style.boxShadow = ''; });
+        varContainer.addEventListener('drop', (e) => {
+            const row = e.target.closest('.var-opt');
+            if (!dragFrom || !row || Number(row.dataset.g) !== dragFrom.g) return;
+            e.preventDefault();
+            const { g, o } = dragFrom; dragFrom = null;
+            move(currentVariations[g].options, o, Number(row.dataset.o));
+            renderVariations();
+        });
+        varContainer.addEventListener('dragend', () => { dragFrom = null; varContainer.querySelectorAll('.var-opt').forEach(r => { r.draggable = false; r.style.opacity = ''; r.style.boxShadow = ''; }); });
 
         window.removeVariationGroup = (gIdx) => {
             currentVariations.splice(gIdx, 1);
