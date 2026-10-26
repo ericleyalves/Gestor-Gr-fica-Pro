@@ -49,13 +49,16 @@ const Kanban = {
         
         const customers = Array.isArray(DB.get('customers')) ? DB.get('customers') : [];
         const products = DB.get('products') || [];
-        const filterStr = String(filter || '').toLowerCase();
+        // Busca sem acento: nº, produto, cliente (do pedido e do cadastro) e telefone
+        const norm = (t) => String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const words = norm(filter).split(/\s+/).filter(Boolean);
+        const custOf = (o) => customers.find(c => String(c.id) === String(o.customerId));
         // Pedidos cancelados não voltam para a fila de produção
-        const filteredOrders = orders.filter(o => o.status !== 'Cancelado' && o.status !== 'Entregue').filter(o =>
-            String(o.id || '').toLowerCase().includes(filterStr) ||
-            String(o.productName || '').toLowerCase().includes(filterStr) ||
-            String(o.customerName || '').toLowerCase().includes(filterStr)
-        );
+        const filteredOrders = orders.filter(o => o.status !== 'Cancelado' && o.status !== 'Entregue').filter(o => {
+            if (!words.length) return true;
+            const text = norm([o.id, docNo(o), o.number, o.productName, o.customerName, custOf(o)?.name, o.phone, custOf(o)?.phone, (o.options || []).join(' ')].join(' '));
+            return words.every(w => text.includes(w));
+        });
 
         board.innerHTML = COLUMNS.map(col => {
             const colOrders = filteredOrders.filter(o => Kanban.getStatusId(o.status) === col.id);
@@ -123,7 +126,7 @@ const Kanban = {
                                     <button type="button" draggable="false" class="text-[10px] font-black px-2 py-0.5 rounded-full hover:opacity-80" style="${b.style}"
                                             onclick="event.stopPropagation(); window.openOrderPayments('${order.id}')" title="Ver / registrar pagamento">${b.label}</button>`; })()}
                                 </div>
-                                <div class="flex items-center gap-1">
+                                <div class="flex flex-wrap items-center gap-1">
                                     <button type="button" draggable="false" class="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-violet-50 transition-all" style="color: var(--text-muted);"
                                             onclick="event.stopPropagation(); window.printOrderPdf('${order.id}')" title="Gerar PDF do pedido">
                                         <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>

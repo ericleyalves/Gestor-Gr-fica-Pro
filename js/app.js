@@ -214,14 +214,11 @@ const App = {
         });
 
         // Global search
+        // Busca do topo: pedidos, orçamentos, clientes e produtos enquanto digita (global-search.js)
         const globalSearch = document.getElementById('global-search-input');
         if (globalSearch) {
-            globalSearch.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && globalSearch.value.trim() !== '') {
-                    App.toast(`Buscando por: "${globalSearch.value.trim()}"... (Em desenvolvimento)`, 'info');
-                    // In a real app, you would route to a search results page or filter data here.
-                }
-            });
+            globalSearch.placeholder = 'Buscar pedido, cliente, produto…';
+            import('./global-search.js').then(m => m.default.bind(globalSearch));
         }
     },
 
