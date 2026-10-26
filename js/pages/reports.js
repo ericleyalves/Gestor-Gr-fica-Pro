@@ -15,7 +15,8 @@ const AD_GENERAL = 'Anúncios em geral (sem separar)';
 
 const PERIODS = [
     { id: 'mes', label: 'Este mês' }, { id: 'mes-passado', label: 'Mês passado' },
-    { id: '90d', label: 'Últimos 90 dias' }, { id: 'ano', label: 'Este ano' }, { id: 'tudo', label: 'Tudo' }
+    { id: '90d', label: 'Últimos 90 dias' }, { id: 'ano', label: 'Este ano' }, { id: 'tudo', label: 'Tudo' },
+    { id: 'custom', label: '📅 Escolher datas…' }
 ];
 const COLORS = ['#6C2BFF', '#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#EC4899', '#14B8A6', '#64748B'];
 const round = (v) => Math.round((Number(v) || 0) * 100) / 100;
@@ -23,6 +24,8 @@ const pct = (v) => `${(Math.round(v * 10) / 10).toLocaleString('pt-BR')}%`;
 
 const Reports = {
     period: 'mes',
+    from: null,   // datas escolhidas no calendário (AAAA-MM-DD)
+    to: null,
     charts: [],
 
     range: () => {
@@ -32,6 +35,10 @@ const Reports = {
             case 'mes-passado': return [isoDate(new Date(y, m - 1, 1)), isoDate(new Date(y, m, 0))];
             case '90d':         return [isoDate(new Date(y, m, now.getDate() - 89)), isoDate(now)];
             case 'ano':         return [`${y}-01-01`, `${y}-12-31`];
+            case 'custom': {
+                const a = Reports.from || isoDate(new Date(y, m, 1)), b = Reports.to || isoDate(now);
+                return a <= b ? [a, b] : [b, a];
+            }
             default:            return ['0000-01-01', '9999-12-31'];
         }
     },
@@ -97,7 +104,9 @@ const Reports = {
         const ads = Reports.adsBySource(quotes, orders, inRange);
 
         const fmtD = (iso) => { const [y, m, d] = String(iso || '').split('-'); return d ? `${d}/${m}/${y}` : '—'; };
-        const periodLabel = PERIODS.find(p => p.id === Reports.period).label.toLowerCase();
+        const periodLabel = Reports.period === 'custom'
+            ? (from === to ? `em ${fmtD(from)}` : `de ${fmtD(from)} a ${fmtD(to)}`)
+            : PERIODS.find(p => p.id === Reports.period).label.toLowerCase();
         const kpi = (label, value, sub, color = 'var(--text-main)') => `
             <div class="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-sm">
                 <p class="label-caps">${label}</p>
@@ -115,7 +124,14 @@ const Reports = {
             <h2 class="page-title">Relatórios 📊</h2>
             <p class="text-sm mt-1" style="color:var(--text-muted);">Como a gráfica está indo — ${periodLabel}.</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2 items-center">
+            ${Reports.period === 'custom' ? `
+            <div class="flex items-center gap-1.5 bg-white rounded-xl border px-2 py-1" style="border-color:var(--border);">
+                <span class="text-xs font-bold" style="color:var(--text-muted);">De</span>
+                <input type="date" id="rep-from" value="${from}" class="!w-auto !py-1.5 text-sm">
+                <span class="text-xs font-bold" style="color:var(--text-muted);">até</span>
+                <input type="date" id="rep-to" value="${to}" class="!w-auto !py-1.5 text-sm">
+            </div>` : ''}
             <select id="rep-period" class="!w-auto font-semibold">${PERIODS.map(p => `<option value="${p.id}" ${p.id === Reports.period ? 'selected' : ''}>${p.label}</option>`).join('')}</select>
             <button id="rep-export" class="btn-ghost"><span class="material-symbols-outlined" style="font-size:18px;">download</span> Exportar pedidos</button>
         </div>
@@ -165,7 +181,21 @@ const Reports = {
 </div>`;
 
         Reports.drawCharts(allOrders, byCat, byMethod);
-        container.querySelector('#rep-period').addEventListener('change', (e) => { Reports.period = e.target.value; Reports.render(container); });
+        container.querySelector('#rep-period').addEventListener('change', (e) => {
+            if (e.target.value === 'custom' && !Reports.from) {
+                // Começa com o período que estava na tela (ou este mês)
+                const [a, b] = Reports.range();
+                Reports.from = a === '0000-01-01' ? isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)) : a;
+                Reports.to = b === '9999-12-31' ? isoDate(new Date()) : b;
+            }
+            Reports.period = e.target.value;
+            Reports.render(container);
+        });
+        ['from', 'to'].forEach(k => container.querySelector(`#rep-${k}`)?.addEventListener('change', (e) => {
+            if (!e.target.value) return;
+            Reports[k] = e.target.value;
+            Reports.render(container);
+        }));
         container.querySelector('#rep-export').addEventListener('click', () => Reports.exportCsv(orders, custName));
     },
 
