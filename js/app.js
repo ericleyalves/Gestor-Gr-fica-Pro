@@ -369,6 +369,7 @@ const App = {
                 orcamentos: () => import('./pages/quotes.js'),
                 financeiro: () => import('./pages/finance.js'),
                 estoque: () => import('./pages/inventory.js'),
+                recibos: () => import('./pages/receipts.js'),
                 relatorios: () => import('./pages/reports.js'),
                 configuracoes: () => import('./pages/settings.js'),
             };
