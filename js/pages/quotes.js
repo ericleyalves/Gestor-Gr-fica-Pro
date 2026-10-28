@@ -8,6 +8,7 @@ import Payments from '../payments.js';
 import FollowUp, { STALE_DAYS } from '../followup.js';
 import PriceTiers from '../price-tiers.js';
 import Pix from '../pix.js';
+import Files from '../files.js';
 
 const Quotes = {
     currentItems: [],
@@ -621,6 +622,10 @@ const Quotes = {
                                 <button type="button" data-act="link" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-green-50 text-slate-500" title="Link para o cliente aprovar">
                                     <span class="material-symbols-outlined" style="font-size:18px;">link</span>
                                 </button>
+                                <button type="button" data-act="files" class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-violet-50 text-slate-500" title="Arquivos do cliente (arte, fotos, logo…)">
+                                    <span class="material-symbols-outlined" style="font-size:18px;">attach_file</span>
+                                    ${q.files?.length ? `<span class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black text-white flex items-center justify-center" style="background:var(--primary);">${q.files.length}</span>` : ''}
+                                </button>
                                 <button type="button" data-act="pdf" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-violet-50 text-slate-500" title="PDF do orçamento">
                                     <span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>
                                 </button>
@@ -651,6 +656,14 @@ const Quotes = {
             if (btn.dataset.act === 'open') { close(); Quotes.loadDraft(container, id); }
             else if (btn.dataset.act === 'pdf') { QuotePDF.fromOrder(q, 'orcamento'); }
             else if (btn.dataset.act === 'link') { close(); Approval.share(id); }
+            else if (btn.dataset.act === 'files') {
+                Files.openOrderModal(q, `Arquivos do orçamento Nº ${docNo(q)}`, { orderKey: 'quotes', onChange: () => {
+                    // atualiza o contador na lista e mantém a janela de arquivos por cima
+                    Quotes.openDrafts(container);
+                    const fm = document.getElementById('ggp-files-modal');
+                    if (fm) document.body.appendChild(fm);
+                } });
+            }
             else if (btn.dataset.act === 'followup') {
                 if (FollowUp.send(id)) { App.toast('WhatsApp aberto com a mensagem pronta — é só enviar', 'success'); Quotes.setTitle(container); Quotes.openDrafts(container); }
                 else App.toast('Este orçamento não tem WhatsApp válido', 'error');
@@ -1203,7 +1216,10 @@ const Quotes = {
                 // Veio de um rascunho? Marca como convertido (sai da lista e da contagem de abertos)
                 if (Quotes.editingQuoteId) {
                     const q = quotes.find(x => x.id === Quotes.editingQuoteId);
-                    if (q) { q.status = 'Convertido'; q.orderId = newOrder.id; DB.save('quotes', quotes); }
+                    if (q) {
+                        q.status = 'Convertido'; q.orderId = newOrder.id; DB.save('quotes', quotes);
+                        if (q.files?.length) newOrder.files = [...(newOrder.files || []), ...q.files];   // arquivos do orçamento vão para o pedido
+                    }
                 }
                 orders.unshift(newOrder);
                 DB.save('orders', orders);
