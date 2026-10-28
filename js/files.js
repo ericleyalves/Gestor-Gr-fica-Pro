@@ -205,7 +205,7 @@ const Files = {
                 <div class="flex items-center justify-between px-5 py-4 border-b" style="border-color:var(--border);">
                     <div>
                         <h3 class="text-base font-black" style="color:var(--text-main);">${esc(title)}</h3>
-                        <p class="text-xs" style="color:var(--text-faint);">${o.number ? `Pedido Nº ${esc(docNo(o))}` : esc(o.id)} · ${esc(o.customerName || '')}</p>
+                        <p class="text-xs" style="color:var(--text-faint);">${o.number ? `${key === 'quotes' ? 'Orçamento' : 'Pedido'} Nº ${esc(docNo(o))}` : esc(o.id)} · ${esc(o.customerName || '')}</p>
                     </div>
                     <button type="button" data-close class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100" style="color:var(--text-faint);">
                         <span class="material-symbols-outlined" style="font-size:18px;">close</span>
@@ -216,7 +216,7 @@ const Files = {
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <div>
-                                <p class="label-caps" style="color:var(--primary);">Arquivos do cliente (só deste pedido)</p>
+                                <p class="label-caps" style="color:var(--primary);">Arquivos do cliente (só deste ${key === 'quotes' ? 'orçamento — vão junto para o pedido' : 'pedido'})</p>
                                 <p class="text-[11px]" style="color:var(--text-faint);">Arte personalizada, logo, nomes… não vão para o cadastro do produto.</p>
                             </div>
                             <button type="button" data-upload class="btn-primary !py-1.5 !px-3 text-xs flex-shrink-0">
