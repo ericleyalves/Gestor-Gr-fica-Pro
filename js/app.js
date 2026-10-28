@@ -214,12 +214,7 @@ const App = {
         });
 
         // Global search
-        // Busca do topo: pedidos, orçamentos, clientes e produtos enquanto digita (global-search.js)
-        const globalSearch = document.getElementById('global-search-input');
-        if (globalSearch) {
-            globalSearch.placeholder = 'Buscar pedido, cliente, produto…';
-            import('./global-search.js').then(m => m.default.bind(globalSearch));
-        }
+        // (Busca do topo removida: cada tela tem a sua, que filtra os cards enquanto digita.)
     },
 
     checkLogin: async () => {
