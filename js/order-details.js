@@ -139,6 +139,7 @@ const OrderDetails = {
                     ${action('files', 'folder_open', `Arquivos${nFiles ? ` (${nFiles})` : ''}`)}
                     ${action('sheet', 'print', 'Ficha')}
                     ${action('pdf', 'picture_as_pdf', 'PDF')}
+                    ${canceled ? '' : action('receipt', 'receipt_long', 'Recibo')}
                     ${canceled ? '' : action('cancel', 'cancel', 'Cancelar pedido', 'ml-auto hover:!border-red-400 hover:!text-red-500')}
                 </div>
             </div>`;
@@ -181,6 +182,12 @@ const OrderDetails = {
             }
             else if (act === 'review') ReviewRequest.open(o.id, { onDone: () => { onChange?.(); render(); } });
             else if (act === 'pdf') QuotePDF.fromOrder(o);
+            else if (act === 'receipt') {
+                const { default: Receipts } = await import('./pages/receipts.js');
+                Receipts.pendingOrder = o.id;
+                close();
+                (await app()).navigateTo('recibos');
+            }
             else if (act === 'cancel') {
                 (await app()).confirm({
                     title: `Cancelar o pedido Nº ${docNo(o)}?`,
