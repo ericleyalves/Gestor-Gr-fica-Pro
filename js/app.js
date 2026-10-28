@@ -385,7 +385,6 @@ const App = {
             const module = await loader();
             if (module && module.default) {
                 module.default.render(container);
-                import('./global-search.js').then(m => m.default.attachPage(container, page));   // busca do topo filtra esta tela
             }
         } catch (error) {
             console.error('Error loading page:', error);
