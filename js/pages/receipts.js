@@ -4,7 +4,7 @@
  * Gera recibo avulso ou a partir de um pedido (cliente, documento, valor recebido
  * e descrição já preenchidos). O recibo sai com a logo, cores e dados da gráfica
  * (Configurações → Perfil da gráfica), valor por extenso, numeração sequencial e
- * linha de assinatura. Imprime/salva em PDF (1 ou 2 vias por folha) e manda pelo
+ * assinatura salva (ou linha para assinar). Imprime/salva em PDF (via do cliente) e manda pelo
  * WhatsApp. Os recibos emitidos ficam no histórico (chave "receipts", sincronizada).
  */
 import DB from '../db.js';
@@ -12,6 +12,7 @@ import App from '../app.js';
 import { fmtBRL, esc, isoDate, docNo, nextNumber } from '../utils.js';
 import Payments, { METHODS } from '../payments.js';
 import QuotePDF from '../pdf.js';
+import Signature from '../signature.js';
 import WaMessage, { waPhone } from '../wa-message.js';
 import { extenso } from '../extenso.js';
 
@@ -88,9 +89,14 @@ const Receipts = {
                         <label class="${lbl}">Cidade</label>
                         <input id="rc-city" class="w-full" value="${esc(cityOf(shop))}" placeholder="Ex.: Maceió/AL">
                     </div>
-                    <label class="md:col-span-2 flex items-center gap-2 text-sm text-slate-600">
-                        <input type="checkbox" id="rc-two" checked> Imprimir 2 vias na mesma folha (cliente + gráfica)
-                    </label>
+                    <div class="md:col-span-2 flex flex-wrap items-center gap-3 p-3 rounded-xl" style="background:#F8F7FC; border:1px solid #ECEAF3;">
+                        ${shop.signature
+                            ? `<img src="${esc(shop.signature)}" alt="Assinatura" style="height:46px; max-width:180px; object-fit:contain;">
+                               <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" id="rc-signed" checked> Sair assinado</label>`
+                            : '<span class="text-sm text-slate-500">Sem assinatura salva — o recibo sai com a linha para assinar à mão.</span>'}
+                        <button type="button" id="rc-sign" class="btn-ghost !py-1.5 !px-3 text-xs ml-auto"><span class="material-symbols-outlined text-[18px]">draw</span> ${shop.signature ? 'Trocar assinatura' : 'Cadastrar assinatura'}</button>
+                        ${shop.signature ? '<button type="button" id="rc-sign-del" class="btn-ghost !py-1.5 !px-3 text-xs hover:!text-red-500">Remover</button>' : ''}
+                    </div>
                     <div class="md:col-span-2 flex flex-wrap gap-3 pt-2">
                         <button type="submit" class="btn-primary flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">print</span> Gerar e imprimir / PDF</button>
                         <button type="button" id="rc-wa" class="btn-ghost flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">chat</span> Gerar e enviar no WhatsApp</button>
@@ -167,6 +173,7 @@ const Receipts = {
             amount, method: c.querySelector('#rc-method').value,
             ref: c.querySelector('#rc-ref').value.trim(),
             city: c.querySelector('#rc-city').value.trim(),
+            signed: !!(Signature.get() && c.querySelector('#rc-signed')?.checked),
             createdAt: new Date().toISOString()
         };
         DB.save(KEY, [...all, r]);
@@ -182,7 +189,7 @@ const Receipts = {
     },
 
     /** HTML do recibo para impressão (A4; 1 via ou 2 vias com linha de corte). */
-    html: async (r, twoCopies = true) => {
+    html: async (r, twoCopies = false) => {
         await QuotePDF.ensureBrandColors();
         const shop = DB.get('shop_profile') || {};
         const brand = validColor(shop.brandColor);
@@ -218,7 +225,7 @@ const Receipts = {
             <p class="body">Para maior clareza, firmo(amos) o presente recibo, dando plena quitação do valor acima.</p>
             <div class="foot">
                 <p>${r.city ? `${esc(r.city)}, ` : ''}${esc(longDate(r.date))}.</p>
-                <div class="sign">${esc(name)}${shop.cnpj ? `<br>CNPJ ${esc(shop.cnpj)}` : ''}</div>
+                <div class="sign">${r.signed && shop.signature ? `<img src="${esc(shop.signature)}" alt="">` : ''}<div class="line">${esc(name)}${shop.cnpj ? `<br>CNPJ ${esc(shop.cnpj)}` : ''}</div></div>
             </div>
             ${twoCopies ? `<p class="via">${label}</p>` : ''}
         </section>`;
@@ -231,7 +238,7 @@ const Receipts = {
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { margin: 0; font-family: 'Inter', system-ui, sans-serif; color: #17151F; font-size: 12px; }
     :root { --brand: ${brand}; --brand2: ${brand2}; }
-    .rc { height: ${twoCopies ? '148.5mm' : 'auto'}; padding: 11mm 15mm 8mm; position: relative; display: flex; flex-direction: column; }
+    .rc { height: 148.5mm; padding: 11mm 15mm 8mm; position: relative; display: flex; flex-direction: column; }
     .rc + .rc { border-top: 1px dashed #b9b6c6; }
     .rc + .rc::before { content: '✂'; position: absolute; top: -9px; left: 8mm; font-size: 14px; color: #8a8799; background: #fff; padding: 0 2mm; }
     header { display: flex; justify-content: space-between; align-items: center; gap: 8mm; padding-bottom: 4mm;
@@ -254,14 +261,16 @@ const Receipts = {
     .body + .body { margin-top: 2mm; }
     .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 10mm; padding-top: 8mm; }
     .foot p { margin: 0; font-size: 11.5px; }
-    .sign { width: 75mm; border-top: 1px solid #17151F; padding-top: 1.5mm; text-align: center; font-size: 10px; color: #3a3748; }
+    .sign { width: 75mm; text-align: center; font-size: 10px; color: #3a3748; }
+    .sign img { display: block; max-width: 68mm; max-height: 20mm; margin: 0 auto -2.5mm; object-fit: contain; }
+    .sign .line { border-top: 1px solid #17151F; padding-top: 1.5mm; }
     .via { position: absolute; right: 15mm; bottom: 3mm; margin: 0; font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: #9a97aa; }
 </style></head><body>
 ${via('Via do cliente')}${twoCopies ? via('Via da gráfica') : ''}
 </body></html>`;
     },
 
-    print: async (r, twoCopies = true) => QuotePDF.print(await Receipts.html(r, twoCopies)),
+    print: async (r, twoCopies = false) => QuotePDF.print(await Receipts.html(r, twoCopies)),
 
     message: (r) => {
         const shop = DB.get('shop_profile') || {};
@@ -295,12 +304,17 @@ ${via('Via do cliente')}${twoCopies ? via('Via da gráfica') : ''}
             if (cust?.document && !$('#rc-doc').value) $('#rc-doc').value = cust.document;
         });
         $('#rc-clear').addEventListener('click', () => Receipts.render(container));
+        $('#rc-sign').addEventListener('click', () => Signature.open(() => Receipts.render(container)));
+        $('#rc-sign-del')?.addEventListener('click', () => App.confirm({
+            title: 'Remover a assinatura?', message: 'Os próximos recibos saem só com a linha para assinar à mão.',
+            type: 'danger', confirmLabel: 'Sim, remover',
+            onConfirm: () => { Signature.save(''); Receipts.render(container); }
+        }));
         $('#rc-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const r = Receipts.issue();
             if (!r) return;
-            const two = $('#rc-two').checked;
-            Receipts.print(r, two);
+            Receipts.print(r);
             App.toast(`Recibo Nº ${docNo(r)} gerado — escolha a impressora ou "Salvar como PDF"`);
             Receipts.render(container);
         });
@@ -315,7 +329,7 @@ ${via('Via do cliente')}${twoCopies ? via('Via da gráfica') : ''}
             if (!b) return;
             const r = list().find(x => x.id === b.dataset.id);
             if (!r) return;
-            if (b.dataset.rc === 'print') Receipts.print(r, true);
+            if (b.dataset.rc === 'print') Receipts.print(r);
             else if (b.dataset.rc === 'wa') Receipts.sendWa(r);
             else if (b.dataset.rc === 'del') App.confirm({
                 title: `Excluir o recibo Nº ${docNo(r)}?`, message: 'Ele sai do histórico. O número não é reaproveitado se houver recibos depois dele.',
