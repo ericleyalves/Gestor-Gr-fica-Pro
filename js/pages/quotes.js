@@ -5,7 +5,6 @@ import { esc } from '../utils.js';
 import QuotePDF from '../pdf.js';
 import Approval from '../approval.js';
 import Payments from '../payments.js';
-import LeadSources from '../lead-sources.js';
 import FollowUp, { STALE_DAYS } from '../followup.js';
 import PriceTiers from '../price-tiers.js';
 import Pix from '../pix.js';
@@ -53,10 +52,6 @@ const Quotes = {
                 <div class="w-full md:w-48">
                     <label class="block text-label-md font-label-md text-on-surface-variant mb-2">WhatsApp</label>
                     <input id="input-whatsapp" class="w-full px-4 py-2 border border-outline-variant/50 rounded-lg focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary-container/20 text-body-md font-body-md text-on-surface bg-surface-container-lowest transition-all" placeholder="(00) 00000-0000" type="text"/>
-                </div>
-                <div class="w-full md:w-56">
-                    <label class="block text-label-md font-label-md text-on-surface-variant mb-2" title="De onde veio este cliente? Alimenta o relatório de anúncios.">Origem do cliente</label>
-                    <select id="input-lead-source" class="w-full px-3 py-2 border border-outline-variant/50 rounded-lg focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary-container/20 text-body-md font-body-md text-on-surface bg-surface-container-lowest transition-all">${LeadSources.options()}</select>
                 </div>
                 <button id="btn-new-customer" class="w-full md:w-auto px-4 py-2 bg-surface-variant text-primary rounded-lg font-label-md text-label-md hover:bg-surface-dim transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
                     <span class="material-symbols-outlined text-[18px]">person_add</span>
@@ -561,8 +556,6 @@ const Quotes = {
         set('#input-customer', q.customerName);
         if (cust) { if (q.customerId) cust.dataset.customerId = q.customerId; else delete cust.dataset.customerId; }
         set('#input-whatsapp', q.phone);
-        const ls = container.querySelector('#input-lead-source');
-        if (ls) { ls.innerHTML = LeadSources.options(q.leadSource || ''); ls.value = q.leadSource || ''; }
         set('#input-notes', q.notes);
         set('#input-freight', q.freight || '');
         set('#input-urgency', q.urgency || '');
@@ -613,7 +606,6 @@ const Quotes = {
                                 ${q.approval?.clientNote ? `<p class="text-xs italic truncate" style="color:#B45309;">"${esc(q.approval.clientNote)}"</p>` : ''}
                                 ${FollowUp.isStale(q) ? `<p class="text-[11px] font-bold" style="color:#B45309;">⏰ Parado há ${FollowUp.idleDays(q)} dia(s)${q.lastFollowUp ? ' desde a última cobrança' : ''}</p>`
                                     : q.lastFollowUp ? `<p class="text-[11px]" style="color:var(--text-faint);">Cobrado em ${esc(q.lastFollowUp.split('-').reverse().join('/'))}</p>` : ''}
-                                ${q.leadSource ? `<p class="text-[11px] truncate" style="color:var(--text-faint);">Origem: ${esc(q.leadSource)}</p>` : ''}
                                 <p class="text-xs truncate" style="color:var(--text-muted);">${n} ${n === 1 ? 'item' : 'itens'} · ${esc(q.productName || '')}</p>
                             </div>
                             <div class="text-right flex-shrink-0">
@@ -940,10 +932,6 @@ const Quotes = {
                     inputCustomer.value = selected.name;
                     if (inputWhatsapp) inputWhatsapp.value = selected.phone || '';
                     inputCustomer.dataset.customerId = selected.id;
-                    // Origem: se ainda não escolheu, usa a última deste cliente
-                    const srcSel = container.querySelector('#input-lead-source');
-                    const last = LeadSources.lastFor(selected.id);
-                    if (srcSel && !srcSel.value && last) { srcSel.innerHTML = LeadSources.options(last); srcSel.value = last; }
                     dropdown.classList.add('hidden');
                 }
             });
@@ -1194,7 +1182,6 @@ const Quotes = {
                 discountPct: Math.round(discountPct * 100) / 100,
                 freight, urgency, art,
                 phone: container.querySelector('#input-whatsapp')?.value.trim() || '',
-                leadSource: LeadSources.valueOf(container.querySelector('#input-lead-source')),
                 deadlineDays: Quotes.deadlineDays(),
                 ...(extra || {}),
                 status: status, // 'Aberto' for Quote, 'Aguardando Arte' for Order
@@ -1242,7 +1229,6 @@ const Quotes = {
                 customerId: customerInput.dataset.customerId || null,
                 customerName: customerInput.value.trim(),
                 phone: container.querySelector('#input-whatsapp')?.value.trim() || '',
-                leadSource: LeadSources.valueOf(container.querySelector('#input-lead-source')),
                 productName: Quotes.currentItems.map(x => x.name).join(', '),
                 options: Quotes.currentItems.map(x => x.optionsText).filter(Boolean),
                 items: Quotes.currentItems,
@@ -1262,7 +1248,6 @@ const Quotes = {
         };
 
         container.querySelector('#btn-drafts')?.addEventListener('click', () => Quotes.openDrafts(container));
-        LeadSources.bind(container.querySelector('#input-lead-source'));
         Quotes.setTitle(container);
 
         container.querySelector('#btn-generate')?.addEventListener('click', () => {
