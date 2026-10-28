@@ -5,6 +5,10 @@
  * nº, nome do cliente (do pedido ou do cadastro), produto, telefone e CPF/CNPJ.
  * Sem acento e sem maiúsculas ("lisboa" acha "Arte & Técnica Lisboa").
  * Enter abre o 1º resultado; ↑ ↓ escolhem; Esc fecha.
+ *
+ * Telas que têm busca própria (Produção, Produtos, Clientes, Financeiro,
+ * Estoque): o campo do topo passa a FILTRAR a tela enquanto digita e o campo
+ * duplicado da tela some. Enter (ou ↓) mostra os resultados de todo o sistema.
  */
 import DB from './db.js';
 import { esc, fmtBRL, docNo } from './utils.js';
@@ -13,8 +17,40 @@ const app = () => import('./app.js').then(m => m.default);
 const norm = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const digits = (t) => String(t ?? '').replace(/\D/g, '');
 const MAX_PER_GROUP = 6;
+const PAGE_SEARCH_IDS = ['kanban-search', 'product-search', 'customer-search', 'fin-search', 'inv-search'];
+const DEFAULT_PH = 'Buscar pedido, cliente, produto…';
 
 const GlobalSearch = {
+    input: null,   // campo do topo
+    local: null,   // busca da tela atual (se houver)
+    page: null,
+
+    /** Repassa o texto do topo para a busca da tela. */
+    pushLocal: () => {
+        if (!GlobalSearch.local || !GlobalSearch.input) return;
+        GlobalSearch.local.value = GlobalSearch.input.value;
+        GlobalSearch.local.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+
+    /** Chamado depois de cada tela desenhada (App.loadPage). */
+    attachPage: (container, page) => {
+        const input = GlobalSearch.input;
+        if (!input) { GlobalSearch.pending = [container, page]; return; }   // o campo ainda não foi ligado
+        const same = page === GlobalSearch.page;
+        GlobalSearch.page = page;
+        if (!same) input.value = '';
+        const local = PAGE_SEARCH_IDS.map(id => container.querySelector(`#${id}`)).find(Boolean) || null;
+        const topVisible = input.offsetParent !== null;   // no celular o campo do topo fica escondido
+        GlobalSearch.local = local && topVisible ? local : null;
+        if (GlobalSearch.local) {
+            const w = local.closest('.search-input-wrap') || local.parentElement;
+            if (w) w.style.display = 'none';
+            const ph = String(local.placeholder || 'Filtrar esta tela').replace(/(\.\.\.|…)\s*$/, '');
+            input.placeholder = `${ph}… (Enter: buscar em tudo)`;
+            if (input.value) GlobalSearch.pushLocal();
+        } else input.placeholder = DEFAULT_PH;
+    },
+
     /** Resultados agrupados para o termo. */
     find: (term) => {
         const t = norm(term).trim();
@@ -69,6 +105,8 @@ const GlobalSearch = {
     /** Liga a busca ao campo do topo. */
     bind: (input) => {
         if (!input) return;
+        GlobalSearch.input = input;
+        if (GlobalSearch.pending) { const [c, pg] = GlobalSearch.pending; GlobalSearch.pending = null; setTimeout(() => GlobalSearch.attachPage(c, pg), 0); }
         const wrap = input.parentElement;
         wrap.style.position = 'relative';
         const box = document.createElement('div');
@@ -106,12 +144,17 @@ const GlobalSearch = {
             box.classList.remove('hidden');
         };
 
-        input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(render, 120); });
-        input.addEventListener('focus', () => { if (input.value.trim().length >= 2) render(); });
+        input.addEventListener('input', () => {
+            if (GlobalSearch.local) { close(); GlobalSearch.pushLocal(); return; }   // tela com busca própria: filtra a tela
+            clearTimeout(timer); timer = setTimeout(render, 120);
+        });
+        input.addEventListener('focus', () => { if (!GlobalSearch.local && input.value.trim().length >= 2) render(); });
         input.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowDown') { e.preventDefault(); if (box.classList.contains('hidden')) render(); highlight(active + 1); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(active - 1); }
             else if (e.key === 'Enter') {
+                // Filtrando a tela: o 1º Enter mostra os resultados de todo o sistema
+                if (GlobalSearch.local && box.classList.contains('hidden')) { e.preventDefault(); render(); return highlight(0); }
                 const r = rows()[active >= 0 ? active : 0];
                 if (r) { e.preventDefault(); close(); input.blur(); GlobalSearch.open(r.dataset.kind, r.dataset.id); }
             } else if (e.key === 'Escape') { close(); input.blur(); }
