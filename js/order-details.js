@@ -188,6 +188,7 @@ const OrderDetails = {
                 const { default: Shipments } = await import('./pages/shipments.js');
                 Shipments.pendingOrder = o.id;
                 Shipments.editing = null;
+                Shipments.dir = 'out';
                 close();
                 (await app()).navigateTo('encomendas');
             }

@@ -15,7 +15,9 @@ import WaMessage, { waPhone } from '../wa-message.js';
 
 const KEY = 'shipments';
 const LATE_DAYS = 10;
-const CARRIERS = ['Correios', 'Jadlog', 'Loggi', 'J&T Express', 'Mercado Envios', 'Outra'];
+const CARRIERS = ['Correios', 'Cainiao (AliExpress)', 'Jadlog', 'Loggi', 'J&T Express', 'Mercado Envios', 'Shopee Xpress', 'Outra'];
+const STORES = ['AliExpress', 'Shopee', 'Mercado Livre', 'Amazon', 'Temu', 'Shein', 'Fornecedor'];
+const LATE_IN_DAYS = 40;   // compra internacional sem previsão: alerta depois de 40 dias
 const STATUS = [
     { id: 'Postado',           color: '#6C2BFF', bg: '#F1EBFF', icon: 'inventory_2' },
     { id: 'Em trânsito',       color: '#2563EB', bg: '#EFF6FF', icon: 'local_shipping' },
@@ -23,8 +25,15 @@ const STATUS = [
     { id: 'Entregue',          color: '#059669', bg: '#ECFDF5', icon: 'task_alt' },
     { id: 'Problema',          color: '#DC2626', bg: '#FEF2F2', icon: 'report' }
 ];
+const isIn = (s) => s.direction === 'in';
+/** Atrasada? Envio: 10+ dias. Compra: passou da previsão (ou 40+ dias sem previsão). */
+const isLate = (s) => s.status !== 'Entregue' && (isIn(s)
+    ? (s.eta ? isoDate(new Date()) > s.eta : daysSince(s.postedAt) >= LATE_IN_DAYS)
+    : daysSince(s.postedAt) >= LATE_DAYS);
 const FILTERS = [
     { id: 'abertas', label: 'A caminho', test: (s) => !['Entregue'].includes(s.status) },
+    { id: 'enviadas', label: 'Enviadas', test: (s) => !isIn(s) },
+    { id: 'compras', label: 'Minhas compras', test: isIn },
     { id: 'entregues', label: 'Entregues', test: (s) => s.status === 'Entregue' },
     { id: 'todas', label: 'Todas', test: () => true }
 ];
@@ -51,6 +60,7 @@ const clientUrl = (s) => (s.carrier === 'Correios' ? `https://www.linkcorreios.c
 
 const Shipments = {
     filter: 'abertas',
+    dir: 'out',         // tipo no formulário: 'out' envio p/ cliente | 'in' compra que vou receber
     query: '',
     editing: null,      // id em edição
     pendingOrder: null, // id de pedido vindo do detalhe do pedido
@@ -65,11 +75,13 @@ const Shipments = {
         const f = FILTERS.find(x => x.id === Shipments.filter) || FILTERS[0];
         const q = Shipments.query.trim().toLowerCase();
         const rows = all.filter(f.test)
-            .filter(s => !q || [s.code, s.customerName, s.product, s.carrier, s.orderNo].some(v => String(v || '').toLowerCase().includes(q)))
+            .filter(s => !q || [s.code, s.customerName, s.product, s.carrier, s.orderNo, s.store].some(v => String(v || '').toLowerCase().includes(q)))
             .sort((a, b) => (a.status === 'Entregue') - (b.status === 'Entregue') || String(b.postedAt).localeCompare(String(a.postedAt)));
         const open = all.filter(s => s.status !== 'Entregue');
-        const late = open.filter(s => daysSince(s.postedAt) >= LATE_DAYS);
+        const late = open.filter(isLate);
         const ed = all.find(s => s.id === Shipments.editing) || null;
+        const dir = ed ? (ed.direction || 'out') : Shipments.dir;
+        const openIn = open.filter(isIn).length;
         const lbl = 'text-xs font-black text-slate-400 uppercase mb-1 block';
 
         container.innerHTML = `
@@ -77,47 +89,67 @@ const Shipments = {
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 class="text-3xl font-black text-slate-800">Encomendas</h2>
-                    <p class="text-slate-500 font-medium">Códigos de rastreio dos envios — Correios e transportadoras.</p>
+                    <p class="text-slate-500 font-medium">Rastreio do que você envia para clientes e do que você comprou (AliExpress, Shopee…).</p>
                 </div>
                 <div class="flex gap-3 text-sm">
-                    <span class="px-3 py-1.5 rounded-full font-bold" style="background:#EFF6FF;color:#2563EB;">${open.length} a caminho</span>
-                    ${late.length ? `<span class="px-3 py-1.5 rounded-full font-bold" style="background:#FEF2F2;color:#DC2626;">${late.length} há ${LATE_DAYS}+ dias</span>` : ''}
+                    <span class="px-3 py-1.5 rounded-full font-bold" style="background:#EFF6FF;color:#2563EB;">${open.length - openIn} envio(s) a caminho</span>
+                    <span class="px-3 py-1.5 rounded-full font-bold" style="background:#F1EBFF;color:#6C2BFF;">${openIn} compra(s) chegando</span>
+                    ${late.length ? `<span class="px-3 py-1.5 rounded-full font-bold" style="background:#FEF2F2;color:#DC2626;">${late.length} atrasada(s)</span>` : ''}
                 </div>
             </div>
 
             <form id="sh-form" class="section-card grid grid-cols-1 md:grid-cols-6 gap-4" autocomplete="off">
-                <h3 class="md:col-span-6 section-heading flex items-center gap-2"><span class="material-symbols-outlined" style="color:var(--primary);">${ed ? 'edit' : 'add_box'}</span>${ed ? `Editar encomenda ${esc(ed.code)}` : 'Nova encomenda'}</h3>
+                <div class="md:col-span-6 flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="section-heading flex items-center gap-2"><span class="material-symbols-outlined" style="color:var(--primary);">${ed ? 'edit' : 'add_box'}</span>${ed ? `Editar encomenda ${esc(ed.code)}` : 'Nova encomenda'}</h3>
+                    <div class="flex gap-1 p-1 rounded-xl" style="background:#F4F3F9;">
+                        ${[['out', 'outbox', 'Enviei para um cliente'], ['in', 'move_to_inbox', 'Comprei / vou receber']].map(([d, ic, t]) => `
+                        <button type="button" data-dir="${d}" class="px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1.5 ${dir === d ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500'}"><span class="material-symbols-outlined text-[18px]">${ic}</span>${t}</button>`).join('')}
+                    </div>
+                </div>
                 <div class="md:col-span-2">
                     <label class="${lbl}">Código de rastreio *</label>
                     <input id="sh-code" required class="w-full font-mono uppercase" placeholder="Ex.: AA123456789BR" value="${esc(ed?.code || '')}">
                 </div>
                 <div class="md:col-span-2">
                     <label class="${lbl}">Transportadora</label>
-                    <select id="sh-carrier" class="w-full">${CARRIERS.map(c => `<option ${(ed?.carrier || 'Correios') === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+                    <select id="sh-carrier" class="w-full">${CARRIERS.map(c => `<option ${(ed?.carrier || (dir === 'in' ? 'Cainiao (AliExpress)' : 'Correios')) === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
                 </div>
                 <div class="md:col-span-2">
-                    <label class="${lbl}">Data da postagem</label>
+                    <label class="${lbl}"><span class="sh-out">Data da postagem</span><span class="sh-in">Data da compra</span></label>
                     <input id="sh-date" type="date" class="w-full" value="${esc(ed?.postedAt || isoDate(new Date()))}">
                 </div>
-                <div class="md:col-span-2">
+                <div class="md:col-span-2 sh-out">
                     <label class="${lbl}">Pedido (opcional)</label>
                     <select id="sh-order" class="w-full">
                         <option value="">— Sem pedido —</option>
                         ${orders.map(o => `<option value="${esc(o.id)}" ${String(ed?.orderId) === String(o.id) ? 'selected' : ''}>Nº ${esc(docNo(o))} · ${esc(o.customerName || 'Cliente')}</option>`).join('')}
                     </select>
                 </div>
-                <div class="md:col-span-2">
+                <div class="md:col-span-2 sh-out">
                     <label class="${lbl}">Cliente *</label>
-                    <input id="sh-customer" list="sh-customers" required class="w-full" placeholder="Nome do cliente" value="${esc(ed?.customerName || '')}">
+                    <input id="sh-customer" list="sh-customers" class="w-full" placeholder="Nome do cliente" value="${esc(ed?.customerName || '')}">
                     <datalist id="sh-customers">${customers.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
                 </div>
-                <div class="md:col-span-2">
+                <div class="md:col-span-2 sh-out">
                     <label class="${lbl}">WhatsApp do cliente</label>
                     <input id="sh-phone" class="w-full" placeholder="Para avisar o código" value="${esc(ed?.phone || '')}">
                 </div>
+                <div class="md:col-span-2 sh-in">
+                    <label class="${lbl}">Loja / fornecedor</label>
+                    <input id="sh-store" list="sh-stores" class="w-full" placeholder="Ex.: AliExpress" value="${esc(ed?.store || (dir === 'in' ? 'AliExpress' : ''))}">
+                    <datalist id="sh-stores">${STORES.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+                </div>
+                <div class="md:col-span-2 sh-in">
+                    <label class="${lbl}">Previsão de entrega</label>
+                    <input id="sh-eta" type="date" class="w-full" value="${esc(ed?.eta || '')}">
+                </div>
+                <div class="md:col-span-2 sh-in">
+                    <label class="${lbl}">Link do pedido na loja</label>
+                    <input id="sh-link" class="w-full" placeholder="Opcional — cole o link do pedido" value="${esc(ed?.link || '')}">
+                </div>
                 <div class="md:col-span-2">
                     <label class="${lbl}">Produto *</label>
-                    <input id="sh-product" list="sh-products" required class="w-full" placeholder="O que foi enviado" value="${esc(ed?.product || '')}">
+                    <input id="sh-product" list="sh-products" required class="w-full" placeholder="O que foi enviado / comprado" value="${esc(ed?.product || '')}">
                     <datalist id="sh-products">${products.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
                 </div>
                 <div class="md:col-span-2 ${ (ed?.carrier || 'Correios') === 'Outra' ? '' : 'hidden'}" id="sh-url-wrap">
@@ -125,7 +157,7 @@ const Shipments = {
                     <input id="sh-url" class="w-full" placeholder="https://…" value="${esc(ed?.url || '')}">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="${lbl}">Frete pago (R$)</label>
+                    <label class="${lbl}"><span class="sh-out">Frete pago (R$)</span><span class="sh-in">Valor pago (R$)</span></label>
                     <input id="sh-cost" inputmode="decimal" class="w-full" placeholder="Opcional" value="${ed?.cost ? String(ed.cost).replace('.', ',') : ''}">
                 </div>
                 <div class="md:col-span-2">
@@ -134,7 +166,7 @@ const Shipments = {
                 </div>
                 <div class="md:col-span-6 flex flex-wrap gap-3">
                     <button type="submit" class="btn-primary flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">${ed ? 'save' : 'add'}</span> ${ed ? 'Salvar alterações' : 'Adicionar encomenda'}</button>
-                    <label class="flex items-center gap-2 text-sm text-slate-600 ${ed ? 'hidden' : ''}"><input type="checkbox" id="sh-notify" checked> Avisar o cliente no WhatsApp ao salvar</label>
+                    <label class="sh-out flex items-center gap-2 text-sm text-slate-600 ${ed ? '!hidden' : ''}"><input type="checkbox" id="sh-notify" checked> Avisar o cliente no WhatsApp ao salvar</label>
                     ${ed ? '<button type="button" id="sh-cancel-edit" class="btn-ghost">Cancelar edição</button>' : ''}
                 </div>
             </form>
@@ -170,7 +202,7 @@ const Shipments = {
     row: (s) => {
         const st = statusOf(s.status);
         const days = daysSince(s.postedAt);
-        const late = s.status !== 'Entregue' && days >= LATE_DAYS;
+        const late = isLate(s), inc = isIn(s);
         return `
         <div class="flex flex-wrap md:flex-nowrap items-center gap-3 py-3 border-b last:border-0" style="border-color:#F1F0F7;" data-id="${esc(s.id)}">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${st.bg};color:${st.color};">
@@ -180,12 +212,14 @@ const Shipments = {
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="button" data-sh="copy" class="font-mono font-bold text-slate-800 hover:text-[var(--primary)]" title="Copiar código">${esc(s.code)}</button>
                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">${esc(s.carrier)}</span>
+                    ${inc ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md" style="background:#F1EBFF;color:#6C2BFF;">📥 Compra${s.store ? ` · ${esc(s.store)}` : ''}</span>` : `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md" style="background:#EFF6FF;color:#2563EB;">📤 Envio</span>`}
                     ${s.orderNo ? `<span class="text-[11px] font-bold" style="color:var(--primary);">Pedido Nº ${esc(s.orderNo)}</span>` : ''}
                 </div>
                 ${s.product ? `<p class="text-sm font-semibold text-slate-800 truncate">${esc(s.product)}</p>` : ''}
-                <p class="text-sm text-slate-600 truncate">${esc(s.customerName || '')}${s.note ? ` · <span class="text-slate-400">${esc(s.note)}</span>` : ''}</p>
+                ${inc ? (s.note ? `<p class="text-sm text-slate-400 truncate">${esc(s.note)}</p>` : '')
+                    : `<p class="text-sm text-slate-600 truncate">${esc(s.customerName || '')}${s.note ? ` · <span class="text-slate-400">${esc(s.note)}</span>` : ''}</p>`}
                 <p class="text-xs ${late ? 'font-bold' : ''}" style="color:${late ? '#DC2626' : 'var(--text-faint)'};">
-                    Postado em ${fmtDate(s.postedAt)}${s.status === 'Entregue' ? (s.deliveredAt ? ` · entregue em ${fmtDate(s.deliveredAt)}` : '') : ` · há ${days} dia(s)${late ? ' — verifique o rastreio' : ''}`}${s.cost ? ` · frete ${fmtBRL(s.cost)}` : ''}${s.notifiedAt ? ' · cliente avisado ✓' : ''}
+                    ${inc ? 'Comprado' : 'Postado'} em ${fmtDate(s.postedAt)}${s.status === 'Entregue' ? (s.deliveredAt ? ` · ${inc ? 'chegou' : 'entregue'} em ${fmtDate(s.deliveredAt)}` : '') : ` · há ${days} dia(s)${inc && s.eta ? ` · previsão ${fmtDate(s.eta)}` : ''}${late ? (inc && s.eta ? ' — passou da previsão' : ' — verifique o rastreio') : ''}`}${s.cost ? ` · ${inc ? 'pago' : 'frete'} ${fmtBRL(s.cost)}` : ''}${s.notifiedAt ? ' · cliente avisado ✓' : ''}
                 </p>
             </div>
             <select data-sh="status" class="text-sm font-bold !py-1.5 !w-auto" style="color:${st.color}; border-radius:10px;">
@@ -193,7 +227,8 @@ const Shipments = {
             </select>
             <div class="flex gap-1">
                 <a href="${esc(trackUrl(s))}" target="_blank" rel="noopener" class="btn-ghost !py-1.5 !px-3 text-xs" title="Abrir o rastreio no site"><span class="material-symbols-outlined text-[18px]">travel_explore</span> Rastrear</a>
-                <button type="button" data-sh="wa" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#25D366]/20 text-[#075E54]" title="Mandar código e link para o cliente"><span class="material-symbols-outlined text-[18px]">chat</span></button>
+                ${inc && /^https?:\/\//.test(s.link || '') ? `<a href="${esc(s.link)}" target="_blank" rel="noopener" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500" title="Abrir o pedido na loja"><span class="material-symbols-outlined text-[18px]">shopping_bag</span></a>` : ''}
+                <button type="button" data-sh="wa" class="${inc ? 'hidden ' : ''}"w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#25D366]/20 text-[#075E54]" title="Mandar código e link para o cliente"><span class="material-symbols-outlined text-[18px]">chat</span></button>
                 <button type="button" data-sh="edit" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
                 <button type="button" data-sh="del" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 text-slate-400" title="Excluir"><span class="material-symbols-outlined text-[18px]">delete</span></button>
             </div>
@@ -244,6 +279,24 @@ const Shipments = {
 
     bind: (container) => {
         const $ = (s) => container.querySelector(s);
+        const applyDir = (d) => {
+            Shipments.dir = d;
+            container.querySelectorAll('.sh-out').forEach(el => el.classList.toggle('hidden', d !== 'out'));
+            container.querySelectorAll('.sh-in').forEach(el => el.classList.toggle('hidden', d !== 'in'));
+            $('#sh-customer').required = d === 'out';
+            container.querySelectorAll('[data-dir]').forEach(b => {
+                const on = b.dataset.dir === d;
+                b.classList.toggle('bg-white', on); b.classList.toggle('shadow-sm', on); b.classList.toggle('text-slate-800', on); b.classList.toggle('text-slate-500', !on);
+            });
+            if (!Shipments.editing) {
+                if (d === 'in' && !$('#sh-store').value) $('#sh-store').value = 'AliExpress';
+                if (d === 'in' && $('#sh-carrier').value === 'Correios' && $('#sh-store').value === 'AliExpress') $('#sh-carrier').value = 'Cainiao (AliExpress)';
+                if (d === 'out' && $('#sh-carrier').value === 'Cainiao (AliExpress)') $('#sh-carrier').value = 'Correios';
+            }
+            $('#sh-url-wrap').classList.toggle('hidden', $('#sh-carrier').value !== 'Outra');
+        };
+        container.querySelectorAll('[data-dir]').forEach(b => b.addEventListener('click', () => { if (!Shipments.editing) applyDir(b.dataset.dir); }));
+        applyDir(Shipments.editing ? ((list().find(s => s.id === Shipments.editing)?.direction) || 'out') : Shipments.dir);
         $('#sh-order').addEventListener('change', (e) => { if (e.target.value) Shipments.fillFromOrder(e.target.value); });
         $('#sh-customer').addEventListener('change', (e) => {
             const cust = (DB.get('customers') || []).find(x => String(x.name || '').trim().toLowerCase() === e.target.value.trim().toLowerCase());
@@ -252,7 +305,7 @@ const Shipments = {
         $('#sh-carrier').addEventListener('change', (e) => $('#sh-url-wrap').classList.toggle('hidden', e.target.value !== 'Outra'));
         $('#sh-code').addEventListener('input', (e) => {
             const v = e.target.value.toUpperCase().replace(/\s+/g, '');
-            if (isCorreios(v)) $('#sh-carrier').value = 'Correios';
+            if (isCorreios(v) && Shipments.dir === 'out') $('#sh-carrier').value = 'Correios';
         });
         $('#sh-cancel-edit')?.addEventListener('click', () => { Shipments.editing = null; Shipments.render(container); });
 
@@ -265,15 +318,17 @@ const Shipments = {
             }
             const all = list();
             const dup = all.find(s => s.code === code && s.id !== Shipments.editing);
-            if (dup) return App.toast(`O código ${code} já está cadastrado (${dup.customerName || 'sem cliente'}).`, 'error');
-            const orderId = $('#sh-order').value || null;
+            if (dup) return App.toast(`O código ${code} já está cadastrado (${dup.product || dup.customerName || ''}).`, 'error');
+            const inc = Shipments.dir === 'in';
+            const orderId = inc ? null : ($('#sh-order').value || null);
             const order = orderId ? (DB.get('orders') || []).find(o => String(o.id) === String(orderId)) : null;
             const cost = Number(String($('#sh-cost').value).replace(/\./g, '').replace(',', '.')) || 0;
             const data = {
                 code, carrier, postedAt: $('#sh-date').value || isoDate(new Date()),
                 orderId, orderNo: order ? docNo(order) : '',
-                product: $('#sh-product').value.trim(),
-                customerName: $('#sh-customer').value.trim(), phone: $('#sh-phone').value.trim(),
+                product: $('#sh-product').value.trim(), direction: inc ? 'in' : 'out',
+                customerName: inc ? '' : $('#sh-customer').value.trim(), phone: inc ? '' : $('#sh-phone').value.trim(),
+                store: inc ? $('#sh-store').value.trim() : '', eta: inc ? $('#sh-eta').value : '', link: inc ? $('#sh-link').value.trim() : '',
                 url: carrier === 'Outra' ? $('#sh-url').value.trim() : '',
                 cost: Math.round(cost * 100) / 100, note: $('#sh-note').value.trim()
             };
@@ -286,7 +341,7 @@ const Shipments = {
             const s = { id: `sh_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, status: 'Postado', createdAt: new Date().toISOString(), ...data };
             DB.save(KEY, [...all, s]);
             Shipments.orderNote(orderId, `Enviado (${carrier}) — rastreio ${code}`);
-            const notify = $('#sh-notify').checked;
+            const notify = !inc && $('#sh-notify').checked;
             Shipments.filter = 'abertas';
             Shipments.render(container);
             App.toast('Encomenda cadastrada');
