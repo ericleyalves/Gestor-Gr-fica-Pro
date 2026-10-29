@@ -4,7 +4,7 @@
  * status, prazo, cliente, itens, valores, pagamento, arquivos, histórico e ações.
  */
 import DB from './db.js';
-import { esc, fmtBRL, docNo, isoDate } from './utils.js';
+import { esc, fmtBRL, docNo, isoDate, nextNumber } from './utils.js';
 import Payments from './payments.js';
 import Files from './files.js';
 import QuotePDF from './pdf.js';
@@ -140,7 +140,8 @@ const OrderDetails = {
                     ${action('sheet', 'print', 'Ficha')}
                     ${action('pdf', 'picture_as_pdf', 'PDF')}
                     ${canceled ? '' : action('receipt', 'receipt_long', 'Recibo')}
-                    ${canceled ? '' : action('cancel', 'cancel', 'Cancelar pedido', 'ml-auto hover:!border-red-400 hover:!text-red-500')}
+                    ${canceled || o.status === 'Entregue' ? '' : action('toquote', 'undo', 'Voltar para orçamento', 'ml-auto')}
+                    ${canceled ? '' : action('cancel', 'cancel', 'Cancelar pedido', `${o.status === 'Entregue' ? 'ml-auto ' : ''}hover:!border-red-400 hover:!text-red-500`)}
                 </div>
             </div>`;
         };
@@ -188,6 +189,24 @@ const OrderDetails = {
                 close();
                 (await app()).navigateTo('recibos');
             }
+            else if (act === 'toquote') {
+                const A = await app();
+                if (Payments.paid(o) > 0.009) {
+                    return A.toast(`Este pedido tem ${fmtBRL(Payments.paid(o))} recebido. Apague os pagamentos (em Pagamentos) antes de voltar para orçamento.`, 'error');
+                }
+                A.confirm({
+                    title: `Voltar o pedido Nº ${docNo(o)} para orçamento?`,
+                    message: 'Ele sai da Produção e volta para "Orçamentos salvos" com os mesmos itens, valores e arquivos. Se tiver dado baixa no estoque, o material é devolvido.',
+                    type: 'warning', confirmLabel: 'Sim, voltar para orçamento',
+                    onConfirm: () => {
+                        const qid = OrderDetails.toQuote(o.id);
+                        if (!qid) return;
+                        close();
+                        onChange?.();
+                        A.toast('Pedido desfeito — voltou para Orçamentos salvos.', 'success');
+                    }
+                });
+            }
             else if (act === 'cancel') {
                 (await app()).confirm({
                     title: `Cancelar o pedido Nº ${docNo(o)}?`,
@@ -200,6 +219,45 @@ const OrderDetails = {
 
         render();
         document.body.appendChild(el);
+    },
+
+    /**
+     * Desfaz o fechamento: devolve o estoque (se baixou), reabre o orçamento de origem
+     * (ou cria um novo com os dados do pedido) e apaga o pedido. Retorna o id do orçamento.
+     */
+    toQuote: (orderId) => {
+        let orders = DB.get('orders') || [];
+        let o = orders.find(x => String(x.id) === String(orderId));
+        if (!o) return null;
+        if (o.stockDeducted) {   // estorno do material antes de apagar
+            DB.save('orders', orders.map(x => x === o ? { ...x, status: 'Cancelado' } : x));
+            Stock.syncOrder(orderId);
+            orders = DB.get('orders') || [];
+            o = orders.find(x => String(x.id) === String(orderId)) || o;
+        }
+        const quotes = DB.get('quotes') || [];
+        const files = Array.isArray(o.files) ? o.files : [];
+        const qi = quotes.findIndex(q => String(q.orderId) === String(o.id));
+        let qid;
+        if (qi > -1) {
+            const q = quotes[qi];
+            const known = new Set((q.files || []).map(f => f.path));
+            const { orderId: _drop, ...rest } = q;
+            quotes[qi] = { ...rest, status: 'Aberto', items: o.items || q.items, value: o.value, productName: o.productName,
+                files: [...(q.files || []), ...files.filter(f => !known.has(f.path))] };
+            qid = q.id;
+        } else {
+            const keep = ['customerId', 'customerName', 'productName', 'options', 'value', 'subtotal', 'discount', 'discountPct',
+                'freight', 'urgency', 'art', 'phone', 'deadlineDays', 'items', 'notes'];
+            const q = { id: `ORC-${Date.now().toString(36).toUpperCase()}`, number: nextNumber(quotes),
+                date: new Date().toISOString().split('T')[0], status: 'Aberto', ...(files.length ? { files } : {}) };
+            keep.forEach(k => { if (o[k] !== undefined) q[k] = o[k]; });
+            quotes.push(q);
+            qid = q.id;
+        }
+        DB.save('quotes', quotes);
+        DB.save('orders', orders.filter(x => String(x.id) !== String(orderId)));
+        return qid;
     },
 
     /** Janela "Marcar como entregue": data, forma, quem recebeu e, se faltar, o recebimento do saldo. */
