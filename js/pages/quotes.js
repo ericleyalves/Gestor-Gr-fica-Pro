@@ -316,7 +316,7 @@ const Quotes = {
             <p id="ci-profit" class="text-xs font-semibold" style="color:var(--text-muted); min-height:1em;"></p>
             <div class="flex justify-end gap-3 pt-2">
                 <button type="button" id="btn-cancel-custom-item" class="px-4 py-2 bg-transparent border border-outline-variant text-on-surface-variant hover:bg-surface-variant rounded-lg font-label-md font-semibold transition-colors">Cancelar</button>
-                <button type="submit" class="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-on-primary rounded-lg font-label-md font-semibold hover:opacity-90 transition-opacity">Adicionar Item</button>
+                <button type="submit" id="ci-submit" class="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-on-primary rounded-lg font-label-md font-semibold hover:opacity-90 transition-opacity">Adicionar Item</button>
             </div>
         </form>
     </div>
@@ -842,6 +842,7 @@ const Quotes = {
 
                             <!-- Ações -->
                             <div class="ml-auto flex gap-1">
+                                ${product ? '' : `<button type="button" class="btn-edit-custom w-9 h-9 flex items-center justify-center text-outline hover:text-primary rounded-lg hover:bg-surface-variant transition-colors" title="Editar item (nome, quantidade, custo e valor)">${icon('edit')}</button>`}
                                 <button type="button" class="btn-duplicate-item w-9 h-9 flex items-center justify-center text-outline hover:text-primary rounded-lg hover:bg-surface-variant transition-colors" title="Duplicar">${icon('content_copy')}</button>
                                 <button type="button" class="btn-delete-item w-9 h-9 flex items-center justify-center text-outline hover:text-error rounded-lg hover:bg-error-container transition-colors" title="Excluir">${icon('delete')}</button>
                             </div>
@@ -1085,11 +1086,21 @@ const Quotes = {
         const customItemModal = container.querySelector('#quote-custom-item-modal');
         const formCustomItem = container.querySelector('#form-custom-item');
         let isService = false;
+        let editingCustomId = null;   // id do item avulso/serviço sendo editado (null = novo)
 
-        const openCustomItemModal = (service) => {
+        const openCustomItemModal = (service, item = null) => {
             isService = service;
+            editingCustomId = item ? item.id : null;
             formCustomItem.reset();
-            container.querySelector('#custom-item-modal-title').innerText = service ? 'Novo Serviço' : 'Item Avulso';
+            container.querySelector('#custom-item-modal-title').innerText = item
+                ? (service ? 'Editar Serviço' : 'Editar Item Avulso') : (service ? 'Novo Serviço' : 'Item Avulso');
+            container.querySelector('#ci-submit').innerText = item ? 'Salvar Alterações' : 'Adicionar Item';
+            if (item) {
+                document.getElementById('ci-name').value = item.name || '';
+                document.getElementById('ci-qty').value = Number(item.quantity) || 1;
+                document.getElementById('ci-price').value = Quotes.unitPrice(item).toFixed(2);
+                document.getElementById('ci-cost').value = item.unitCost != null ? Number(item.unitCost).toFixed(2) : '';
+            }
             customItemModal.classList.remove('hidden');
             updateProfit();
             setTimeout(() => document.getElementById('ci-name')?.focus(), 50);
@@ -1123,7 +1134,24 @@ const Quotes = {
             const qty = parseInt(document.getElementById('ci-qty').value) || 1;
             const price = parseFloat(document.getElementById('ci-price').value) || 0;
             const costRaw = document.getElementById('ci-cost').value;
-            
+
+            if (editingCustomId != null) {
+                const i = Quotes.currentItems.findIndex(x => x.id === editingCustomId);
+                if (i > -1) {
+                    const { unitCost, ...rest } = Quotes.currentItems[i];
+                    Quotes.currentItems[i] = {
+                        ...rest,
+                        ...(costRaw !== '' ? { unitCost: Math.round((parseFloat(costRaw) || 0) * 100) / 100 } : {}),
+                        name, unitPrice: price, price: Math.round(price * qty * 100) / 100, quantity: qty
+                    };
+                }
+                editingCustomId = null;
+                Quotes.refreshItems(container);
+                closeCustomItemModal();
+                App.toast('Item atualizado', 'success');
+                return;
+            }
+
             Quotes.currentItems.push({
                 ...(costRaw !== '' ? { unitCost: Math.round((parseFloat(costRaw) || 0) * 100) / 100 } : {}),
                 id: Date.now(),
@@ -1410,6 +1438,9 @@ const Quotes = {
                 Quotes.currentItems = Quotes.currentItems.filter(i => i.id !== id);
                 Quotes.refreshItems(container);
                 App.toast('Item removido', 'success');
+            } else if (e.target.closest('.btn-edit-custom')) {
+                const item = Quotes.currentItems.find(i => i.id === id);
+                if (item) openCustomItemModal(item.category === 'Serviço', item);
             } else if (e.target.closest('.btn-duplicate-item')) {
                 const itemToCopy = Quotes.currentItems.find(i => i.id === id);
                 if (itemToCopy) {
