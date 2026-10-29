@@ -370,6 +370,7 @@ const App = {
                 financeiro: () => import('./pages/finance.js'),
                 estoque: () => import('./pages/inventory.js'),
                 recibos: () => import('./pages/receipts.js'),
+                encomendas: () => import('./pages/shipments.js'),
                 relatorios: () => import('./pages/reports.js'),
                 configuracoes: () => import('./pages/settings.js'),
             };

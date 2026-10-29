@@ -140,6 +140,7 @@ const OrderDetails = {
                     ${action('sheet', 'print', 'Ficha')}
                     ${action('pdf', 'picture_as_pdf', 'PDF')}
                     ${canceled ? '' : action('receipt', 'receipt_long', 'Recibo')}
+                    ${canceled ? '' : action('ship', 'local_shipping', 'Enviar / Rastreio')}
                     ${canceled || o.status === 'Entregue' ? '' : action('toquote', 'undo', 'Voltar para orçamento', 'ml-auto')}
                     ${canceled ? '' : action('cancel', 'cancel', 'Cancelar pedido', `${o.status === 'Entregue' ? 'ml-auto ' : ''}hover:!border-red-400 hover:!text-red-500`)}
                 </div>
@@ -183,6 +184,13 @@ const OrderDetails = {
             }
             else if (act === 'review') ReviewRequest.open(o.id, { onDone: () => { onChange?.(); render(); } });
             else if (act === 'pdf') QuotePDF.fromOrder(o);
+            else if (act === 'ship') {
+                const { default: Shipments } = await import('./pages/shipments.js');
+                Shipments.pendingOrder = o.id;
+                Shipments.editing = null;
+                close();
+                (await app()).navigateTo('encomendas');
+            }
             else if (act === 'receipt') {
                 const { default: Receipts } = await import('./pages/receipts.js');
                 Receipts.pendingOrder = o.id;
