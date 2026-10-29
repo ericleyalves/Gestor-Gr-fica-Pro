@@ -59,12 +59,13 @@ const Shipments = {
         Shipments.container = container;
         const orders = (DB.get('orders') || []).filter(o => o.status !== 'Cancelado')
             .sort((a, b) => (Number(b.number) || 0) - (Number(a.number) || 0)).slice(0, 200);
+        const products = [...new Set((DB.get('products') || []).map(p => String(p.name || '').trim()).filter(Boolean))].sort();
         const customers = (DB.get('customers') || []).slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
         const all = list();
         const f = FILTERS.find(x => x.id === Shipments.filter) || FILTERS[0];
         const q = Shipments.query.trim().toLowerCase();
         const rows = all.filter(f.test)
-            .filter(s => !q || [s.code, s.customerName, s.carrier, s.orderNo].some(v => String(v || '').toLowerCase().includes(q)))
+            .filter(s => !q || [s.code, s.customerName, s.product, s.carrier, s.orderNo].some(v => String(v || '').toLowerCase().includes(q)))
             .sort((a, b) => (a.status === 'Entregue') - (b.status === 'Entregue') || String(b.postedAt).localeCompare(String(a.postedAt)));
         const open = all.filter(s => s.status !== 'Entregue');
         const late = open.filter(s => daysSince(s.postedAt) >= LATE_DAYS);
@@ -113,6 +114,11 @@ const Shipments = {
                 <div class="md:col-span-2">
                     <label class="${lbl}">WhatsApp do cliente</label>
                     <input id="sh-phone" class="w-full" placeholder="Para avisar o código" value="${esc(ed?.phone || '')}">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="${lbl}">Produto *</label>
+                    <input id="sh-product" list="sh-products" required class="w-full" placeholder="O que foi enviado" value="${esc(ed?.product || '')}">
+                    <datalist id="sh-products">${products.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
                 </div>
                 <div class="md:col-span-2 ${ (ed?.carrier || 'Correios') === 'Outra' ? '' : 'hidden'}" id="sh-url-wrap">
                     <label class="${lbl}">Link de rastreio da transportadora</label>
@@ -176,6 +182,7 @@ const Shipments = {
                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">${esc(s.carrier)}</span>
                     ${s.orderNo ? `<span class="text-[11px] font-bold" style="color:var(--primary);">Pedido Nº ${esc(s.orderNo)}</span>` : ''}
                 </div>
+                ${s.product ? `<p class="text-sm font-semibold text-slate-800 truncate">${esc(s.product)}</p>` : ''}
                 <p class="text-sm text-slate-600 truncate">${esc(s.customerName || '')}${s.note ? ` · <span class="text-slate-400">${esc(s.note)}</span>` : ''}</p>
                 <p class="text-xs ${late ? 'font-bold' : ''}" style="color:${late ? '#DC2626' : 'var(--text-faint)'};">
                     Postado em ${fmtDate(s.postedAt)}${s.status === 'Entregue' ? (s.deliveredAt ? ` · entregue em ${fmtDate(s.deliveredAt)}` : '') : ` · há ${days} dia(s)${late ? ' — verifique o rastreio' : ''}`}${s.cost ? ` · frete ${fmtBRL(s.cost)}` : ''}${s.notifiedAt ? ' · cliente avisado ✓' : ''}
@@ -200,6 +207,7 @@ const Shipments = {
         const cust = (DB.get('customers') || []).find(x => String(x.id) === String(o.customerId));
         c.querySelector('#sh-customer').value = cust?.name || o.customerName || '';
         c.querySelector('#sh-phone').value = o.phone || cust?.phone || '';
+        c.querySelector('#sh-product').value = String(o.productName || '').slice(0, 200);
     },
 
     message: (s) => {
@@ -207,7 +215,7 @@ const Shipments = {
         const first = String(s.customerName || '').trim().split(/\s+/)[0];
         return [
             `Oi${first ? `, ${first}` : ''}! 😊`,
-            `Sua encomenda${s.orderNo ? ` (pedido Nº ${s.orderNo})` : ''} foi enviada${s.carrier && s.carrier !== 'Outra' ? ` pelos ${s.carrier === 'Correios' ? 'Correios' : s.carrier}` : ''}! 📦`,
+            `Sua encomenda${s.product || s.orderNo ? ` (${[s.product, s.orderNo && `pedido Nº ${s.orderNo}`].filter(Boolean).join(', ')})` : ''} foi enviada${s.carrier && s.carrier !== 'Outra' ? ` pelos ${s.carrier === 'Correios' ? 'Correios' : s.carrier}` : ''}! 📦`,
             '', `Código de rastreio: *${s.code}*`, `Acompanhe aqui: ${clientUrl(s)}`,
             '', 'Qualquer dúvida, é só me chamar. Obrigado pela preferência!',
             shop.name ? `— ${shop.name}` : ''
@@ -215,7 +223,7 @@ const Shipments = {
     },
 
     sendWa: (s) => WaMessage.open({
-        title: `Enviar rastreio ${s.code}`, subtitle: `${s.customerName || ''} · ${s.carrier}`,
+        title: `Enviar rastreio ${s.code}`, subtitle: `${s.customerName || ''}${s.product ? ` · ${s.product}` : ''} · ${s.carrier}`,
         icon: 'local_shipping', message: Shipments.message(s),
         phone: waPhone(s.phone) || null,
         hint: 'O link abre o rastreio direto, sem o cliente precisar digitar o código.',
@@ -264,6 +272,7 @@ const Shipments = {
             const data = {
                 code, carrier, postedAt: $('#sh-date').value || isoDate(new Date()),
                 orderId, orderNo: order ? docNo(order) : '',
+                product: $('#sh-product').value.trim(),
                 customerName: $('#sh-customer').value.trim(), phone: $('#sh-phone').value.trim(),
                 url: carrier === 'Outra' ? $('#sh-url').value.trim() : '',
                 cost: Math.round(cost * 100) / 100, note: $('#sh-note').value.trim()
