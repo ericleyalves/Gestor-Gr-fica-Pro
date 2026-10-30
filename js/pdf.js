@@ -22,6 +22,8 @@ const ICON = {
 const svg = (name, size = 11) =>
     `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICON[name]}</svg>`;
 
+/** Texto que pode virar nome de arquivo (sem / \\ : * ? " < > |). */
+const fileName = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
 const validColor = (c) => /^#[0-9a-f]{6}$/i.test(String(c || '')) ? c : '#6C2BFF';
 
 const QuotePDF = {
@@ -92,12 +94,12 @@ const QuotePDF = {
         ].filter(Boolean);
 
         const shopName = shop.name || 'Minha Gráfica';
-        const safeName = String(q.customer || 'cliente').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '-');
+        const safeName = fileName(q.customer || 'cliente');
         const initials = shopName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
         const html = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
-<title>${isOrder ? 'Pedido' : 'Orcamento'}-${esc(safeName)}-${fmtDate(date).replace(/\//g, '-')}</title>
+<title>${isOrder ? 'Pedido' : 'Orçamento'} ${esc(safeName)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -315,12 +317,16 @@ const QuotePDF = {
 
         const win = frame.contentWindow;
         let printed = false;
+        // O Chrome sugere o nome do PDF pelo título da página principal: troca durante a impressão
+        const oldTitle = document.title;
+        const docTitle = (doc.title || '').trim();
         const print = () => {
             if (printed) return;
             printed = true;
+            if (docTitle) document.title = docTitle;
             win.focus();
-            win.print();
-            setTimeout(() => frame.remove(), 1000);
+            win.print();   // bloqueia até fechar a janela de impressão
+            setTimeout(() => { document.title = oldTitle; frame.remove(); }, 1000);
         };
         // Espera logo + fontes (no máx. 3,5 s; sem internet sai com a fonte do sistema)
         const imgs = [...doc.images].map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; }));
@@ -351,7 +357,7 @@ const QuotePDF = {
         const detail = (i) => [i.optionsText, i.material, i.colors, i.finish].filter(v => v && v !== '-').map(esc).join(' · ');
 
         const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>Ficha-Pedido-${esc(docNo(order))}</title>
+<title>Ficha Pedido ${esc(docNo(order))} ${esc(fileName(order.customerName || ''))}</title>
 <style>
     @page { size: A4; margin: 12mm; }
     * { box-sizing: border-box; }
