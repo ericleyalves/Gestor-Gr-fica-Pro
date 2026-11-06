@@ -1,4 +1,4 @@
-// Service worker do Gestor Gráfico Pro.
+// Service worker do Gestor Gráfico Pro (GitHub Pages /Gestor-Gr-fica-Pro/ ou localhost).
 // 1) Permite instalar como app no Chrome (botão "Instalar" na barra de endereço).
 // 2) Guarda uma cópia dos arquivos do sistema: se o "Iniciar Site.bat" não estiver
 //    aberto, o app instalado ainda abre (os dados vêm do Supabase, pela internet).
@@ -26,7 +26,7 @@ self.addEventListener("fetch", (e) => {
       })
       .catch(() =>
         caches.match(req, { ignoreSearch: true }).then((r) =>
-          r || (req.mode === "navigate" ? caches.match("/index.html") : undefined) || Response.error()
+          r || (req.mode === "navigate" ? caches.match(new URL("index.html", self.registration.scope).href) : undefined) || Response.error()
         )
       )
   );
