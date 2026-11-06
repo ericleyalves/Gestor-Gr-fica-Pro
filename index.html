@@ -4,6 +4,16 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Gestor Gráfico Pro — Sistema de Gestão</title>
+    <!-- App instalável (Chrome: botão "Instalar" na barra de endereço) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6C2BFF">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <script>
+      if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+        addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+      }
+    </script>
     <meta name="description" content="Sistema de gestão completo para gráficas: produtos, clientes, orçamentos, produção e financeiro.">
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
