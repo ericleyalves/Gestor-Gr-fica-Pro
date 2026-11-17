@@ -142,7 +142,7 @@ const Dashboard = {
                 <div class="data-table">
                     <div class="flex justify-between items-center px-5 py-4 border-b" style="border-color:var(--border);">
                         <h3 class="section-heading">Últimos Pedidos em Produção</h3>
-                        <button class="text-sm font-semibold" style="color:var(--primary);" onclick="window._app && window._app.navigateTo('producao')">Ver tudo →</button>
+                        <button class="text-sm font-semibold" style="color:var(--primary);" data-goto-production>Ver tudo →</button>
                     </div>
                     ${activeOrders.length === 0
                         ? `<div class="empty-state">
